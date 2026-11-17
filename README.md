@@ -17,15 +17,24 @@ Desktop AI copilot for understanding survey questions and recommending accurate,
 
 ## Documentation
 
-Read the [complete technical blueprint](docs/BLUEPRINT.md) for product scope, architecture, data model, AI workflow, Digital Persona, memory and consistency, desktop UX, security, testing, MVP scope, roadmap, and release checklist.
+Start with the [documentation index](docs/00-INDEX.md). The documentation set covers:
+
+- Product requirements, feature scope, personas, and user flows.
+- System architecture, database schema, AI architecture, security, and technology stack.
+- AI prompt contract, question classification, answer generation, memory, consistency, and evaluation.
+- UI/UX specification, design system, and desktop layout.
+- Development roadmap, implementation plan, coding standards, testing, and release planning.
+- Installation, configuration, draft privacy notice, troubleshooting, and architecture decision records.
+
+The original [technical blueprint](docs/BLUEPRINT.md) remains the high-level overview.
 
 ## Planned stack
 
-Tauri 2, Rust, React, TypeScript, Tailwind CSS, shadcn/ui, SQLite, OpenAI API, Zod, Zustand, TanStack Query, SQLite FTS5, and optional Tesseract OCR.
+Tauri 2, Rust, React, TypeScript, Tailwind CSS, shadcn/ui, SQLite, an AI provider adapter, Zod, Zustand, TanStack Query, optional SQLite FTS5, and deferred OCR.
 
 ## Development status
 
-The repository currently contains the product and engineering blueprint. Application implementation has not yet been added.
+This repository currently contains planning and engineering documentation. The desktop application source code has not yet been added. Documents marked **Proposed** or **Draft** describe intended behavior, not shipped functionality. The privacy notice is not a legally reviewed policy.
 
 ## Initial implementation sequence
 
@@ -34,8 +43,8 @@ The repository currently contains the product and engineering blueprint. Applica
 3. Implement SQLite migrations and repositories.
 4. Build Digital Persona CRUD and verification.
 5. Build Survey Workspace and answer history.
-6. Integrate the AI client and structured Answer Engine.
+6. Integrate the AI provider adapter and structured Answer Engine.
 7. Add evidence display, consistency checks, and user review.
-8. Add OCR, privacy controls, and release packaging.
+8. Add privacy controls, security hardening, and release packaging.
 
-See [docs/BLUEPRINT.md](docs/BLUEPRINT.md) for full details.
+See the [development roadmap](docs/05-development/DEVELOPMENT_ROADMAP.md) and [implementation plan](docs/05-development/IMPLEMENTATION_PLAN.md).
