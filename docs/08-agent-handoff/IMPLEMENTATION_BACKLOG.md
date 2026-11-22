@@ -86,15 +86,15 @@ This backlog is the execution order for Antigravity. Checkboxes are intentionall
 **Acceptance:** Gemini connection test and one structured generation work without provider-specific logic leaking into answer domain. Automated tests cover provider config CRUD, opaque credential referencing, zero secret leakage in summaries/IPC, Gemini REST API payload mapping, structured output parsing (AT-032), HTTPS enforcement and localhost HTTP exemption (AT-037), cross-host redirect isolation (AT-038), normalized error category mapping, and full UI in SettingsView (`src-tauri/tests/provider_adapter_tests.rs` and `tests/provider_configuration.test.ts`).
 
 ### SC-022 — Provider pool
-- [ ] Implement adaptive, round-robin, weighted, and priority selection.
-- [ ] Implement per-key health, cooldown, bounded concurrency, timeout, cancellation, and bounded retry.
-- [ ] Respect Retry-After and normalized error categories.
-- [ ] Stop retries for account/project quota or billing restrictions.
-- [ ] Prevent key rotation from evading provider quotas or terms.
-- [ ] Preserve local user input on all failure paths.
-- [ ] Add deterministic pool tests with mocked adapters and fake clock.
+- [x] Implement adaptive, round-robin, weighted, and priority selection.
+- [x] Implement per-key health, cooldown, bounded concurrency, timeout, cancellation, and bounded retry.
+- [x] Respect Retry-After and normalized error categories.
+- [x] Stop retries for account/project quota or billing restrictions.
+- [x] Prevent key rotation from evading provider quotas or terms.
+- [x] Preserve local user input on all failure paths.
+- [x] Add deterministic pool tests with mocked adapters and fake clock.
 
-**Acceptance:** Correct failover/retry decisions pass tests; invalid requests/refusals are not retried; account-level restrictions stop the pool.
+**Acceptance:** Correct failover/retry decisions pass tests; invalid requests/refusals are not retried; account-level restrictions stop the pool. Automated integration and unit tests cover adaptive/round-robin/weighted/priority strategies, 429 Retry-After cooldown and failover (AT-033), project/account quota immediate retry stop and request preservation (AT-034), invalid request / content refusal non-retry (AT-035), user cancellation (AT-036), bounded concurrency, zero credential leakage, and full SettingsView management UI (`src-tauri/tests/provider_pool_tests.rs` and `tests/provider_pool.test.ts`).
 
 ## P3 — Question-to-answer workflow
 

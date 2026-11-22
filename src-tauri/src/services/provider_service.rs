@@ -2,8 +2,8 @@ use crate::db::Database;
 use crate::domain::endpoint_validator::EndpointValidator;
 use crate::domain::error::AppError;
 use crate::domain::provider::{
-    AdapterType, ConnectionTestResult, CreateProviderConfigInput, ModelOption, NormalizedError,
-    NormalizedRequest, NormalizedResponse, ProviderConfig, ProviderConfigSummary, ProviderType,
+    AdapterType, ConnectionTestResult, CreateProviderConfigInput, ModelOption, NormalizedRequest,
+    NormalizedResponse, ProviderConfig, ProviderConfigSummary, ProviderType,
     UpdateProviderConfigInput,
 };
 use crate::infrastructure::adapters::{get_adapter, GeminiAdapter, OpenAiCompatibleAdapter};

@@ -175,6 +175,7 @@ impl ProviderRepository {
     }
 
     /// Memperbarui status health provider setelah pengujian atau operasi AI
+    #[allow(clippy::too_many_arguments)]
     pub fn update_health(
         conn: &Connection,
         config_id: &str,

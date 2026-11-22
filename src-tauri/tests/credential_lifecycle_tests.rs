@@ -1,5 +1,5 @@
 use rusqlite::Connection;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use survey_copilot_lib::db::Database;
 use survey_copilot_lib::domain::credential::{
     CredentialStatus, SaveCredentialInput, UpdateCredentialInput,
@@ -13,7 +13,7 @@ fn setup_test_db() -> Database {
     let runner = survey_copilot_lib::migrations::MigrationRunner::with_app_migrations();
     runner.run(&mut conn).expect("run migrations");
     Database {
-        connection: Arc::new(Mutex::new(conn)),
+        connection: Mutex::new(conn),
     }
 }
 

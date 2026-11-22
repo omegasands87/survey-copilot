@@ -62,20 +62,17 @@ impl DefaultHttpTransport {
         Self { client }
     }
 
-    fn execute_with_redirect_check<F>(
+    async fn execute_with_redirect_check(
         &self,
         original_url: &str,
-        mut make_request: F,
-    ) -> Result<HttpResponse, NormalizedError>
-    where
-        F: FnMut(&str) -> Result<reqwest::Response, reqwest::Error>,
-    {
+        request_builder: reqwest::RequestBuilder,
+    ) -> Result<HttpResponse, NormalizedError> {
         // 1. SSRF validation on the initial URL
         let validated_url = EndpointValidator::validate_url(original_url).map_err(|e| {
             NormalizedError::new(NormalizedErrorCategory::InvalidRequest, e.message)
         })?;
 
-        let response = make_request(&validated_url).map_err(|e| {
+        let response = request_builder.send().await.map_err(|e| {
             if e.is_timeout() {
                 NormalizedError::new(
                     NormalizedErrorCategory::Timeout,
@@ -117,7 +114,7 @@ impl DefaultHttpTransport {
             }
         }
 
-        let body = response.text().map_err(|e| {
+        let body = response.text().await.map_err(|e| {
             NormalizedError::new(
                 NormalizedErrorCategory::ResponseParseError,
                 format!("Gagal membaca isi respon provider: {e}"),
@@ -146,23 +143,21 @@ impl HttpTransport for DefaultHttpTransport {
         body_json: &serde_json::Value,
         timeout_ms: u64,
     ) -> Result<HttpResponse, NormalizedError> {
-        let client = &self.client;
-        tauri::async_runtime::block_on(async {
-            self.execute_with_redirect_check(url, |target_url| {
-                tauri::async_runtime::block_on(async {
-                    let mut req = client
-                        .post(target_url)
-                        .timeout(Duration::from_millis(timeout_ms))
-                        .json(body_json);
+        let validated_url = EndpointValidator::validate_url(url).map_err(|e| {
+            NormalizedError::new(NormalizedErrorCategory::InvalidRequest, e.message)
+        })?;
 
-                    for (k, v) in headers {
-                        req = req.header(*k, *v);
-                    }
+        let mut req = self
+            .client
+            .post(&validated_url)
+            .timeout(Duration::from_millis(timeout_ms))
+            .json(body_json);
 
-                    req.send().await
-                })
-            })
-        })
+        for (k, v) in headers {
+            req = req.header(*k, *v);
+        }
+
+        tauri::async_runtime::block_on(self.execute_with_redirect_check(&validated_url, req))
     }
 
     fn get(
@@ -171,30 +166,30 @@ impl HttpTransport for DefaultHttpTransport {
         headers: &[(&str, &str)],
         timeout_ms: u64,
     ) -> Result<HttpResponse, NormalizedError> {
-        let client = &self.client;
-        tauri::async_runtime::block_on(async {
-            self.execute_with_redirect_check(url, |target_url| {
-                tauri::async_runtime::block_on(async {
-                    let mut req = client
-                        .get(target_url)
-                        .timeout(Duration::from_millis(timeout_ms));
+        let validated_url = EndpointValidator::validate_url(url).map_err(|e| {
+            NormalizedError::new(NormalizedErrorCategory::InvalidRequest, e.message)
+        })?;
 
-                    for (k, v) in headers {
-                        req = req.header(*k, *v);
-                    }
+        let mut req = self
+            .client
+            .get(&validated_url)
+            .timeout(Duration::from_millis(timeout_ms));
 
-                    req.send().await
-                })
-            })
-        })
+        for (k, v) in headers {
+            req = req.header(*k, *v);
+        }
+
+        tauri::async_runtime::block_on(self.execute_with_redirect_check(&validated_url, req))
     }
 }
+
+pub type RecordedMockRequest = (String, Vec<(String, String)>, Option<serde_json::Value>);
 
 /// Test Mock Transport allowing deterministic responses without network calls
 #[derive(Clone, Default)]
 pub struct MockHttpTransport {
     responses: Arc<Mutex<Vec<HttpResponse>>>,
-    recorded_requests: Arc<Mutex<Vec<(String, Vec<(String, String)>, Option<serde_json::Value>)>>>,
+    recorded_requests: Arc<Mutex<Vec<RecordedMockRequest>>>,
 }
 
 impl MockHttpTransport {
@@ -207,9 +202,7 @@ impl MockHttpTransport {
         resps.push(response);
     }
 
-    pub fn get_recorded_requests(
-        &self,
-    ) -> Vec<(String, Vec<(String, String)>, Option<serde_json::Value>)> {
+    pub fn get_recorded_requests(&self) -> Vec<RecordedMockRequest> {
         self.recorded_requests.lock().unwrap().clone()
     }
 }

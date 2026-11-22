@@ -133,3 +133,38 @@ Advanced settings may expose strategy, retry limit, concurrency, timeout, and ra
 - Custom HTTPS endpoint and model can be configured without changing application code when using a supported adapter.
 - Unsupported custom protocol is rejected with a clear explanation.
 - Logs and exports contain no API key values or raw prompts by default.
+
+## 11. Implemented v1.0 Pool Architecture (SC-022)
+
+The Provider Pool implementation is modularized across backend and frontend layers:
+
+- **Domain Model (`src-tauri/src/domain/pool.rs`)**:
+  - `PoolStrategy`: `adaptive`, `round_robin`, `weighted`, `priority`.
+  - `PoolSettings`: global pool parameters (`strategy`, `max_attempts`, `auto_retry`, `retry_base_delay_ms`, `max_retry_delay_ms`).
+  - `ProviderHealthState`: `ready`, `cooling_down`, `quota_exhausted`, `needs_attention`, `disabled`.
+  - `ProviderHealthInfo`: health metrics, latency observations, consecutive failures, and active concurrency.
+  - `ProviderAttemptLog` and `PoolExecutionResult`: structured result contract strictly preserving user request payloads on failure.
+  - `CancellationToken` and `TimeSource` (with `FakeTimeSource` for deterministic tests).
+
+- **Service Layer (`src-tauri/src/services/provider_pool.rs`)**:
+  - `ProviderPoolService`: RAII concurrency tracking (`ConcurrencyGuard`), strategy-based candidate selection, cooldown calculation with bounded exponential backoff and `Retry-After` enforcement.
+  - Account/Project Quota Exhaustion Policy (AT-034): immediate abort of retries upon detecting account/project quota exhaustion (`QuotaExhausted`).
+  - Non-retryable error policy (AT-035): immediate halt on `InvalidRequest`, `ContentRefused`, and permanent `AuthenticationFailed`.
+  - Per-credential rate limit policy (AT-033): transient cooldown and bounded failover to next eligible key.
+  - Cancellation policy (AT-036): immediate cessation of queued retries.
+
+- **Persistence Layer (`src-tauri/src/repository/pool_repo.rs`)**:
+  - Parameterized SQLite operations on `provider_pool_settings` and `provider_health`.
+  - Automatic expiration and reset of past cooldowns (`reset_cooldown_if_expired`).
+
+- **Typed IPC Commands (`src-tauri/src/commands/provider_pool.rs`)**:
+  - `provider_pool_get_settings`
+  - `provider_pool_update_settings`
+  - `provider_pool_list_health`
+  - `provider_pool_execute_request`
+
+- **Frontend & Verification**:
+  - Typed definitions: `src/types/providerPool.ts`.
+  - Service: `src/services/providerPoolService.ts`.
+  - Settings UI: `src/components/views/SettingsView.tsx` with pool strategy selector, retry parameters, and provider health badges.
+  - Automated tests: `src-tauri/tests/provider_pool_tests.rs` and `tests/provider_pool.test.ts`.

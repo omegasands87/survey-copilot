@@ -4,6 +4,7 @@ pub mod data_management;
 pub mod fact;
 pub mod persona;
 pub mod provider;
+pub mod provider_pool;
 
 pub use app::app_status;
 pub use credential::{
@@ -26,4 +27,8 @@ pub use persona::{
 pub use provider::{
     provider_config_create, provider_config_delete, provider_config_get, provider_config_list,
     provider_config_test_connection, provider_config_update, provider_get_recommended_models,
+};
+pub use provider_pool::{
+    provider_pool_execute_request, provider_pool_get_settings, provider_pool_list_health,
+    provider_pool_update_settings,
 };

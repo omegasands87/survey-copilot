@@ -17,9 +17,15 @@ import type {
   ModelOption,
   ProviderConfigSummary,
 } from "../../types/provider";
+import type {
+  PoolSettings,
+  PoolStrategy,
+  ProviderHealthInfo,
+} from "../../types/providerPool";
 import { dataManagementService } from "../../services/dataManagementService";
 import { CredentialService } from "../../services/credentialService";
 import { ProviderService } from "../../services/providerService";
+import { ProviderPoolService } from "../../services/providerPoolService";
 import { AppError } from "../../types/error";
 
 type SettingsTab = "credentials" | "export" | "retention" | "danger";
@@ -127,15 +133,67 @@ export function SettingsView({
   const [personaToDeleteId, setPersonaToDeleteId] = useState<string>("");
   const [isDeletingPersona, setIsDeletingPersona] = useState(false);
 
+  // Provider Pool State (SC-022)
+  const [poolSettings, setPoolSettings] = useState<PoolSettings | null>(null);
+  const [poolStrategy, setPoolStrategy] = useState<PoolStrategy>("adaptive");
+  const [poolMaxAttempts, setPoolMaxAttempts] = useState(3);
+  const [poolAutoRetry, setPoolAutoRetry] = useState(true);
+  const [poolRetryBaseDelayMs, setPoolRetryBaseDelayMs] = useState(1000);
+  const [poolMaxRetryDelayMs, setPoolMaxRetryDelayMs] = useState(15000);
+  const [isSavingPoolSettings, setIsSavingPoolSettings] = useState(false);
+  const [providerHealthList, setProviderHealthList] = useState<ProviderHealthInfo[]>([]);
+
   useEffect(() => {
     if (activeTab === "credentials") {
       void loadCredentials();
       void loadProviderConfigs();
       void loadRecommendedModels(newPConfigProviderType);
+      void loadPoolData();
     } else if (activeTab === "retention" && !retentionInfo) {
       void loadRetentionInfo();
     }
   }, [activeTab]);
+
+  async function loadPoolData() {
+    try {
+      const [settings, health] = await Promise.all([
+        ProviderPoolService.getSettings(),
+        ProviderPoolService.listHealth(),
+      ]);
+      setPoolSettings(settings);
+      setPoolStrategy(settings.strategy);
+      setPoolMaxAttempts(settings.maxAttempts);
+      setPoolAutoRetry(settings.autoRetry);
+      setPoolRetryBaseDelayMs(settings.retryBaseDelayMs);
+      setPoolMaxRetryDelayMs(settings.maxRetryDelayMs);
+      setProviderHealthList(health);
+    } catch (err) {
+      console.error("Gagal memuat data provider pool:", err);
+    }
+  }
+
+  async function handleSavePoolSettings(e: React.FormEvent) {
+    e.preventDefault();
+    setIsSavingPoolSettings(true);
+    setProviderErrorMessage(null);
+    setProviderSuccessMessage(null);
+    try {
+      const updated = await ProviderPoolService.updateSettings({
+        strategy: poolStrategy,
+        maxAttempts: Number(poolMaxAttempts),
+        autoRetry: poolAutoRetry,
+        retryBaseDelayMs: Number(poolRetryBaseDelayMs),
+        maxRetryDelayMs: Number(poolMaxRetryDelayMs),
+      });
+      setPoolSettings(updated);
+      setProviderSuccessMessage("Pengaturan Provider Pool berhasil disimpan.");
+      await loadPoolData();
+    } catch (err) {
+      setProviderErrorMessage(AppError.from(err).message);
+    } finally {
+      setIsSavingPoolSettings(false);
+    }
+  }
 
   async function loadCredentials() {
     setIsCredentialsLoading(true);
@@ -939,16 +997,111 @@ export function SettingsView({
 
             <hr style={{ margin: "24px 0", border: "0", borderTop: "1px solid var(--line)" }} />
 
+            {/* PENGATURAN PROVIDER POOL & KEBIJAKAN RETRY (SC-022) */}
+            <form onSubmit={handleSavePoolSettings} className="cred-form" style={{ marginTop: "18px", maxWidth: "100%", background: "#f8fbf9" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h4>⚙️ Pengaturan Provider Pool & Kebijakan Retry (SC-022)</h4>
+                {poolSettings && (
+                  <span style={{ fontSize: "11px", color: "var(--muted)" }}>
+                    Pembaruan: {new Date(poolSettings.updatedAt).toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: "12px", color: "var(--muted)", margin: "4px 0 14px 0" }}>
+                Atur strategi pemilihan provider, kuota konkurensi, dan toleransi retry. Pool menjamin ketahanan operasional tanpa memanipulasi kuota atau ketentuan penyedia AI.
+              </p>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
+                <div className="form-group">
+                  <label htmlFor="pool-strategy">Strategi Pemilihan Provider:</label>
+                  <select
+                    id="pool-strategy"
+                    value={poolStrategy}
+                    onChange={(e) => setPoolStrategy(e.target.value as PoolStrategy)}
+                  >
+                    <option value="adaptive">Adaptive Availability-Aware (Cerdas & Seimbang)</option>
+                    <option value="priority">Priority (Utamakan Prioritas Tertinggi)</option>
+                    <option value="round_robin">Round-Robin (Rotasi Bergantian)</option>
+                    <option value="weighted">Weighted (Berdasarkan Bobot Relatif)</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="pool-max-attempts">Batas Percobaan Maksimal (Attempts):</label>
+                  <input
+                    id="pool-max-attempts"
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={poolMaxAttempts}
+                    onChange={(e) => setPoolMaxAttempts(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="pool-base-delay">Jeda Awal Retry (ms):</label>
+                  <input
+                    id="pool-base-delay"
+                    type="number"
+                    min={100}
+                    max={60000}
+                    step={500}
+                    value={poolRetryBaseDelayMs}
+                    onChange={(e) => setPoolRetryBaseDelayMs(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="pool-max-delay">Batas Maksimal Delay Retry (ms):</label>
+                  <input
+                    id="pool-max-delay"
+                    type="number"
+                    min={1000}
+                    max={120000}
+                    step={1000}
+                    value={poolMaxRetryDelayMs}
+                    onChange={(e) => setPoolMaxRetryDelayMs(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer", fontWeight: "normal" }}>
+                  <input
+                    type="checkbox"
+                    checked={poolAutoRetry}
+                    onChange={(e) => setPoolAutoRetry(e.target.checked)}
+                  />
+                  Aktifkan Auto-Retry otomatis pada kegagalan sementara (Rate Limit 429 & Network Error)
+                </label>
+              </div>
+
+              <div className="info-callout" style={{ marginTop: "12px", fontSize: "11px", color: "var(--muted)" }}>
+                <strong>Kepatuhan Kuota & Privasi:</strong> Error pembatasan kuota tingkat akun/project Google Cloud (<code>QuotaExhausted</code>) akan langsung menghentikan retry pada seluruh pool. Dilarang menggunakan pool untuk menghindari batas free-tier atau ketentuan penyedia AI.
+              </div>
+
+              <div style={{ marginTop: "14px" }}>
+                <button type="submit" className="btn btn-primary" disabled={isSavingPoolSettings}>
+                  {isSavingPoolSettings ? "Menyimpan Pengaturan..." : "💾 Simpan Pengaturan Pool"}
+                </button>
+              </div>
+            </form>
+
+            <hr style={{ margin: "24px 0", border: "0", borderTop: "1px solid var(--line)" }} />
+
             {/* DAFTAR KONFIGURASI PROVIDER */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h4>Daftar Konfigurasi Provider AI ({providerConfigs.length})</h4>
               <button
                 className="btn btn-secondary"
                 style={{ padding: "6px 12px", fontSize: "11px" }}
-                onClick={() => void loadProviderConfigs()}
+                onClick={() => {
+                  void loadProviderConfigs();
+                  void loadPoolData();
+                }}
                 disabled={isProviderConfigsLoading}
               >
-                {isProviderConfigsLoading ? "Menyegarkan..." : "🔄 Segarkan Provider"}
+                {isProviderConfigsLoading ? "Menyegarkan..." : "🔄 Segarkan Provider & Health"}
               </button>
             </div>
 
@@ -961,15 +1114,29 @@ export function SettingsView({
                 {providerConfigs.map((config) => {
                   const testRes = providerTestResults[config.id];
                   const isTesting = testingProviderId === config.id;
+                  const healthInfo = providerHealthList.find((h) => h.providerConfigId === config.id);
+                  const stateKey = !config.enabled ? "disabled" : (healthInfo?.state || "ready");
+                  const stateLabels: Record<string, string> = {
+                    ready: "🟢 Siap",
+                    cooling_down: `⏳ Cooldown${healthInfo?.cooldownUntil ? ` (${new Date(healthInfo.cooldownUntil).toLocaleTimeString()})` : ""}`,
+                    quota_exhausted: "🛑 Batas Kuota",
+                    needs_attention: "⚠️ Perlu Perhatian",
+                    disabled: "⚪ Nonaktif",
+                  };
 
                   return (
                     <div key={config.id} className={`provider-card ${!config.enabled ? "disabled" : ""}`}>
                       <div className="cred-card-header">
                         <div>
                           <h5 className="cred-card-title">{config.displayName}</h5>
-                          <span className="badge" style={{ marginTop: "4px" }}>
-                            {config.providerType === "gemini" ? "Google Gemini" : "OpenAI Compatible"}
-                          </span>
+                          <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "4px", flexWrap: "wrap" }}>
+                            <span className="badge">
+                              {config.providerType === "gemini" ? "Google Gemini" : "OpenAI Compatible"}
+                            </span>
+                            <span className={`pool-health-badge ${stateKey}`}>
+                              {stateLabels[stateKey] || stateKey}
+                            </span>
+                          </div>
                         </div>
                         <button
                           className={`btn ${config.enabled ? "btn-secondary" : "btn-primary"}`}
@@ -983,12 +1150,19 @@ export function SettingsView({
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                         <span className="provider-model-pill">Model: {config.modelId}</span>
                         <span className="badge" style={{ fontSize: "10px" }}>Prioritas: {config.priority}</span>
+                        <span className="badge" style={{ fontSize: "10px" }}>Bobot: {config.weight}</span>
+                        <span className="badge" style={{ fontSize: "10px" }}>
+                          Konkurensi: {healthInfo?.currentConcurrency || 0} / {config.maxConcurrency}
+                        </span>
                         <span className="badge" style={{ fontSize: "10px" }}>Timeout: {config.timeoutMs}ms</span>
                       </div>
 
                       <div style={{ fontSize: "11px", color: "var(--muted)" }}>
                         <div>Kredensial: <strong>{config.credentialLabel || config.credentialRef}</strong></div>
                         {config.baseUrl && <div>Endpoint: <code>{config.baseUrl}</code></div>}
+                        {healthInfo?.recentLatencyMs != null && (
+                          <div>Latensi Terkini: <strong>{healthInfo.recentLatencyMs} ms</strong></div>
+                        )}
                       </div>
 
                       {testRes && (

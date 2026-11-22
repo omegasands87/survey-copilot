@@ -14,6 +14,9 @@ pub struct CredentialStoreState(
 #[derive(Clone)]
 pub struct HttpTransportState(pub std::sync::Arc<dyn infrastructure::http::HttpTransport>);
 
+#[derive(Clone)]
+pub struct ProviderPoolState(pub std::sync::Arc<services::ProviderPoolService>);
+
 use commands::{
     app_status, credential_delete, credential_get_status, credential_list, credential_save,
     credential_test, credential_update, data_get_retention_info, data_get_wipe_summary,
@@ -24,6 +27,8 @@ use commands::{
     persona_restore, persona_set_active, persona_update, provider_config_create,
     provider_config_delete, provider_config_get, provider_config_list,
     provider_config_test_connection, provider_config_update, provider_get_recommended_models,
+    provider_pool_execute_request, provider_pool_get_settings, provider_pool_list_health,
+    provider_pool_update_settings,
 };
 use db::Database;
 use std::fs;
@@ -47,6 +52,9 @@ pub fn run() {
             let http_transport: Arc<dyn infrastructure::http::HttpTransport> =
                 Arc::new(infrastructure::http::DefaultHttpTransport::new());
             app.manage(HttpTransportState(http_transport));
+
+            let pool_service = Arc::new(services::ProviderPoolService::new());
+            app.manage(ProviderPoolState(pool_service));
 
             Ok(())
         })
@@ -90,7 +98,11 @@ pub fn run() {
             provider_config_update,
             provider_config_delete,
             provider_config_test_connection,
-            provider_get_recommended_models
+            provider_get_recommended_models,
+            provider_pool_get_settings,
+            provider_pool_update_settings,
+            provider_pool_list_health,
+            provider_pool_execute_request
         ])
         .run(tauri::generate_context!())
         .expect("error while running Survey Copilot");

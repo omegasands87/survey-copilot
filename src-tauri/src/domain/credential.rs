@@ -24,6 +24,7 @@ impl CredentialStatus {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         match s {
             "configured" => Self::Configured,

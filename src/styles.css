@@ -258,3 +258,10 @@ textarea:focus { border-color: #8bb99d; box-shadow: 0 0 0 3px #eaf4ee; }
 .provider-test-status.success { background: #eef8f2; border: 1px solid #bce3cb; color: #156236; }
 .provider-test-status.error { background: #fdf2f2; border: 1px solid #f5c4c4; color: #a12020; }
 
+.pool-health-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+.pool-health-badge.ready { background: #eef8f2; border: 1px solid #bce3cb; color: #156236; }
+.pool-health-badge.cooling_down { background: #fff8e6; border: 1px solid #fce3a6; color: #8a6100; }
+.pool-health-badge.quota_exhausted { background: #fdf2f2; border: 1px solid #f5c4c4; color: #a12020; }
+.pool-health-badge.needs_attention { background: #fef3e2; border: 1px solid #fedbb5; color: #b25e00; }
+.pool-health-badge.disabled { background: #f0f2f1; border: 1px solid #d4dad6; color: #616e66; }
+

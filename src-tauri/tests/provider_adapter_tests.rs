@@ -3,12 +3,11 @@ use serde_json::json;
 use std::sync::Arc;
 use survey_copilot_lib::db::Database;
 use survey_copilot_lib::domain::endpoint_validator::EndpointValidator;
-use survey_copilot_lib::domain::error::AppError;
 use survey_copilot_lib::domain::provider::{
     CreateProviderConfigInput, NormalizedErrorCategory, NormalizedFinishReason, NormalizedRequest,
     UpdateProviderConfigInput,
 };
-use survey_copilot_lib::infrastructure::adapters::{get_adapter, GeminiAdapter};
+use survey_copilot_lib::infrastructure::adapters::{AiProviderAdapter, GeminiAdapter};
 use survey_copilot_lib::infrastructure::credentials::in_memory::InMemoryCredentialStore;
 use survey_copilot_lib::infrastructure::http::{HttpResponse, MockHttpTransport};
 use survey_copilot_lib::migrations::MigrationRunner;
@@ -16,10 +15,10 @@ use survey_copilot_lib::services::{CredentialService, ProviderService};
 
 fn setup_test_db() -> Database {
     let mut conn = Connection::open_in_memory().expect("in-memory db must open");
-    let mut runner = MigrationRunner::with_app_migrations();
+    let runner = MigrationRunner::with_app_migrations();
     runner.run(&mut conn).expect("migrations must succeed");
     Database {
-        connection: Arc::new(std::sync::Mutex::new(conn)),
+        connection: std::sync::Mutex::new(conn),
     }
 }
 
@@ -87,7 +86,7 @@ fn test_at_032_gemini_structured_request_normalized_and_returned() {
 
     // Structured JSON must be correctly extracted and parsed
     assert!(response.structured_json.is_some());
-    let structured = response.structured_json.unwrap();
+    let structured = response.structured_json.as_ref().unwrap();
     assert_eq!(structured["status"], "supported");
     assert_eq!(structured["draft_answer"], "Software Engineer");
     assert_eq!(structured["supporting_fact_ids"][0], "fact_job_01");

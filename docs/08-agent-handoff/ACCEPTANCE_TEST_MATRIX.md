@@ -21,10 +21,10 @@ Use this matrix to convert product requirements into automated tests and manual 
 | AT-030 | Credentials | Add API key | Secret stored in Windows Credential Manager; only opaque ref in DB (Automated tests: `test_at_030_save_credential_stores_secret_in_manager_and_opaque_ref_in_db` & `tests/credential_management.test.ts`) | P2 |
 | AT-031 | Credentials | Remove provider | Credential removed; failure surfaced; shared credential protected (Automated tests: `test_at_031_delete_credential_removes_from_store_and_db` & `test_delete_shared_credential_requires_force_when_in_use`) | P2 |
 | AT-032 | Provider | Gemini structured request | Normalized response validated and returned (Automated tests: `test_at_032_gemini_structured_request_normalized_and_returned` & `tests/provider_configuration.test.ts`) | P2 |
-| AT-033 | Pool | One key returns 429, another healthy | Respect Retry-After/cooldown and fail over if permitted | P2 |
-| AT-034 | Pool | All keys hit account quota | Stop retries for account/project scope; preserve question | P2 |
-| AT-035 | Pool | Invalid request/content refusal | Do not rotate through all keys | P2 |
-| AT-036 | Pool | User cancels request | Queued retries stop; no hidden request continues | P2 |
+| AT-033 | Pool | One key returns 429, another healthy | Respect Retry-After/cooldown and fail over if permitted (Automated tests: `test_at_033_pool_failover_on_429_rate_limited_and_respect_retry_after` & `tests/provider_pool.test.ts`) | P2 |
+| AT-034 | Pool | All keys hit account quota | Stop retries for account/project scope; preserve question (Automated tests: `test_at_034_account_project_quota_exhausted_stops_pool_retries_and_preserves_request` & `tests/provider_pool.test.ts`) | P2 |
+| AT-035 | Pool | Invalid request/content refusal | Do not rotate through all keys (Automated tests: `test_at_035_invalid_request_and_content_refusal_do_not_rotate_through_keys` & `tests/provider_pool.test.ts`) | P2 |
+| AT-036 | Pool | User cancels request | Queued retries stop; no hidden request continues (Automated tests: `test_at_036_user_cancellation_stops_queued_retries` & `tests/provider_pool.test.ts`) | P2 |
 | AT-037 | Custom endpoint | HTTP endpoint outside localhost | Reject unless explicitly allowed by policy; default HTTPS only (Automated tests: `test_at_037_http_endpoint_outside_localhost_rejected_default_https_only` & `tests/provider_configuration.test.ts`) | P2 |
 | AT-038 | Security | Redirect to another host | Never forward API credentials to unapproved origin (Automated tests: `test_at_038_redirect_to_another_host_never_forwards_credentials` & `tests/provider_configuration.test.ts`) | P2 |
 | AT-040 | Question | Paste question | Original text persists and is recoverable after restart | P3 |
