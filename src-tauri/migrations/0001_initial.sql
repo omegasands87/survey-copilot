@@ -95,6 +95,65 @@ CREATE TABLE IF NOT EXISTS survey_questions (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS survey_opportunities (
+  id TEXT PRIMARY KEY,
+  title TEXT,
+  platform_label TEXT,
+  topic TEXT,
+  description TEXT,
+  source_capture_id TEXT REFERENCES screen_captures(id) ON DELETE SET NULL,
+  captured_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS survey_opportunity_criteria (
+  id TEXT PRIMARY KEY,
+  opportunity_id TEXT NOT NULL REFERENCES survey_opportunities(id) ON DELETE CASCADE,
+  criterion_text TEXT NOT NULL,
+  normalized_attribute TEXT,
+  expected_value_json TEXT,
+  criterion_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS survey_fit_results (
+  id TEXT PRIMARY KEY,
+  opportunity_id TEXT NOT NULL REFERENCES survey_opportunities(id) ON DELETE CASCADE,
+  persona_id TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE,
+  criterion_id TEXT NOT NULL REFERENCES survey_opportunity_criteria(id) ON DELETE CASCADE,
+  match_state TEXT NOT NULL CHECK(match_state IN ('match', 'mismatch', 'unknown', 'stale', 'conflict')),
+  supporting_fact_ids_json TEXT NOT NULL DEFAULT '[]',
+  explanation TEXT NOT NULL,
+  evaluated_at TEXT NOT NULL,
+  UNIQUE(opportunity_id, persona_id, criterion_id)
+);
+
+CREATE TABLE IF NOT EXISTS survey_attempts (
+  id TEXT PRIMARY KEY,
+  opportunity_id TEXT NOT NULL REFERENCES survey_opportunities(id) ON DELETE CASCADE,
+  persona_id TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE,
+  session_id TEXT REFERENCES survey_sessions(id) ON DELETE SET NULL,
+  started_at TEXT NOT NULL,
+  ended_at TEXT,
+  current_outcome TEXT NOT NULL DEFAULT 'unknown'
+    CHECK(current_outcome IN ('qualified', 'screened_out', 'quota_full', 'completed', 'quality_rejected', 'technical_failure', 'abandoned_by_user', 'pending', 'unknown')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS survey_outcome_events (
+  id TEXT PRIMARY KEY,
+  attempt_id TEXT NOT NULL REFERENCES survey_attempts(id) ON DELETE CASCADE,
+  outcome_label TEXT NOT NULL
+    CHECK(outcome_label IN ('qualified', 'screened_out', 'quota_full', 'completed', 'quality_rejected', 'technical_failure', 'abandoned_by_user', 'pending', 'unknown')),
+  evidence_source TEXT NOT NULL,
+  evidence_note TEXT,
+  confidence TEXT NOT NULL DEFAULT 'observed'
+    CHECK(confidence IN ('observed', 'user_confirmed', 'uncertain')),
+  observed_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS provider_configs (
   id TEXT PRIMARY KEY,
   display_name TEXT NOT NULL,
@@ -191,6 +250,11 @@ CREATE INDEX IF NOT EXISTS idx_facts_persona_status ON profile_facts(persona_id,
 CREATE INDEX IF NOT EXISTS idx_sources_persona_fact ON fact_sources(persona_id, fact_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_persona_updated ON survey_sessions(persona_id, updated_at);
 CREATE INDEX IF NOT EXISTS idx_questions_session_order ON survey_questions(session_id, question_order);
+CREATE INDEX IF NOT EXISTS idx_opportunity_captured ON survey_opportunities(captured_at);
+CREATE INDEX IF NOT EXISTS idx_criteria_opportunity_order ON survey_opportunity_criteria(opportunity_id, criterion_order);
+CREATE INDEX IF NOT EXISTS idx_fit_persona_opportunity ON survey_fit_results(persona_id, opportunity_id);
+CREATE INDEX IF NOT EXISTS idx_attempt_persona_started ON survey_attempts(persona_id, started_at);
+CREATE INDEX IF NOT EXISTS idx_outcome_attempt_observed ON survey_outcome_events(attempt_id, observed_at);
 CREATE INDEX IF NOT EXISTS idx_recommendations_question_created ON answer_recommendations(question_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_history_question_created ON answer_history(question_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_provider_enabled_priority ON provider_configs(enabled, priority);
