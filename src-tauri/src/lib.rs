@@ -54,7 +54,7 @@ fn persona_list(database: State<'_, Database>) -> Result<Vec<PersonaSummary>, St
         .prepare(
             "SELECT id, display_name, is_active, status
              FROM personas
-             WHERE status != 'disabled'
+             WHERE status = 'active'
              ORDER BY is_active DESC, display_name COLLATE NOCASE ASC",
         )
         .map_err(|error| format!("Gagal membaca daftar profil: {error}"))?;
