@@ -1,77 +1,240 @@
 # Database Schema
 
-**Status:** Proposed logical schema. Exact SQL and migrations must be reviewed during implementation.
+**Status:** Normative logical schema for v1.0. Exact SQL migrations are implementation deliverables.
 
 ## 1. Conventions
-- Primary identifiers: UUID stored as TEXT.
-- Timestamps: UTC ISO-8601 strings.
-- Foreign keys enabled on every connection.
-- Use parameterized SQL exclusively.
-- Use explicit migrations; never mutate schema ad hoc at runtime.
-- Add indexes based on measured query patterns.
 
-## 2. Core tables
+- UUID text primary keys.
+- UTC timestamps in ISO-8601.
+- Enable SQLite foreign keys on every connection.
+- Parameterized SQL only.
+- Every persona-owned record includes persona_id directly or through a parent relationship that is checked in the service layer.
+- Never store API key values in SQLite.
 
-### users
-Single local profile owner for MVP: `id`, `display_name` (optional), `created_at`, `updated_at`.
+## 2. Tables
+
+### app_meta
+- key TEXT PRIMARY KEY
+- value TEXT NOT NULL
+
+Stores schema-independent app metadata and migration version.
+
+### personas
+- id TEXT PRIMARY KEY
+- display_name TEXT NOT NULL
+- description TEXT NULL
+- is_active INTEGER NOT NULL DEFAULT 0
+- status TEXT NOT NULL
+- created_at TEXT NOT NULL
+- updated_at TEXT NOT NULL
+- archived_at TEXT NULL
+
+Only one active persona at a time in v1.0. Persona records represent real respondents.
 
 ### profile_facts
-`id`, `user_id`, `category`, `attribute`, `value_json`, `normalized_value` (optional), `verification_status`, `sensitivity`, `valid_from`, `valid_until`, `created_at`, `updated_at`, `archived_at`.
+- id TEXT PRIMARY KEY
+- persona_id TEXT NOT NULL REFERENCES personas(id)
+- category TEXT NOT NULL
+- attribute TEXT NOT NULL
+- value_json TEXT NOT NULL
+- normalized_value TEXT NULL
+- verification_status TEXT NOT NULL
+- sensitivity TEXT NOT NULL
+- source_date TEXT NULL
+- valid_from TEXT NULL
+- valid_until TEXT NULL
+- notes TEXT NULL
+- created_at TEXT NOT NULL
+- updated_at TEXT NOT NULL
+- archived_at TEXT NULL
 
-Allowed verification statuses: `confirmed`, `unverified`, `disputed`, `outdated`. Store values with explicit types; do not coerce unknown values into strings where numeric/date semantics matter.
+Statuses: confirmed, unverified, disputed, outdated. Sensitivity: ordinary, sensitive, highly_sensitive.
 
 ### fact_sources
-`id`, `fact_id`, `source_type`, `description`, `reference_uri` (optional), `observed_at`, `created_at`. Avoid storing unnecessary document contents or credentials.
+- id TEXT PRIMARY KEY
+- persona_id TEXT NOT NULL REFERENCES personas(id)
+- fact_id TEXT NOT NULL REFERENCES profile_facts(id) ON DELETE CASCADE
+- source_type TEXT NOT NULL
+- description TEXT NOT NULL
+- reference_uri TEXT NULL
+- observed_at TEXT NULL
+- created_at TEXT NOT NULL
 
-### user_preferences
-`id`, `user_id`, `preference_key`, `value_json`, `updated_at`. Separate subjective preferences from factual profile claims.
+Source links must belong to the same persona as the fact.
+
+### persona_preferences
+- id TEXT PRIMARY KEY
+- persona_id TEXT NOT NULL REFERENCES personas(id)
+- preference_key TEXT NOT NULL
+- value_json TEXT NOT NULL
+- created_at TEXT NOT NULL
+- updated_at TEXT NOT NULL
+- UNIQUE(persona_id, preference_key)
+
+Preferences and opinions must not be treated as objective facts.
 
 ### survey_sessions
-`id`, `user_id`, `title`, `platform_label` (optional free text), `status`, `created_at`, `updated_at`, `archived_at`.
+- id TEXT PRIMARY KEY
+- persona_id TEXT NOT NULL REFERENCES personas(id)
+- title TEXT NULL
+- platform_label TEXT NULL
+- status TEXT NOT NULL
+- created_at TEXT NOT NULL
+- updated_at TEXT NOT NULL
+- archived_at TEXT NULL
+
+A session belongs to one persona. Changing active persona must never reassign an existing session.
+
+### screen_captures
+- id TEXT PRIMARY KEY
+- session_id TEXT NOT NULL REFERENCES survey_sessions(id) ON DELETE CASCADE
+- capture_mode TEXT NOT NULL
+- captured_at TEXT NOT NULL
+- application_label TEXT NULL
+- temporary_image_path TEXT NULL
+- image_deleted_at TEXT NULL
+- created_at TEXT NOT NULL
+
+Default retention stores no screenshot after OCR review; temporary path is nullable and must be deleted after processing.
 
 ### survey_questions
-`id`, `session_id`, `question_text`, `question_order`, `classification_json`, `created_at`, `updated_at`.
+- id TEXT PRIMARY KEY
+- session_id TEXT NOT NULL REFERENCES survey_sessions(id) ON DELETE CASCADE
+- capture_id TEXT NULL REFERENCES screen_captures(id) ON DELETE SET NULL
+- question_text_original TEXT NOT NULL
+- question_text_corrected TEXT NULL
+- instructions TEXT NULL
+- options_json TEXT NOT NULL DEFAULT '[]'
+- structure_json TEXT NULL
+- extraction_status TEXT NOT NULL
+- question_order INTEGER NOT NULL
+- created_at TEXT NOT NULL
+- updated_at TEXT NOT NULL
 
 ### answer_recommendations
-`id`, `question_id`, `status`, `draft_text`, `rationale`, `assumptions_json`, `model_metadata_json` (redacted), `created_at`.
+- id TEXT PRIMARY KEY
+- question_id TEXT NOT NULL REFERENCES survey_questions(id) ON DELETE CASCADE
+- status TEXT NOT NULL
+- draft_text TEXT NULL
+- interpretation TEXT NOT NULL
+- rationale TEXT NULL
+- missing_information_json TEXT NOT NULL DEFAULT '[]'
+- conflicts_json TEXT NOT NULL DEFAULT '[]'
+- assumptions_json TEXT NOT NULL DEFAULT '[]'
+- provider_config_id TEXT NULL REFERENCES provider_configs(id) ON DELETE SET NULL
+- model_id TEXT NULL
+- prompt_version TEXT NULL
+- created_at TEXT NOT NULL
 
-### answer_sources
-`id`, `recommendation_id`, `fact_id`, `support_note`. The application verifies every referenced fact exists and belongs to the current local user.
+### recommendation_sources
+- recommendation_id TEXT NOT NULL REFERENCES answer_recommendations(id) ON DELETE CASCADE
+- fact_id TEXT NOT NULL REFERENCES profile_facts(id) ON DELETE RESTRICT
+- persona_id TEXT NOT NULL REFERENCES personas(id)
+- support_note TEXT NULL
+- PRIMARY KEY(recommendation_id, fact_id)
+
+Before insert, verify the recommendation's session persona, source fact persona, and source persona are identical.
 
 ### answer_history
-`id`, `question_id`, `recommendation_id` (nullable), `answer_text`, `origin` (user_edited, user_confirmed, copied, rejected), `created_at`. A copied answer is not necessarily confirmed as fact.
+- id TEXT PRIMARY KEY
+- question_id TEXT NOT NULL REFERENCES survey_questions(id) ON DELETE CASCADE
+- recommendation_id TEXT NULL REFERENCES answer_recommendations(id) ON DELETE SET NULL
+- answer_text TEXT NOT NULL
+- action TEXT NOT NULL
+- created_at TEXT NOT NULL
 
-### ai_usage_logs
-`id`, `provider`, `model`, `operation`, `input_token_count` (optional), `output_token_count` (optional), `duration_ms`, `outcome`, `created_at`. Never store raw prompts, API keys, or full personal context by default.
+Actions: edited, confirmed, copied, rejected. A history record is not automatically a profile fact.
+
+### provider_configs
+- id TEXT PRIMARY KEY
+- display_name TEXT NOT NULL
+- provider_type TEXT NOT NULL
+- base_url TEXT NULL
+- adapter_type TEXT NOT NULL
+- model_id TEXT NOT NULL
+- credential_ref TEXT NOT NULL
+- enabled INTEGER NOT NULL DEFAULT 1
+- priority INTEGER NOT NULL DEFAULT 100
+- weight INTEGER NOT NULL DEFAULT 1
+- timeout_ms INTEGER NOT NULL
+- max_concurrency INTEGER NOT NULL DEFAULT 1
+- rate_limit_hint_json TEXT NULL
+- created_at TEXT NOT NULL
+- updated_at TEXT NOT NULL
+
+credential_ref is an opaque Windows Credential Manager reference, never the secret itself.
+
+### provider_pool_settings
+- id TEXT PRIMARY KEY
+- strategy TEXT NOT NULL
+- max_attempts INTEGER NOT NULL
+- auto_retry INTEGER NOT NULL
+- retry_base_delay_ms INTEGER NOT NULL
+- max_retry_delay_ms INTEGER NOT NULL
+- updated_at TEXT NOT NULL
+
+Strategies: adaptive, round_robin, weighted, priority.
+
+### provider_health
+- provider_config_id TEXT PRIMARY KEY REFERENCES provider_configs(id) ON DELETE CASCADE
+- state TEXT NOT NULL
+- cooldown_until TEXT NULL
+- last_success_at TEXT NULL
+- last_failure_at TEXT NULL
+- last_error_category TEXT NULL
+- consecutive_failures INTEGER NOT NULL DEFAULT 0
+- recent_latency_ms INTEGER NULL
+- updated_at TEXT NOT NULL
+
+Do not store API key or raw prompt in health data.
+
+### ai_usage_events
+- id TEXT PRIMARY KEY
+- provider_config_id TEXT NULL REFERENCES provider_configs(id) ON DELETE SET NULL
+- model_id TEXT NULL
+- operation TEXT NOT NULL
+- outcome TEXT NOT NULL
+- error_category TEXT NULL
+- input_tokens INTEGER NULL
+- output_tokens INTEGER NULL
+- duration_ms INTEGER NULL
+- created_at TEXT NOT NULL
+
+No raw prompts, answer text, screenshots, or secrets.
 
 ### app_settings
-`key`, `value_json`, `updated_at`. Secret values must not be stored here.
+- key TEXT PRIMARY KEY
+- value_json TEXT NOT NULL
+- updated_at TEXT NOT NULL
 
-## 3. Relationships
-- One user owns many facts and sessions.
-- One fact may have multiple source records.
-- One session contains ordered questions.
-- One question may have multiple recommendations.
-- One recommendation may cite multiple facts.
-- History records may refer to a recommendation but remain independently retained according to user policy.
+Only non-secret preferences belong here.
 
-## 4. Integrity and deletion
-Use foreign keys and explicit deletion behavior. Prefer soft archive for user-facing history where appropriate, but provide a true delete operation. Deleting a fact must remove or invalidate its source links and cause affected recommendations to display a missing-source state. Do not leave orphaned evidence references.
+## 3. Required indexes
 
-## 5. Indexes to consider
-- `profile_facts(user_id, category, verification_status)`
-- `survey_sessions(user_id, updated_at)`
-- `survey_questions(session_id, question_order)`
-- `answer_history(question_id, created_at)`
-- FTS5 index for question text and user-authored notes only if needed.
+- profile_facts(persona_id, verification_status, category)
+- fact_sources(persona_id, fact_id)
+- survey_sessions(persona_id, updated_at)
+- survey_questions(session_id, question_order)
+- answer_recommendations(question_id, created_at)
+- answer_history(question_id, created_at)
+- provider_configs(enabled, priority)
+- provider_health(state, cooldown_until)
+- ai_usage_events(created_at, outcome)
 
-## 6. Sensitive data and encryption
-Classify sensitive attributes before implementation. Determine whether whole-database encryption is required for the release. If encryption is implemented, document key derivation, OS-backed key protection, backup/export behavior, and recovery limitations. Do not invent a cryptographic scheme; use maintained, reviewed libraries.
+## 4. Integrity rules
 
-## 7. Migration requirements
-- Sequential, immutable migration files.
-- Schema version table.
-- Backup before destructive migration.
-- Transactional migration where supported.
-- Test upgrade from every supported prior schema version.
-- Recovery instructions for failed migration.
+- Every fact, source, session, question, and recommendation is scoped to exactly one persona through its parent.
+- Service layer checks persona equality for every relationship; do not rely solely on UI filtering.
+- Deleting a persona requires explicit confirmation and deletes all owned records in a transaction.
+- Deleting a fact must not silently rewrite historical answer text; remove or retain source references according to an explicit deletion policy and show evidence as unavailable.
+- Deleting provider configuration removes its credential from Windows Credential Manager.
+- A failed credential deletion must be surfaced, not hidden.
+
+## 5. Migration requirements
+
+- Sequential immutable migration files.
+- Transactional migrations where supported.
+- Backup before destructive changes.
+- Test fresh install and upgrade from every released schema.
+- Include migration rollback/recovery instructions.
+- Never perform schema changes through ad-hoc runtime SQL.
