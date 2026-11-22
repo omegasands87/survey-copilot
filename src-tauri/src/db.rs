@@ -1,15 +1,23 @@
+use crate::migrations::{MigrationReport, MigrationRunner};
 use rusqlite::Connection;
 use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
 pub struct Database {
-    pub(crate) connection: Mutex<Connection>,
+    pub connection: Mutex<Connection>,
 }
 
 impl Database {
+    /// Initializes database connection, sets pragmas, and runs all pending migrations.
     pub fn initialize(path: &Path) -> Result<Self, String> {
-        let connection = Connection::open(path)
+        let runner = MigrationRunner::with_app_migrations();
+        Self::initialize_with_runner(path, &runner)
+    }
+
+    /// Initializes database connection using a custom migration runner (useful for tests and upgrades).
+    pub fn initialize_with_runner(path: &Path, runner: &MigrationRunner) -> Result<Self, String> {
+        let mut connection = Connection::open(path)
             .map_err(|error| format!("Gagal membuka database lokal: {error}"))?;
 
         connection
@@ -24,8 +32,8 @@ impl Database {
             .pragma_update(None, "journal_mode", "WAL")
             .map_err(|error| format!("Gagal mengatur mode database: {error}"))?;
 
-        connection
-            .execute_batch(include_str!("../migrations/0001_initial.sql"))
+        let _report: MigrationReport = runner
+            .run(&mut connection)
             .map_err(|error| format!("Gagal menjalankan migrasi database: {error}"))?;
 
         Ok(Self {
@@ -49,13 +57,27 @@ mod tests {
             .expect("database lock should succeed");
 
         for table in [
+            "_migrations",
             "personas",
             "profile_facts",
+            "fact_sources",
+            "persona_preferences",
             "survey_sessions",
+            "screen_captures",
+            "survey_questions",
             "survey_opportunities",
+            "survey_opportunity_criteria",
             "survey_fit_results",
             "survey_attempts",
+            "survey_outcome_events",
             "provider_configs",
+            "provider_pool_settings",
+            "provider_health",
+            "answer_recommendations",
+            "recommendation_sources",
+            "answer_history",
+            "ai_usage_events",
+            "app_settings",
         ] {
             let found: Option<String> = connection
                 .query_row(
@@ -72,5 +94,10 @@ mod tests {
             .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
             .expect("foreign key pragma should be readable");
         assert_eq!(foreign_keys, 1);
+
+        let migration_count: i64 = connection
+            .query_row("SELECT count(*) FROM _migrations", [], |row| row.get(0))
+            .expect("query _migrations should succeed");
+        assert_eq!(migration_count, 1);
     }
 }
