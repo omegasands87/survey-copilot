@@ -1,53 +1,77 @@
 # Security Architecture
 
-## 1. Security objectives
-Protect personal profile information, provider credentials, local database integrity, and the user's control over external actions.
+## 1. Objectives
+
+Protect respondent data, persona separation, API credentials, screen captures, and the user's control over survey interactions.
 
 ## 2. Data classification
-- **Public:** application version, public documentation.
-- **Internal:** non-sensitive operational preferences.
-- **Personal:** profile facts, survey questions, answer history.
-- **Sensitive personal:** financial, health, precise location, government identifiers, or other high-impact attributes.
 
-Sensitive data should be excluded from AI context unless essential, explicitly authorized, and supported by a documented use case. Avoid collecting government identifiers or credentials.
+- Public: application version and public documentation.
+- Operational: provider health, settings, and non-sensitive diagnostics.
+- Personal: persona facts, questions, answer history.
+- Sensitive: financial, health, precise location, government identifiers, and other high-impact attributes.
 
-## 3. Local storage
-- Store database in the OS-appropriate application data directory.
-- Apply restrictive filesystem permissions where supported.
-- Use parameterized SQL and enable SQLite foreign keys.
+Do not collect credentials for survey websites. Sensitive facts are excluded from external AI context by default.
+
+## 3. Local data
+
+- Store SQLite database in the Windows application data directory.
+- Apply restrictive filesystem permissions.
+- Use parameterized SQL and foreign keys.
 - Back up before migrations and destructive operations.
-- Define retention and deletion semantics for database, logs, exports, and backups.
+- Provide export and complete deletion.
+- Do not store screenshots permanently by default.
+- Temporary capture images must be deleted after processing unless explicitly saved by the user.
 
-## 4. Secrets
-- Store provider API keys in Windows Credential Manager, macOS Keychain, or an appropriate Linux secret service.
-- Never hardcode keys, commit them, expose them to browser JavaScript, or include them in logs/crash reports.
-- Provide explicit remove/replace controls.
-- Do not sync secrets.
+## 4. API credentials
 
-## 5. Network and AI disclosure
-Before a request, make clear that selected question text and a minimized set of relevant facts may be sent to the configured provider. Provide a way to inspect the context where practical. Do not transmit the full profile by default. Document provider retention and training settings based on the provider's current terms; do not make unsupported privacy promises.
+- Store secrets in Windows Credential Manager using an opaque credential reference.
+- Never store API key values in SQLite, frontend state persistence, logs, crash reports, or exports.
+- Mask keys after entry.
+- Remove the credential when a provider configuration is deleted.
+- Do not send credentials to custom endpoints other than the endpoint configured for that provider.
 
-## 6. Prompt injection and untrusted content
-Treat survey questions, pasted instructions, OCR text, and model output as untrusted data. They cannot change system policy, request secrets, authorize tool use, or override evidence rules. Keep instructions separate from quoted survey content. Do not expose unrelated profile facts in response to embedded requests.
+## 5. External AI disclosure
 
-## 7. Native application security
-- Apply Tauri capability allowlists and least privilege.
-- Validate all IPC command inputs and outputs.
-- Restrict filesystem access to required paths.
-- Avoid arbitrary shell execution and unrestricted navigation.
-- Review dependencies and update vulnerable packages.
+Before sending content, identify the provider and disclose that the current question and selected relevant profile facts will be transmitted. Sensitive facts require explicit per-request authorization. Do not send the entire persona or database by default. Provider retention and training statements must reflect current provider terms; do not make unsupported privacy guarantees.
 
-## 8. Threat scenarios
+## 6. Screen capture
+
+- Capture only after an explicit user action.
+- User selects region or window.
+- Show preview before OCR or external image processing.
+- Never silently record or poll the screen.
+- Do not include screenshots in logs or telemetry.
+- External vision is optional and requires explicit consent for the selected image.
+- Delete temporary image data according to the documented retention policy.
+
+## 7. Prompt injection and untrusted input
+
+Survey text, OCR output, screenshots, answer options, custom provider responses, and model output are untrusted. They cannot change app policy, request unrelated profile facts, authorize tools, or execute code. Escape content in the UI. Enforce source allowlists locally.
+
+## 8. Custom endpoint restrictions
+
+- HTTPS required by default.
+- Allow HTTP only for localhost after explicit user confirmation.
+- Reject non-HTTP schemes and invalid URL forms.
+- Do not support provider plugins that execute arbitrary code in v1.0.
+- Restrict redirects and validate destination behavior to reduce credential exfiltration risk.
+- Show the configured destination clearly before saving.
+
+## 9. Threats and mitigations
+
 | Threat | Mitigation |
 |---|---|
-| API key leakage | OS credential store; redacted logs |
-| Prompt injection | Untrusted-content boundary; no authority transfer |
-| Hallucinated personal data | Evidence contract; abstention; source validation |
-| Malicious survey text | Render as text; no HTML execution |
-| Local data theft | OS permissions; encryption decision; user guidance |
-| SQL injection | Parameterized queries |
-| Unauthorized form submission | No browser automation or submission capability |
-| Dependency compromise | Lockfiles, audits, minimal dependencies |
+| API key leakage | Windows Credential Manager; redacted logs |
+| Cross-persona leakage | persona-scoped queries and service validation |
+| Prompt injection | untrusted-content boundary; local enforcement |
+| Hallucinated facts | evidence contract; abstention; source validation |
+| Malicious screenshot content | user preview; text-only rendering; no execution |
+| Custom endpoint credential theft | HTTPS validation; explicit endpoint display |
+| Rate-limit retry storm | bounded retries; cooldown; jitter |
+| Unauthorized survey submission | no browser automation or submission capability |
+| Local data theft | OS permissions; documented backup/deletion controls |
 
-## 9. Incident response
-Provide a way to disable provider access, remove credentials, export/delete local data, and report security issues. Document supported versions and a process for communicating material vulnerabilities.
+## 10. Native security
+
+Use Tauri capability allowlists and least privilege. Validate every IPC input. No arbitrary shell execution, unrestricted filesystem access, or browser-control API. Review dependencies and lockfiles before release.
