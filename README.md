@@ -16,7 +16,7 @@ Desktop AI copilot for understanding online survey questions and recommending tr
 2. Understands the question and its answer format.
 3. Uses the selected respondent profile and checks consistency.
 4. Recommends an answer with evidence—or asks when information is missing.
-5. Compares visible survey criteria against available profiles.
+5. Compares visible survey criteria against each persona.
 6. Uses a pool of Gemini API keys and can fail over when a key is limited or unavailable.
 
 ## Product boundaries
@@ -37,6 +37,21 @@ Start at [Documentation Index](docs/00-INDEX.md). The [Product Definition](docs/
 
 Tauri 2, Rust, React, TypeScript, SQLite, Windows Credential Manager, local OCR, and a provider adapter architecture with Gemini first.
 
+## Run locally
+
+Prerequisites: Node.js 22+, Rust stable, Visual Studio C++ Build Tools, and WebView2 Runtime on Windows.
+
+```powershell
+npm install
+npm run tauri dev
+```
+
+Build the Windows installer with:
+
+```powershell
+npm run tauri build
+```
+
 ## Status
 
-An initial React + Tauri application shell is now in the repository. Core features (persona storage, screen capture/OCR, Gemini API pooling, answer analysis, and installer validation) are not implemented yet. Do not treat planned capabilities as shipped.
+An initial React + Tauri application shell and local SQLite persona foundation are in the repository. Screenshot/OCR, Gemini API pooling, AI answer analysis, profile facts, and final installer validation are not implemented yet. Do not treat planned capabilities as shipped.
