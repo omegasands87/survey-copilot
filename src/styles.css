@@ -246,3 +246,15 @@ textarea:focus { border-color: #8bb99d; box-shadow: 0 0 0 3px #eaf4ee; }
 .badge-status-unconfigured { background: #fae8e8; color: #a12323; border: 1px solid #f0bebe; }
 .badge-status-needs_update { background: #fef8e7; color: #8a6508; border: 1px solid #f6e2a2; }
 .badge-status-inaccessible { background: #fdf0ed; color: #b03822; border: 1px solid #f8cdbe; }
+
+/* Provider Configuration Styling (SC-021) */
+.provider-section-title { margin-top: 32px; margin-bottom: 8px; font-size: 16px; font-weight: 800; color: #172a20; }
+.provider-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-top: 14px; }
+.provider-card { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; transition: all .15s ease; }
+.provider-card:hover { border-color: #aed1be; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.provider-card.disabled { opacity: 0.72; background: #fafbfa; border-style: dashed; }
+.provider-model-pill { display: inline-block; font-size: 11px; font-weight: 700; color: #1e5e3a; background: #e8f5ee; padding: 2px 8px; border-radius: 6px; border: 1px solid #c2e5d1; }
+.provider-test-status { border-radius: 8px; padding: 10px 12px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+.provider-test-status.success { background: #eef8f2; border: 1px solid #bce3cb; color: #156236; }
+.provider-test-status.error { background: #fdf2f2; border: 1px solid #f5c4c4; color: #a12020; }
+

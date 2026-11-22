@@ -437,6 +437,11 @@ pub fn get_registered_migrations() -> Vec<Migration> {
             "0003_app_credentials",
             include_str!("../../migrations/0003_app_credentials.sql"),
         ),
+        Migration::new(
+            4,
+            "0004_provider_config_support",
+            include_str!("../../migrations/0004_provider_config_support.sql"),
+        ),
     ]
 }
 

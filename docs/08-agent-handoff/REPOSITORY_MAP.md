@@ -35,16 +35,16 @@ The current UI still contains placeholder screens and disabled screenshot/analys
 | Path | Current responsibility |
 |---|---|
 | `src-tauri/src/main.rs` | Windows/Tauri process entry |
-| `src-tauri/src/lib.rs` | Tauri setup, state management (`CredentialStoreState`), and command registration |
-| `src-tauri/src/commands/` | Thin Tauri command handlers (`app.rs`, `persona.rs`, `fact.rs`, `data_management.rs`, `credential.rs`) without business logic or SQL |
-| `src-tauri/src/domain/` | Core domain entities, validation, error types, NQI / Survey Memory, Export/Wipe, and Credential contracts (`error.rs`, `persona.rs`, `fact.rs`, `survey.rs`, `export.rs`, `credential.rs`) |
-| `src-tauri/src/services/` | Service layer containing business logic and transactions (`persona_service.rs`, `fact_service.rs`, `export_service.rs`, `deletion_service.rs`, `credential_service.rs`) |
-| `src-tauri/src/infrastructure/` | Native OS infrastructure adapters (`credentials/windows.rs` using Win32 Advapi32 Credential Manager, and `credentials/in_memory.rs` for testing/non-Windows) |
-| `src-tauri/src/repository/` | Parameterized SQLite repository layer with strict persona scoping and opaque credential reference metadata (`persona_repo.rs`, `fact_repo.rs`, `export_repo.rs`, `deletion_repo.rs`, `credential_repo.rs`) |
+| `src-tauri/src/lib.rs` | Tauri setup, state management (`CredentialStoreState`, `HttpTransportState`), and command registration |
+| `src-tauri/src/commands/` | Thin Tauri command handlers (`app.rs`, `persona.rs`, `fact.rs`, `data_management.rs`, `credential.rs`, `provider.rs`) without business logic or SQL |
+| `src-tauri/src/domain/` | Core domain entities, validation, error types, NQI / Survey Memory, Export/Wipe, Credential, Endpoint validation & Provider contracts (`error.rs`, `persona.rs`, `fact.rs`, `survey.rs`, `export.rs`, `credential.rs`, `endpoint_validator.rs`, `provider.rs`) |
+| `src-tauri/src/services/` | Service layer containing business logic and transactions (`persona_service.rs`, `fact_service.rs`, `export_service.rs`, `deletion_service.rs`, `credential_service.rs`, `provider_service.rs`) |
+| `src-tauri/src/infrastructure/` | Native OS infrastructure adapters (`credentials/windows.rs`, `credentials/in_memory.rs`, `adapters/gemini.rs`, `adapters/openai_compatible.rs`, `http/mod.rs`) |
+| `src-tauri/src/repository/` | Parameterized SQLite repository layer with strict persona scoping, opaque credential metadata, and provider configs (`persona_repo.rs`, `fact_repo.rs`, `export_repo.rs`, `deletion_repo.rs`, `credential_repo.rs`, `provider_repo.rs`) |
 | `src-tauri/src/migrations/` | Sequential, versioned, transactional migration runner and integrity verification (`mod.rs`) |
-| `src-tauri/tests/` | Automated integration tests for migration runner (`migration_tests.rs`), persona lifecycle (`persona_lifecycle_tests.rs`), fact/source lifecycle (`fact_lifecycle_tests.rs`), data export/deletion (`export_and_deletion_tests.rs`), and credential lifecycle (`credential_lifecycle_tests.rs`) |
+| `src-tauri/tests/` | Automated integration tests for migration runner (`migration_tests.rs`), persona lifecycle (`persona_lifecycle_tests.rs`), fact/source lifecycle (`fact_lifecycle_tests.rs`), data export/deletion (`export_and_deletion_tests.rs`), credential lifecycle (`credential_lifecycle_tests.rs`), and provider adapters (`provider_adapter_tests.rs`) |
 | `src-tauri/src/db.rs` | SQLite connection initialization, pragmas, and migration execution |
-| `src-tauri/migrations/` | Versioned SQL migrations (`0001_initial.sql`, `0002_typed_facts_and_history.sql`, `0003_app_credentials.sql`) |
+| `src-tauri/migrations/` | Versioned SQL migrations (`0001_initial.sql`, `0002_typed_facts_and_history.sql`, `0003_app_credentials.sql`, `0004_provider_config_support.sql`) |
 | `src-tauri/tauri.conf.json` | Tauri app, window, CSP, and bundle configuration |
 | `src-tauri/capabilities/default.json` | Minimal Tauri capability allowlist |
 | `src-tauri/Cargo.toml` | Rust dependencies |

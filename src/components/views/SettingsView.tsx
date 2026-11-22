@@ -11,8 +11,15 @@ import type {
   ProviderType,
   TestCredentialResult,
 } from "../../types/credential";
+import type {
+  AdapterType,
+  ConnectionTestResult,
+  ModelOption,
+  ProviderConfigSummary,
+} from "../../types/provider";
 import { dataManagementService } from "../../services/dataManagementService";
 import { CredentialService } from "../../services/credentialService";
+import { ProviderService } from "../../services/providerService";
 import { AppError } from "../../types/error";
 
 type SettingsTab = "credentials" | "export" | "retention" | "danger";
@@ -59,6 +66,40 @@ export function SettingsView({
   const [forceDeleteConsent, setForceDeleteConsent] = useState(false);
   const [isDeletingCred, setIsDeletingCred] = useState(false);
 
+  // Provider Configuration State (SC-021)
+  const [providerConfigs, setProviderConfigs] = useState<ProviderConfigSummary[]>([]);
+  const [isProviderConfigsLoading, setIsProviderConfigsLoading] = useState(false);
+  const [providerErrorMessage, setProviderErrorMessage] = useState<string | null>(null);
+  const [providerSuccessMessage, setProviderSuccessMessage] = useState<string | null>(null);
+
+  // New Provider Config Form State
+  const [newPConfigDisplayName, setNewPConfigDisplayName] = useState("");
+  const [newPConfigProviderType, setNewPConfigProviderType] = useState<ProviderType>("gemini");
+  const [newPConfigAdapterType, setNewPConfigAdapterType] = useState<AdapterType>("gemini");
+  const [newPConfigModelId, setNewPConfigModelId] = useState("gemini-2.5-flash");
+  const [newPConfigCredentialRef, setNewPConfigCredentialRef] = useState("");
+  const [newPConfigBaseUrl, setNewPConfigBaseUrl] = useState("");
+  const [newPConfigPriority, setNewPConfigPriority] = useState(100);
+  const [newPConfigTimeoutMs, setNewPConfigTimeoutMs] = useState(30000);
+  const [isCreatingPConfig, setIsCreatingPConfig] = useState(false);
+
+  // Recommended Models State
+  const [recommendedModels, setRecommendedModels] = useState<ModelOption[]>([]);
+
+  // Provider Connection Testing State
+  const [providerTestResults, setProviderTestResults] = useState<Record<string, ConnectionTestResult>>({});
+  const [testingProviderId, setTestingProviderId] = useState<string | null>(null);
+
+  // Edit Provider Config Modal State
+  const [editingProviderConfig, setEditingProviderConfig] = useState<ProviderConfigSummary | null>(null);
+  const [editPConfigDisplayName, setEditPConfigDisplayName] = useState("");
+  const [editPConfigModelId, setEditPConfigModelId] = useState("");
+  const [editPConfigBaseUrl, setEditPConfigBaseUrl] = useState("");
+  const [editPConfigPriority, setEditPConfigPriority] = useState(100);
+  const [editPConfigTimeoutMs, setEditPConfigTimeoutMs] = useState(30000);
+  const [editPConfigCredentialRef, setEditPConfigCredentialRef] = useState("");
+  const [isUpdatingPConfig, setIsUpdatingPConfig] = useState(false);
+
   // Export State (SC-012)
   const [selectedPersonaId, setSelectedPersonaId] = useState<string>(
     activePersona ? activePersona.id : "ALL"
@@ -89,6 +130,8 @@ export function SettingsView({
   useEffect(() => {
     if (activeTab === "credentials") {
       void loadCredentials();
+      void loadProviderConfigs();
+      void loadRecommendedModels(newPConfigProviderType);
     } else if (activeTab === "retention" && !retentionInfo) {
       void loadRetentionInfo();
     }
@@ -100,10 +143,161 @@ export function SettingsView({
     try {
       const list = await CredentialService.listCredentials();
       setCredentials(list);
+      // Jika form provider belum memilih kredensial, otomatis pilih kredensial pertama yang cocok
+      if (list.length > 0 && !newPConfigCredentialRef) {
+        setNewPConfigCredentialRef(list[0].credentialRef);
+      }
     } catch (err) {
       setCredErrorMessage(AppError.from(err).message);
     } finally {
       setIsCredentialsLoading(false);
+    }
+  }
+
+  async function loadProviderConfigs() {
+    setIsProviderConfigsLoading(true);
+    setProviderErrorMessage(null);
+    try {
+      const list = await ProviderService.listProviderConfigs();
+      setProviderConfigs(list);
+    } catch (err) {
+      setProviderErrorMessage(AppError.from(err).message);
+    } finally {
+      setIsProviderConfigsLoading(false);
+    }
+  }
+
+  async function loadRecommendedModels(pType: string) {
+    try {
+      const models = await ProviderService.getRecommendedModels(pType);
+      setRecommendedModels(models);
+      if (models.length > 0) {
+        setNewPConfigModelId(models[0].id);
+      }
+    } catch (err) {
+      console.error("Gagal memuat model rekomendasi:", err);
+    }
+  }
+
+  async function handleCreateProviderConfig(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newPConfigDisplayName.trim()) {
+      setProviderErrorMessage("Nama konfigurasi provider wajib diisi.");
+      return;
+    }
+    if (!newPConfigModelId.trim()) {
+      setProviderErrorMessage("Model ID wajib dipilih atau diisi.");
+      return;
+    }
+    if (!newPConfigCredentialRef.trim()) {
+      setProviderErrorMessage("Pilih kunci API kredensial tersimpan untuk konfigurasi ini.");
+      return;
+    }
+
+    setIsCreatingPConfig(true);
+    setProviderErrorMessage(null);
+    setProviderSuccessMessage(null);
+
+    try {
+      await ProviderService.createProviderConfig({
+        displayName: newPConfigDisplayName.trim(),
+        providerType: newPConfigProviderType,
+        adapterType: newPConfigAdapterType,
+        modelId: newPConfigModelId.trim(),
+        credentialRef: newPConfigCredentialRef.trim(),
+        baseUrl: newPConfigBaseUrl.trim() ? newPConfigBaseUrl.trim() : null,
+        priority: newPConfigPriority,
+        timeoutMs: newPConfigTimeoutMs,
+      });
+
+      setNewPConfigDisplayName("");
+      setNewPConfigBaseUrl("");
+      setProviderSuccessMessage(`Konfigurasi provider '${newPConfigDisplayName.trim()}' berhasil dibuat.`);
+      await loadProviderConfigs();
+      await loadCredentials();
+    } catch (err) {
+      setProviderErrorMessage(AppError.from(err).message);
+    } finally {
+      setIsCreatingPConfig(false);
+    }
+  }
+
+  async function handleTestProviderConnection(id: string) {
+    setTestingProviderId(id);
+    setProviderErrorMessage(null);
+    try {
+      const res = await ProviderService.testConnection(id);
+      setProviderTestResults((prev) => ({ ...prev, [id]: res }));
+      setProviderSuccessMessage(`Uji koneksi berhasil (${res.latencyMs} ms): ${res.message}`);
+      await loadProviderConfigs();
+    } catch (err) {
+      setProviderErrorMessage(AppError.from(err).message);
+    } finally {
+      setTestingProviderId(null);
+    }
+  }
+
+  async function handleToggleProviderEnabled(config: ProviderConfigSummary) {
+    try {
+      await ProviderService.updateProviderConfig({
+        id: config.id,
+        enabled: !config.enabled,
+      });
+      await loadProviderConfigs();
+    } catch (err) {
+      setProviderErrorMessage(AppError.from(err).message);
+    }
+  }
+
+  async function handleDeleteProviderConfig(id: string, name: string) {
+    if (!window.confirm(`Yakin ingin menghapus konfigurasi provider '${name}'?`)) {
+      return;
+    }
+    try {
+      await ProviderService.deleteProviderConfig(id);
+      setProviderSuccessMessage(`Konfigurasi provider '${name}' berhasil dihapus.`);
+      await loadProviderConfigs();
+      await loadCredentials();
+    } catch (err) {
+      setProviderErrorMessage(AppError.from(err).message);
+    }
+  }
+
+  function handleOpenEditProviderModal(config: ProviderConfigSummary) {
+    setEditingProviderConfig(config);
+    setEditPConfigDisplayName(config.displayName);
+    setEditPConfigModelId(config.modelId);
+    setEditPConfigBaseUrl(config.baseUrl || "");
+    setEditPConfigPriority(config.priority);
+    setEditPConfigTimeoutMs(config.timeoutMs);
+    setEditPConfigCredentialRef(config.credentialRef);
+    setProviderErrorMessage(null);
+  }
+
+  async function handleSaveUpdateProvider(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingProviderConfig) return;
+
+    setIsUpdatingPConfig(true);
+    setProviderErrorMessage(null);
+    try {
+      await ProviderService.updateProviderConfig({
+        id: editingProviderConfig.id,
+        displayName: editPConfigDisplayName.trim(),
+        modelId: editPConfigModelId.trim(),
+        baseUrl: editPConfigBaseUrl.trim() ? editPConfigBaseUrl.trim() : null,
+        priority: editPConfigPriority,
+        timeoutMs: editPConfigTimeoutMs,
+        credentialRef: editPConfigCredentialRef,
+      });
+
+      setEditingProviderConfig(null);
+      setProviderSuccessMessage("Konfigurasi provider berhasil diperbarui.");
+      await loadProviderConfigs();
+    } catch (err) {
+      setProviderErrorMessage(AppError.from(err).message);
+    } finally {
+      setIsUpdatingPConfig(false);
     }
   }
 
@@ -581,7 +775,357 @@ export function SettingsView({
               </div>
             )}
           </div>
+
+          {/* BAGIAN 2: KONFIGURASI MODEL & PROVIDER AI (SC-021) */}
+          <div className="card" style={{ marginTop: "24px" }}>
+            <h3>🤖 Konfigurasi Model & Provider AI</h3>
+            <p className="description-text">
+              Atur model AI yang digunakan oleh Survey Copilot (misalnya <strong>Google Gemini 2.5 Flash</strong>), kaitkan dengan kunci API aman yang tersimpan di Windows Credential Manager, dan lakukan uji koneksi langsung.
+            </p>
+
+            <div className="security-guarantee-badge">
+              ⚡ <strong>Multi-Provider & Tanpa Kebocoran Data:</strong> Konfigurasi provider hanya mereferensikan kunci API melalui pengenal buram. Anda dapat mengatur beberapa model untuk ketahanan operasional tanpa membeberkan kunci rahasia.
+            </div>
+
+            {providerSuccessMessage && (
+              <div className="alert alert-success" role="alert" style={{ marginTop: "14px" }}>
+                ✓ {providerSuccessMessage}
+              </div>
+            )}
+
+            {providerErrorMessage && (
+              <div className="alert alert-error" role="alert" style={{ marginTop: "14px" }}>
+                ✕ {providerErrorMessage}
+              </div>
+            )}
+
+            {/* FORM TAMBAH KONFIGURASI PROVIDER */}
+            <form onSubmit={handleCreateProviderConfig} className="cred-form" style={{ marginTop: "18px", maxWidth: "100%" }}>
+              <h4>Tambah Konfigurasi Provider AI Baru</h4>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+                <div className="form-group">
+                  <label htmlFor="pconfig-name">Nama Konfigurasi:</label>
+                  <input
+                    id="pconfig-name"
+                    type="text"
+                    placeholder="Contoh: Gemini 2.5 Flash Utama"
+                    value={newPConfigDisplayName}
+                    onChange={(e) => setNewPConfigDisplayName(e.target.value)}
+                    maxLength={100}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="pconfig-type">Tipe Provider & Protokol:</label>
+                  <select
+                    id="pconfig-type"
+                    value={newPConfigProviderType}
+                    onChange={(e) => {
+                      const t = e.target.value as ProviderType;
+                      setNewPConfigProviderType(t);
+                      setNewPConfigAdapterType(t === "openai_compatible" ? "openai_compatible" : "gemini");
+                      void loadRecommendedModels(t);
+                    }}
+                    className="select-input"
+                  >
+                    <option value="gemini">Google Gemini (Utama / Rekomendasi)</option>
+                    <option value="openai_compatible">OpenAI-Compatible (Lokal Ollama / vLLM / OpenAI)</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="pconfig-cred">Kredensial Kunci API Tersimpan:</label>
+                  <select
+                    id="pconfig-cred"
+                    value={newPConfigCredentialRef}
+                    onChange={(e) => setNewPConfigCredentialRef(e.target.value)}
+                    className="select-input"
+                    required
+                  >
+                    {credentials.length === 0 ? (
+                      <option value="">-- Belum ada kredensial tersimpan (Tambahkan di atas) --</option>
+                    ) : (
+                      credentials.map((c) => (
+                        <option key={c.credentialRef} value={c.credentialRef}>
+                          {c.label} ({c.providerType})
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="pconfig-model-select">Model AI:</label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <select
+                      id="pconfig-model-select"
+                      value={newPConfigModelId}
+                      onChange={(e) => setNewPConfigModelId(e.target.value)}
+                      className="select-input"
+                      style={{ flex: "1" }}
+                    >
+                      {recommendedModels.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.displayName}
+                        </option>
+                      ))}
+                      <option value="custom">Model Lain (Ketik manual...)</option>
+                    </select>
+                    {newPConfigModelId === "custom" && (
+                      <input
+                        type="text"
+                        placeholder="ID Model (mis: gemini-2.5-flash)"
+                        onChange={(e) => setNewPConfigModelId(e.target.value)}
+                        style={{ flex: "1" }}
+                        required
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="pconfig-url">Custom Endpoint Base URL (Opsional):</label>
+                  <input
+                    id="pconfig-url"
+                    type="text"
+                    placeholder="Biarkan kosong untuk default Google API (atau http://localhost:11434)"
+                    value={newPConfigBaseUrl}
+                    onChange={(e) => setNewPConfigBaseUrl(e.target.value)}
+                  />
+                  <small style={{ color: "var(--muted)", fontSize: "11px" }}>
+                    🔒 Wajib HTTPS untuk endpoint internet. HTTP diizinkan khusus untuk pengujian lokal (localhost).
+                  </small>
+                </div>
+
+                <div className="form-group" style={{ display: "flex", gap: "12px" }}>
+                  <div style={{ flex: "1" }}>
+                    <label htmlFor="pconfig-priority">Prioritas (1 = Tertinggi):</label>
+                    <input
+                      id="pconfig-priority"
+                      type="number"
+                      min={1}
+                      max={1000}
+                      value={newPConfigPriority}
+                      onChange={(e) => setNewPConfigPriority(Number(e.target.value))}
+                    />
+                  </div>
+                  <div style={{ flex: "1" }}>
+                    <label htmlFor="pconfig-timeout">Timeout (ms):</label>
+                    <input
+                      id="pconfig-timeout"
+                      type="number"
+                      min={1000}
+                      max={120000}
+                      step={1000}
+                      value={newPConfigTimeoutMs}
+                      onChange={(e) => setNewPConfigTimeoutMs(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: "14px" }}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isCreatingPConfig || credentials.length === 0}
+                >
+                  {isCreatingPConfig ? "Menyimpan Konfigurasi..." : "➕ Tambah Konfigurasi Provider"}
+                </button>
+              </div>
+            </form>
+
+            <hr style={{ margin: "24px 0", border: "0", borderTop: "1px solid var(--line)" }} />
+
+            {/* DAFTAR KONFIGURASI PROVIDER */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h4>Daftar Konfigurasi Provider AI ({providerConfigs.length})</h4>
+              <button
+                className="btn btn-secondary"
+                style={{ padding: "6px 12px", fontSize: "11px" }}
+                onClick={() => void loadProviderConfigs()}
+                disabled={isProviderConfigsLoading}
+              >
+                {isProviderConfigsLoading ? "Menyegarkan..." : "🔄 Segarkan Provider"}
+              </button>
+            </div>
+
+            {providerConfigs.length === 0 ? (
+              <div className="empty-inline" style={{ marginTop: "14px" }}>
+                Belum ada konfigurasi provider AI yang dibuat. Tambahkan konfigurasi di atas untuk mengaktifkan mesin jawaban.
+              </div>
+            ) : (
+              <div className="provider-grid">
+                {providerConfigs.map((config) => {
+                  const testRes = providerTestResults[config.id];
+                  const isTesting = testingProviderId === config.id;
+
+                  return (
+                    <div key={config.id} className={`provider-card ${!config.enabled ? "disabled" : ""}`}>
+                      <div className="cred-card-header">
+                        <div>
+                          <h5 className="cred-card-title">{config.displayName}</h5>
+                          <span className="badge" style={{ marginTop: "4px" }}>
+                            {config.providerType === "gemini" ? "Google Gemini" : "OpenAI Compatible"}
+                          </span>
+                        </div>
+                        <button
+                          className={`btn ${config.enabled ? "btn-secondary" : "btn-primary"}`}
+                          style={{ padding: "3px 8px", fontSize: "11px" }}
+                          onClick={() => void handleToggleProviderEnabled(config)}
+                        >
+                          {config.enabled ? "✓ Aktif" : "Nonaktif"}
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <span className="provider-model-pill">Model: {config.modelId}</span>
+                        <span className="badge" style={{ fontSize: "10px" }}>Prioritas: {config.priority}</span>
+                        <span className="badge" style={{ fontSize: "10px" }}>Timeout: {config.timeoutMs}ms</span>
+                      </div>
+
+                      <div style={{ fontSize: "11px", color: "var(--muted)" }}>
+                        <div>Kredensial: <strong>{config.credentialLabel || config.credentialRef}</strong></div>
+                        {config.baseUrl && <div>Endpoint: <code>{config.baseUrl}</code></div>}
+                      </div>
+
+                      {testRes && (
+                        <div className={`provider-test-status ${testRes.success ? "success" : "error"}`}>
+                          <div>
+                            <strong>{testRes.success ? "✓ Terhubung" : "✕ Gagal"}</strong> ({testRes.latencyMs} ms)
+                          </div>
+                          <div>{testRes.message}</div>
+                        </div>
+                      )}
+
+                      <div className="card-actions" style={{ marginTop: "auto", borderTop: "1px solid #f2f5f3", paddingTop: "10px" }}>
+                        <button
+                          className="btn btn-primary"
+                          style={{ padding: "6px 12px", fontSize: "11px" }}
+                          onClick={() => void handleTestProviderConnection(config.id)}
+                          disabled={isTesting}
+                        >
+                          {isTesting ? "Menguji Koneksi..." : "⚡ Uji Koneksi Model"}
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: "6px 10px", fontSize: "11px" }}
+                          onClick={() => handleOpenEditProviderModal(config)}
+                        >
+                          ✏ Ubah
+                        </button>
+                        <button
+                          className="danger-button"
+                          style={{ padding: "6px 10px", fontSize: "11px" }}
+                          onClick={() => void handleDeleteProviderConfig(config.id, config.displayName)}
+                        >
+                          🗑 Hapus
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </section>
+      )}
+
+      {/* MODAL EDIT KONFIGURASI PROVIDER (SC-021) */}
+      {editingProviderConfig && (
+        <div className="modal-backdrop">
+          <div className="modal-dialog">
+            <div className="modal-header">
+              <h3>Ubah Konfigurasi: {editingProviderConfig.displayName}</h3>
+              <button className="text-button" onClick={() => setEditingProviderConfig(null)}>✕</button>
+            </div>
+            <form onSubmit={handleSaveUpdateProvider}>
+              <div className="modal-body">
+                <label>
+                  Nama Konfigurasi Provider:
+                  <input
+                    type="text"
+                    value={editPConfigDisplayName}
+                    onChange={(e) => setEditPConfigDisplayName(e.target.value)}
+                    required
+                  />
+                </label>
+                <label>
+                  Model ID:
+                  <input
+                    type="text"
+                    value={editPConfigModelId}
+                    onChange={(e) => setEditPConfigModelId(e.target.value)}
+                    required
+                  />
+                </label>
+                <label>
+                  Custom Endpoint Base URL (Opsional):
+                  <input
+                    type="text"
+                    placeholder="Contoh: https://api.openai.com/v1"
+                    value={editPConfigBaseUrl}
+                    onChange={(e) => setEditPConfigBaseUrl(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Prioritas (1 = Tertinggi):
+                  <input
+                    type="number"
+                    min={1}
+                    max={1000}
+                    value={editPConfigPriority}
+                    onChange={(e) => setEditPConfigPriority(Number(e.target.value))}
+                  />
+                </label>
+                <label>
+                  Timeout (ms):
+                  <input
+                    type="number"
+                    min={1000}
+                    max={120000}
+                    step={1000}
+                    value={editPConfigTimeoutMs}
+                    onChange={(e) => setEditPConfigTimeoutMs(Number(e.target.value))}
+                  />
+                </label>
+                <label>
+                  Kredensial Terkait:
+                  <select
+                    value={editPConfigCredentialRef}
+                    onChange={(e) => setEditPConfigCredentialRef(e.target.value)}
+                    className="select-input"
+                  >
+                    {credentials.map((c) => (
+                      <option key={c.credentialRef} value={c.credentialRef}>
+                        {c.label} ({c.providerType})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setEditingProviderConfig(null)}
+                  disabled={isUpdatingPConfig}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isUpdatingPConfig}
+                >
+                  {isUpdatingPConfig ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* MODAL GANTI KUNCI / UPDATE */}

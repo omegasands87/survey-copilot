@@ -76,14 +76,14 @@ This backlog is the execution order for Antigravity. Checkboxes are intentionall
 **Acceptance:** API key can be added and removed; DB contains no key value; credential deletion failures are visible. Automated tests cover storage in CredentialStore, opaque reference `survey_copilot/cred/<id>` in SQLite, zero secrets in DB/IPC/export, shared credential delete protection, in-memory test fallback, and Windows Credential Manager Advapi32 native integration (`src-tauri/tests/credential_lifecycle_tests.rs` and `tests/credential_management.test.ts`).
 
 ### SC-021 — Provider configuration and adapter contracts
-- [ ] Implement provider configuration CRUD and validation.
-- [ ] Implement Gemini adapter.
-- [ ] Define normalized request/response/error types.
-- [ ] Implement connection test and model configuration.
-- [ ] Implement supported compatible adapter(s) and reject unsupported protocols.
-- [ ] Validate custom endpoint URLs and redirects.
+- [x] Implement provider configuration CRUD and validation.
+- [x] Implement Gemini adapter.
+- [x] Define normalized request/response/error types.
+- [x] Implement connection test and model configuration.
+- [x] Implement supported compatible adapter(s) and reject unsupported protocols.
+- [x] Validate custom endpoint URLs and redirects.
 
-**Acceptance:** Gemini connection test and one structured generation work without provider-specific logic leaking into answer domain.
+**Acceptance:** Gemini connection test and one structured generation work without provider-specific logic leaking into answer domain. Automated tests cover provider config CRUD, opaque credential referencing, zero secret leakage in summaries/IPC, Gemini REST API payload mapping, structured output parsing (AT-032), HTTPS enforcement and localhost HTTP exemption (AT-037), cross-host redirect isolation (AT-038), normalized error category mapping, and full UI in SettingsView (`src-tauri/tests/provider_adapter_tests.rs` and `tests/provider_configuration.test.ts`).
 
 ### SC-022 — Provider pool
 - [ ] Implement adaptive, round-robin, weighted, and priority selection.
