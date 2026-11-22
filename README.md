@@ -29,9 +29,9 @@ Desktop AI copilot for understanding online survey questions and recommending tr
 - No earnings, reward, points, balance, or income tracking in v1.0.
 - API secrets are stored in Windows Credential Manager.
 
-## Documentation
+## Documentation and coding-agent handoff
 
-Start at [Documentation Index](docs/00-INDEX.md). The [Product Definition](docs/01-product/PRODUCT_DEFINITION.md) is the authoritative scope.
+Start at [Documentation Index](docs/00-INDEX.md). Before asking Antigravity or another coding agent to modify the project, have it read [AGENTS.md](AGENTS.md), the [Antigravity Engineering Handoff](docs/08-agent-handoff/ANTIGRAVITY_HANDOFF.md), and the [start prompt](docs/08-agent-handoff/ANTIGRAVITY_START_PROMPT.md). The [Implementation Backlog](docs/08-agent-handoff/IMPLEMENTATION_BACKLOG.md) defines the ordered work and acceptance criteria. The [Product Definition](docs/01-product/PRODUCT_DEFINITION.md) is the authoritative user-visible scope.
 
 ## Technology direction
 
