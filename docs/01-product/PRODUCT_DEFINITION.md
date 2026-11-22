@@ -46,7 +46,7 @@ Other operating systems are outside the v1.0 release target.
 
 ### Problem
 
-Survey questions can be ambiguous, repetitive, time-bounded, or dependent on facts the user does not immediately remember. Generic AI can produce fluent but unsupported personal claims. Users need help interpreting questions and recalling their own information without surrendering control or misrepresenting themselves.
+Survey opportunities vary in reward, duration, eligibility, and likelihood of completion. Survey questions can be ambiguous, repetitive, time-bounded, or dependent on facts the user does not immediately remember. Generic AI can produce fluent but unsupported personal claims. Users need help prioritizing suitable opportunities, reading survey screens, answering accurately, avoiding preventable errors, and tracking actual outcomes without surrendering control or misrepresenting themselves.
 
 ### Jobs to be done
 
@@ -137,13 +137,13 @@ The following MUST NOT be included in v1.0:
 - Automatic form filling, clicking, navigation, or survey submission.
 - CAPTCHA solving, bot-detection evasion, access-control circumvention, or platform-protection bypass.
 - Survey-platform login, credential storage, or account linking.
-- Automated eligibility optimization, screener manipulation, or reward maximization.
+- Deceptive eligibility optimization, screener manipulation, or attempts to increase rewards through false or strategically altered personal claims.
 - Fabrication or strategic alteration of personal identity, demographics, employment, income, purchases, experiences, brand usage, or opinions.
 - Silent/background screen recording, automatic screen surveillance, and capture of unselected windows.
 - Cloud profile storage, cloud synchronization, multi-device sync, or multi-user collaboration.
 - Autonomous background agents or scheduled survey activity.
 - Vector database or embedding-based retrieval.
-- Analytics intended to predict qualification or maximize survey acceptance.
+- Guaranteed qualification predictions or answer manipulation intended to maximize acceptance.
 - Mobile or web application.
 
 These exclusions are release boundaries, not suggestions for implementation shortcuts.
