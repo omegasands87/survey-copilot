@@ -1,18 +1,15 @@
 # Changelog
 
-All notable changes to this project are documented here.
+All notable project changes are documented here.
 
-## Unreleased
-- Added initial product and engineering blueprint.
-- Added documentation index and detailed product, architecture, AI, design, development, operations, and architecture decision records.
+## 2026-11-22 — Product and technical scope alignment
+
+- Confirmed Windows 11 x64, Indonesian-first, free personal-use application.
+- Confirmed multiple isolated real-persona profiles.
+- Confirmed screenshot capture/OCR plus manual text input.
+- Confirmed Gemini as default AI provider with multiple-key pooling, failover, retries, and custom provider/endpoint/model support.
+- Confirmed AI recommendations only; user manually enters and submits survey responses.
+- Removed earnings and reward tracking from v1.0 scope.
+- Updated product definition, requirements, architecture, database, security, UI, and implementation plan.
+- Added API provider pooling and Screen Intelligence technical specifications.
 - Application implementation has not yet started.
-
-
-## 2026-11-22 — Product scope expansion
-
-- Added user-initiated screen capture, OCR, visual question reconstruction, and verification as MVP capabilities.
-- Added multiple truthful respondent personas with strict fact/history isolation.
-- Added survey opportunity and eligibility matching.
-- Added evidence-based earnings tracking with distinct offered, pending, credited, and withdrawable states.
-- Added persona-specific survey fit learning from attributed observed outcomes, including uncertainty and chronological validation.
-- Added product specifications for Screen Intelligence, Multi-Persona, Earnings Intelligence, and Survey Fit Learning.
