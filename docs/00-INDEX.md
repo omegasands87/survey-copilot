@@ -9,6 +9,7 @@ Survey Copilot is a Windows 11 x64 desktop AI copilot. This repository contains 
 - [Acceptance Test Matrix](08-agent-handoff/ACCEPTANCE_TEST_MATRIX.md)
 - [Documentation Gaps](08-agent-handoff/DOCUMENTATION_GAPS.md)
 - [Repository Map](08-agent-handoff/REPOSITORY_MAP.md)
+- [Addendum: Next Question Intelligence & Survey Memory](08-agent-handoff/ADDENDUM_NEXT_QUESTION_INTELLIGENCE_AND_SURVEY_MEMORY.md) — supplemental scope; read after the active implementation task.
 - [Product Definition](01-product/PRODUCT_DEFINITION.md)
 - [Product Requirements](01-product/PRODUCT_REQUIREMENTS.md)
 - [Feature Specification](01-product/FEATURE_SPECIFICATION.md)
