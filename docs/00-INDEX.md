@@ -1,70 +1,63 @@
 # Documentation Index
 
-This repository contains the product and engineering specifications for Survey Copilot. The project remains in the specification stage; documentation does not imply that application functionality has been implemented.
+Survey Copilot is a Windows 11 x64 desktop AI copilot. This repository contains its product and engineering specifications; documentation does not mean the application has already been implemented.
 
-## Read this first
-
-- [Product Definition v1.0](01-product/PRODUCT_DEFINITION.md) — authoritative product scope, user promise, boundaries, and acceptance baseline.
-- [Product Requirements](01-product/PRODUCT_REQUIREMENTS.md) — testable product requirements derived from the definition.
-- [Feature Specification](01-product/FEATURE_SPECIFICATION.md) — required feature behavior and user-visible rules.
-- [User Flows](01-product/USER_FLOWS.md) — normative end-to-end workflows.
-- [Screen Intelligence](01-product/SCREEN_INTELLIGENCE.md) — capture, OCR, visual interpretation, and verification.
-- [Multi-Persona Specification](01-product/MULTI_PERSONA_SPECIFICATION.md) — multiple real respondent profiles and isolation rules.
-- [Earnings Intelligence](01-product/EARNINGS_INTELLIGENCE.md) — reward evidence, outcome states, and dashboard accounting.
-- [Survey Fit Learning](01-product/SURVEY_FIT_LEARNING.md) — eligibility matching and outcome-based learning.
-- [Technical Blueprint](BLUEPRINT.md) — legacy high-level overview; subordinate to the detailed specifications.
-
-## Product
-- [Product Definition v1.0](01-product/PRODUCT_DEFINITION.md)
+## Start here
+- [Product Definition](01-product/PRODUCT_DEFINITION.md)
 - [Product Requirements](01-product/PRODUCT_REQUIREMENTS.md)
 - [Feature Specification](01-product/FEATURE_SPECIFICATION.md)
-- [Target User and Usage Model](01-product/USER_PERSONAS.md)
+- [User Flows](01-product/USER_FLOWS.md)
+- [Technical Blueprint](BLUEPRINT.md)
+
+## Product
+- [Product Definition](01-product/PRODUCT_DEFINITION.md)
+- [Product Requirements](01-product/PRODUCT_REQUIREMENTS.md)
+- [Feature Specification](01-product/FEATURE_SPECIFICATION.md)
+- [User Personas](01-product/USER_PERSONAS.md)
 - [User Flows](01-product/USER_FLOWS.md)
 - [Screen Intelligence](01-product/SCREEN_INTELLIGENCE.md)
 - [Multi-Persona Specification](01-product/MULTI_PERSONA_SPECIFICATION.md)
-- [Earnings Intelligence](01-product/EARNINGS_INTELLIGENCE.md)
 - [Survey Fit Learning](01-product/SURVEY_FIT_LEARNING.md)
 
 ## Architecture
-- [System architecture](02-architecture/SYSTEM_ARCHITECTURE.md)
-- [Database schema](02-architecture/DATABASE_SCHEMA.md)
-- [AI architecture](02-architecture/AI_ARCHITECTURE.md)
-- [Security architecture](02-architecture/SECURITY_ARCHITECTURE.md)
-- [Technology stack](02-architecture/TECH_STACK.md)
+- [System Architecture](02-architecture/SYSTEM_ARCHITECTURE.md)
+- [Database Schema](02-architecture/DATABASE_SCHEMA.md)
+- [AI Architecture](02-architecture/AI_ARCHITECTURE.md)
+- [Security Architecture](02-architecture/SECURITY_ARCHITECTURE.md)
+- [Technology Stack](02-architecture/TECH_STACK.md)
+- [AI Provider and API Pooling](02-architecture/API_PROVIDER_POOLING.md)
+- [Screen Intelligence Technical Specification](02-architecture/SCREEN_INTELLIGENCE_TECHNICAL_SPEC.md)
 
 ## AI engine
-- [Prompt specification](03-ai-engine/AI_PROMPT_SPECIFICATION.md)
-- [Question classifier](03-ai-engine/QUESTION_CLASSIFIER.md)
-- [Answer engine](03-ai-engine/ANSWER_ENGINE.md)
-- [Memory system](03-ai-engine/MEMORY_SYSTEM.md)
-- [Consistency engine](03-ai-engine/CONSISTENCY_ENGINE.md)
-- [AI evaluation](03-ai-engine/AI_EVALUATION.md)
+- [Prompt Specification](03-ai-engine/AI_PROMPT_SPECIFICATION.md)
+- [Question Classifier](03-ai-engine/QUESTION_CLASSIFIER.md)
+- [Answer Engine](03-ai-engine/ANSWER_ENGINE.md)
+- [Memory System](03-ai-engine/MEMORY_SYSTEM.md)
+- [Consistency Engine](03-ai-engine/CONSISTENCY_ENGINE.md)
+- [AI Evaluation](03-ai-engine/AI_EVALUATION.md)
 
 ## Design
-- [UI/UX specification](04-design/UI_UX_SPECIFICATION.md)
-- [Design system](04-design/DESIGN_SYSTEM.md)
-- [Desktop layout](04-design/DESKTOP_LAYOUT.md)
+- [UI/UX Specification](04-design/UI_UX_SPECIFICATION.md)
+- [Design System](04-design/DESIGN_SYSTEM.md)
+- [Desktop Layout](04-design/DESKTOP_LAYOUT.md)
 
 ## Development
-- [Development roadmap](05-development/DEVELOPMENT_ROADMAP.md)
-- [Implementation plan](05-development/IMPLEMENTATION_PLAN.md)
-- [Coding standards](05-development/CODING_STANDARDS.md)
-- [Testing strategy](05-development/TESTING_STRATEGY.md)
-- [Release plan](05-development/RELEASE_PLAN.md)
+- [Development Roadmap](05-development/DEVELOPMENT_ROADMAP.md)
+- [Implementation Plan](05-development/IMPLEMENTATION_PLAN.md)
+- [Coding Standards](05-development/CODING_STANDARDS.md)
+- [Testing Strategy](05-development/TESTING_STRATEGY.md)
+- [Release Plan](05-development/RELEASE_PLAN.md)
 
-## Operations and governance
+## Operations
 - [Installation](06-operations/INSTALLATION.md)
 - [Configuration](06-operations/CONFIGURATION.md)
-- [Privacy policy draft](06-operations/PRIVACY_POLICY.md)
+- [Privacy Policy Draft](06-operations/PRIVACY_POLICY.md)
 - [Troubleshooting](06-operations/TROUBLESHOOTING.md)
-- [Architecture decision records](07-decisions/README.md)
+- [Architecture Decision Records](07-decisions/README.md)
 
-## Document governance
-
-- Product Definition v1.0 is the authoritative source for product scope.
-- Product requirements, feature behavior, and user flows must remain consistent with that definition.
-- Architecture and implementation documents must implement the product contract; they may not expand product scope.
-- A conflict between documents must be resolved before implementation, not left for developers to interpret.
-- **MUST** and **MUST NOT** indicate binding requirements. **SHOULD** indicates a strong recommendation. **MAY** indicates an option.
-- Do not represent planned functionality as shipped functionality.
-- Update all affected documents in the same change as an approved requirement or behavior change.
+## Governance
+- Product Definition is the authoritative product scope.
+- Architecture and implementation documents must implement that scope, not silently expand it.
+- Resolve document conflicts before implementation.
+- MUST/MUST NOT are binding requirements; SHOULD is a strong recommendation; MAY is optional.
+- Never describe planned functionality as shipped.
