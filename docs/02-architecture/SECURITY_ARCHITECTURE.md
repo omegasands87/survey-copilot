@@ -25,10 +25,12 @@ Do not collect credentials for survey websites. Sensitive facts are excluded fro
 
 ## 4. API credentials
 
-- Store secrets in Windows Credential Manager using an opaque credential reference.
-- Never store API key values in SQLite, frontend state persistence, logs, crash reports, or exports.
-- Mask keys after entry.
-- Remove the credential when a provider configuration is deleted.
+- Store secrets natively in Windows Credential Manager (`Advapi32.dll` via `CredWriteW`, `CredReadW`, `CredDeleteW`, `CredFree` with `CRED_TYPE_GENERIC` and `CRED_PERSIST_LOCAL_MACHINE`).
+- SQLite stores strictly opaque credential references formatted as `survey_copilot/cred/<id>` in table `app_credentials`.
+- Never store API key values in SQLite, frontend state persistence, logs, crash reports, error strings, or exports (verified by automated tests).
+- Mask keys after entry; frontend inputs use `type="password"` and immediately zero/clear the secret value from memory upon IPC submission.
+- Shared credential protection: deleting a credential referenced by active provider configurations (`usageCount > 0`) is blocked unless explicitly confirmed by the operator (`force = true`).
+- An in-memory test store (`InMemoryCredentialStore`) is provided exclusively for automated integration tests and non-Windows developer environments, with strict guards preventing use as production persistence.
 - Do not send credentials to custom endpoints other than the endpoint configured for that provider.
 
 ## 5. External AI disclosure

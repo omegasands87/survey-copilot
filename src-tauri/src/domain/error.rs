@@ -51,6 +51,30 @@ impl AppError {
         }
     }
 
+    pub fn credential_not_found(message: impl Into<String>) -> Self {
+        Self {
+            code: "CREDENTIAL_NOT_FOUND".to_string(),
+            message: message.into(),
+            field: None,
+        }
+    }
+
+    pub fn credential_access_denied(message: impl Into<String>) -> Self {
+        Self {
+            code: "CREDENTIAL_ACCESS_DENIED".to_string(),
+            message: message.into(),
+            field: None,
+        }
+    }
+
+    pub fn credential_error(message: impl Into<String>) -> Self {
+        Self {
+            code: "CREDENTIAL_ERROR".to_string(),
+            message: message.into(),
+            field: None,
+        }
+    }
+
     pub fn internal(message: impl Into<String>) -> Self {
         Self {
             code: "INTERNAL_ERROR".to_string(),

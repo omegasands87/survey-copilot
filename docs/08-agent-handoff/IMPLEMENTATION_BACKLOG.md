@@ -67,13 +67,13 @@ This backlog is the execution order for Antigravity. Checkboxes are intentionall
 ## P2 — Secure AI provider infrastructure
 
 ### SC-020 — Windows Credential Manager
-- [ ] Implement native add/read/delete/test secret operations.
-- [ ] Store only opaque credential references in SQLite.
-- [ ] Ensure secrets never enter frontend logs, telemetry, exports, or error strings.
-- [ ] Test credential create/update/delete and missing-credential behavior on Windows 11.
-- [ ] Define safe behavior on non-Windows development platforms.
+- [x] Implement native add/read/delete/test secret operations.
+- [x] Store only opaque credential references in SQLite.
+- [x] Ensure secrets never enter frontend logs, telemetry, exports, or error strings.
+- [x] Test credential create/update/delete and missing-credential behavior on Windows 11.
+- [x] Define safe behavior on non-Windows development platforms.
 
-**Acceptance:** API key can be added and removed; DB contains no key value; credential deletion failures are visible.
+**Acceptance:** API key can be added and removed; DB contains no key value; credential deletion failures are visible. Automated tests cover storage in CredentialStore, opaque reference `survey_copilot/cred/<id>` in SQLite, zero secrets in DB/IPC/export, shared credential delete protection, in-memory test fallback, and Windows Credential Manager Advapi32 native integration (`src-tauri/tests/credential_lifecycle_tests.rs` and `tests/credential_management.test.ts`).
 
 ### SC-021 — Provider configuration and adapter contracts
 - [ ] Implement provider configuration CRUD and validation.

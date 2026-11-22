@@ -1,9 +1,14 @@
 pub mod app;
+pub mod credential;
 pub mod data_management;
 pub mod fact;
 pub mod persona;
 
 pub use app::app_status;
+pub use credential::{
+    credential_delete, credential_get_status, credential_list, credential_save, credential_test,
+    credential_update,
+};
 pub use data_management::{
     data_get_retention_info, data_get_wipe_summary, data_wipe_all, export_generate_json,
     export_get_summary,

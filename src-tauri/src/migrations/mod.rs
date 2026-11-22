@@ -432,6 +432,11 @@ pub fn get_registered_migrations() -> Vec<Migration> {
             "0002_typed_facts_and_history",
             include_str!("../../migrations/0002_typed_facts_and_history.sql"),
         ),
+        Migration::new(
+            3,
+            "0003_app_credentials",
+            include_str!("../../migrations/0003_app_credentials.sql"),
+        ),
     ]
 }
 
@@ -473,19 +478,23 @@ mod tests {
     fn test_fresh_database_initialization() {
         let mut conn = Connection::open_in_memory().expect("in-memory db should open");
         let runner = MigrationRunner::with_app_migrations();
+        let total_migrations = runner.migrations().len();
 
         let report = runner
             .run(&mut conn)
             .expect("initial migration should succeed");
-        assert_eq!(report.applied_count, 1);
+        assert_eq!(report.applied_count, total_migrations);
         assert_eq!(report.skipped_count, 0);
-        assert_eq!(report.applied_versions, vec![1]);
+        assert_eq!(
+            report.applied_versions,
+            (1..=total_migrations as i64).collect::<Vec<_>>()
+        );
 
         // Check _migrations table
         let count: i64 = conn
             .query_row("SELECT count(*) FROM _migrations", [], |row| row.get(0))
             .expect("query _migrations should succeed");
-        assert_eq!(count, 1);
+        assert_eq!(count, total_migrations as i64);
 
         // Check core tables exist
         let personas_table: Option<String> = conn
@@ -503,15 +512,16 @@ mod tests {
     fn test_idempotent_repeated_startup() {
         let mut conn = Connection::open_in_memory().expect("in-memory db should open");
         let runner = MigrationRunner::with_app_migrations();
+        let total_migrations = runner.migrations().len();
 
         // Run 1
         let report1 = runner.run(&mut conn).expect("first run should succeed");
-        assert_eq!(report1.applied_count, 1);
+        assert_eq!(report1.applied_count, total_migrations);
 
         // Run 2: idempotent, nothing applied
         let report2 = runner.run(&mut conn).expect("second run should succeed");
         assert_eq!(report2.applied_count, 0);
-        assert_eq!(report2.skipped_count, 1);
+        assert_eq!(report2.skipped_count, total_migrations);
         assert!(report2.applied_versions.is_empty());
     }
 

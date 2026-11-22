@@ -18,8 +18,8 @@ Use this matrix to convert product requirements into automated tests and manual 
 | AT-021 | Facts | Mark fact disputed/outdated | Fact is excluded from definitive answer retrieval | P1 |
 | AT-022 | Facts | Delete referenced fact | Defined deletion policy; no unexplained database error | P1 |
 | AT-023 | Facts | Store sensitive fact | Excluded from provider payload absent explicit request consent | P1 |
-| AT-030 | Credentials | Add API key | Secret stored in Windows Credential Manager; only opaque ref in DB | P2 |
-| AT-031 | Credentials | Remove provider | Credential removed; failure surfaced | P2 |
+| AT-030 | Credentials | Add API key | Secret stored in Windows Credential Manager; only opaque ref in DB (Automated tests: `test_at_030_save_credential_stores_secret_in_manager_and_opaque_ref_in_db` & `tests/credential_management.test.ts`) | P2 |
+| AT-031 | Credentials | Remove provider | Credential removed; failure surfaced; shared credential protected (Automated tests: `test_at_031_delete_credential_removes_from_store_and_db` & `test_delete_shared_credential_requires_force_when_in_use`) | P2 |
 | AT-032 | Provider | Gemini structured request | Normalized response validated and returned | P2 |
 | AT-033 | Pool | One key returns 429, another healthy | Respect Retry-After/cooldown and fail over if permitted | P2 |
 | AT-034 | Pool | All keys hit account quota | Stop retries for account/project scope; preserve question | P2 |

@@ -6,10 +6,16 @@ import type {
   RetentionPolicyInfo,
   WipeReport,
 } from "../../types/dataManagement";
+import type {
+  CredentialSummary,
+  ProviderType,
+  TestCredentialResult,
+} from "../../types/credential";
 import { dataManagementService } from "../../services/dataManagementService";
+import { CredentialService } from "../../services/credentialService";
 import { AppError } from "../../types/error";
 
-type SettingsTab = "export" | "retention" | "danger";
+type SettingsTab = "credentials" | "export" | "retention" | "danger";
 
 interface SettingsViewProps {
   personas: Persona[];
@@ -24,21 +30,50 @@ export function SettingsView({
   onRefreshPersonas,
   onDeletePersona,
 }: SettingsViewProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("export");
+  const [activeTab, setActiveTab] = useState<SettingsTab>("credentials");
 
-  // Export State
-  const [selectedPersonaId, setSelectedPersonaId] = useState<string>(activePersona ? activePersona.id : "ALL");
+  // Credential Management State (SC-020)
+  const [credentials, setCredentials] = useState<CredentialSummary[]>([]);
+  const [isCredentialsLoading, setIsCredentialsLoading] = useState(false);
+  const [credErrorMessage, setCredErrorMessage] = useState<string | null>(null);
+  const [credSuccessMessage, setCredSuccessMessage] = useState<string | null>(null);
+
+  // New Credential Form State
+  const [newProviderType, setNewProviderType] = useState<ProviderType>("gemini");
+  const [newLabel, setNewLabel] = useState("");
+  const [newSecret, setNewSecret] = useState("");
+  const [isSavingCred, setIsSavingCred] = useState(false);
+
+  // Testing & Status State
+  const [testResults, setTestResults] = useState<Record<string, TestCredentialResult>>({});
+  const [testingCredId, setTestingCredId] = useState<string | null>(null);
+
+  // Edit / Update Credential Modal State
+  const [editingCred, setEditingCred] = useState<CredentialSummary | null>(null);
+  const [updateLabel, setUpdateLabel] = useState("");
+  const [updateSecret, setUpdateSecret] = useState("");
+  const [isUpdatingCred, setIsUpdatingCred] = useState(false);
+
+  // Delete Shared Credential Modal State
+  const [deletingCred, setDeletingCred] = useState<CredentialSummary | null>(null);
+  const [forceDeleteConsent, setForceDeleteConsent] = useState(false);
+  const [isDeletingCred, setIsDeletingCred] = useState(false);
+
+  // Export State (SC-012)
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string>(
+    activePersona ? activePersona.id : "ALL"
+  );
   const [exportSummary, setExportSummary] = useState<ExportSummary | null>(null);
   const [isExportSummaryLoading, setIsExportSummaryLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [exportSuccessMessage, setExportSuccessMessage] = useState<string | null>(null);
   const [exportErrorMessage, setExportErrorMessage] = useState<string | null>(null);
 
-  // Retention Info State
+  // Retention Info State (SC-012)
   const [retentionInfo, setRetentionInfo] = useState<RetentionPolicyInfo | null>(null);
   const [isRetentionLoading, setIsRetentionLoading] = useState(false);
 
-  // Danger Zone / Wipe State
+  // Danger Zone / Wipe State (SC-012)
   const [wipeSummary, setWipeSummary] = useState<AllRecordCounts | null>(null);
   const [isWipeSummaryLoading, setIsWipeSummaryLoading] = useState(false);
   const [wipeConfirmationInput, setWipeConfirmationInput] = useState("");
@@ -52,10 +87,147 @@ export function SettingsView({
   const [isDeletingPersona, setIsDeletingPersona] = useState(false);
 
   useEffect(() => {
-    if (activeTab === "retention" && !retentionInfo) {
+    if (activeTab === "credentials") {
+      void loadCredentials();
+    } else if (activeTab === "retention" && !retentionInfo) {
       void loadRetentionInfo();
     }
   }, [activeTab]);
+
+  async function loadCredentials() {
+    setIsCredentialsLoading(true);
+    setCredErrorMessage(null);
+    try {
+      const list = await CredentialService.listCredentials();
+      setCredentials(list);
+    } catch (err) {
+      setCredErrorMessage(AppError.from(err).message);
+    } finally {
+      setIsCredentialsLoading(false);
+    }
+  }
+
+  async function handleSaveCredential(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newLabel.trim()) {
+      setCredErrorMessage("Label kredensial wajib diisi.");
+      return;
+    }
+    if (!newSecret.trim() || newSecret.trim().length < 8) {
+      setCredErrorMessage("Kunci API rahasia wajib diisi dan minimal 8 karakter.");
+      return;
+    }
+
+    setIsSavingCred(true);
+    setCredErrorMessage(null);
+    setCredSuccessMessage(null);
+
+    try {
+      await CredentialService.saveCredential({
+        providerType: newProviderType,
+        label: newLabel.trim(),
+        secret: newSecret.trim(),
+      });
+
+      // BERSIHKAN INPUT STATE SEKETIKA DARI MEMORI FRONTEND
+      setNewSecret("");
+      setNewLabel("");
+      setCredSuccessMessage("Kredensial berhasil disimpan dengan aman di Windows Credential Manager.");
+      await loadCredentials();
+    } catch (err) {
+      setCredErrorMessage(AppError.from(err).message);
+    } finally {
+      setIsSavingCred(false);
+    }
+  }
+
+  async function handleTestCredential(id: string) {
+    setTestingCredId(id);
+    setCredErrorMessage(null);
+    try {
+      const res = await CredentialService.testCredential(id);
+      setTestResults((prev) => ({ ...prev, [id]: res }));
+      await loadCredentials();
+    } catch (err) {
+      setCredErrorMessage(AppError.from(err).message);
+    } finally {
+      setTestingCredId(null);
+    }
+  }
+
+  function handleOpenUpdateModal(cred: CredentialSummary) {
+    setEditingCred(cred);
+    setUpdateLabel(cred.label);
+    setUpdateSecret("");
+    setCredErrorMessage(null);
+  }
+
+  async function handleSaveUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingCred) return;
+
+    if (!updateLabel.trim()) {
+      setCredErrorMessage("Label kredensial tidak boleh kosong.");
+      return;
+    }
+
+    setIsUpdatingCred(true);
+    setCredErrorMessage(null);
+    try {
+      await CredentialService.updateCredential({
+        id: editingCred.id,
+        label: updateLabel.trim(),
+        secret: updateSecret.trim() ? updateSecret.trim() : undefined,
+      });
+
+      // BERSIHKAN INPUT STATE SEKETIKA
+      setUpdateSecret("");
+      setEditingCred(null);
+      setCredSuccessMessage(`Kredensial '${updateLabel.trim()}' berhasil diperbarui.`);
+      await loadCredentials();
+    } catch (err) {
+      setCredErrorMessage(AppError.from(err).message);
+    } finally {
+      setIsUpdatingCred(false);
+    }
+  }
+
+  async function handleDeleteCredentialClick(cred: CredentialSummary) {
+    if (cred.usageCount > 0) {
+      // Memerlukan konfirmasi khusus karena kredensial digunakan bersama
+      setDeletingCred(cred);
+      setForceDeleteConsent(false);
+      setCredErrorMessage(null);
+    } else {
+      if (!window.confirm(`Yakin ingin menghapus kredensial '${cred.label}' dari Windows Credential Manager?`)) {
+        return;
+      }
+      try {
+        await CredentialService.deleteCredential(cred.id, false);
+        setCredSuccessMessage(`Kredensial '${cred.label}' berhasil dihapus.`);
+        await loadCredentials();
+      } catch (err) {
+        setCredErrorMessage(AppError.from(err).message);
+      }
+    }
+  }
+
+  async function handleExecuteForceDelete() {
+    if (!deletingCred) return;
+
+    setIsDeletingCred(true);
+    setCredErrorMessage(null);
+    try {
+      await CredentialService.deleteCredential(deletingCred.id, forceDeleteConsent);
+      setCredSuccessMessage(`Kredensial '${deletingCred.label}' berhasil dihapus secara bersih.`);
+      setDeletingCred(null);
+      await loadCredentials();
+    } catch (err) {
+      setCredErrorMessage(AppError.from(err).message);
+    } finally {
+      setIsDeletingCred(false);
+    }
+  }
 
   async function loadRetentionInfo() {
     setIsRetentionLoading(true);
@@ -99,7 +271,16 @@ export function SettingsView({
           : (personas.find((p) => p.id === selectedPersonaId)?.displayName.toLowerCase().replace(/\s+/g, "-") || "persona");
       const filename = `survey-copilot-export-${targetLabel}-${timestamp}.json`;
 
-      dataManagementService.triggerFileDownload(jsonContent, filename);
+      const blob = new Blob([jsonContent], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
       setExportSuccessMessage(`Berkas ekspor berhasil diunduh: ${filename}`);
     } catch (err) {
       setExportErrorMessage(AppError.from(err).message);
@@ -122,23 +303,20 @@ export function SettingsView({
   }
 
   async function handleExecuteWipe() {
-    if (wipeConfirmationInput.trim() !== "HAPUS SEMUA DATA") {
-      setWipeErrorMessage("Harap ketik tepat 'HAPUS SEMUA DATA' untuk mengonfirmasi.");
-      return;
-    }
-    if (!isConsentChecked) {
-      setWipeErrorMessage("Harap centang persetujuan pemahaman konsekuensi sebelum melanjutkan.");
+    if (wipeConfirmationInput.trim() !== "HAPUS SEMUA DATA" || !isConsentChecked) {
       return;
     }
 
     setIsWiping(true);
     setWipeErrorMessage(null);
+    setWipeReport(null);
     try {
-      const report = await dataManagementService.wipeAllData("HAPUS SEMUA DATA");
+      const report = await dataManagementService.wipeAllData(wipeConfirmationInput.trim());
       setWipeReport(report);
-      setWipeSummary(null);
       setWipeConfirmationInput("");
       setIsConsentChecked(false);
+      setWipeSummary(null);
+
       if (onRefreshPersonas) {
         await onRefreshPersonas();
       }
@@ -149,9 +327,15 @@ export function SettingsView({
     }
   }
 
-  async function handleDeleteSelectedPersona() {
+  async function handleExecuteDeleteSinglePersona() {
     if (!personaToDeleteId) return;
-    if (!window.confirm("Hapus persona ini beserta seluruh fakta dan riwayatnya secara permanen?")) return;
+    const target = personas.find((p) => p.id === personaToDeleteId);
+    if (!target) return;
+
+    if (!window.confirm(`Yakin ingin menghapus persona '${target.displayName}' beserta seluruh data miliknya?`)) {
+      return;
+    }
+
     setIsDeletingPersona(true);
     try {
       if (onDeletePersona) {
@@ -162,7 +346,7 @@ export function SettingsView({
         await onRefreshPersonas();
       }
     } catch (err) {
-      alert(AppError.from(err).message);
+      alert(`Gagal menghapus persona: ${AppError.from(err).message}`);
     } finally {
       setIsDeletingPersona(false);
     }
@@ -171,13 +355,19 @@ export function SettingsView({
   return (
     <div className="content settings-container">
       <div className="settings-header">
-        <h2>⚙ Pengaturan Data & Privasi</h2>
+        <h2>⚙ Pengaturan Data, Privasi & AI</h2>
         <p className="settings-subtitle">
-          Kelola pencadangan data, ekspor JSON terstruktur, transparansi privasi, serta pembersihan data secara aman.
+          Kelola kredensial provider AI secara aman di Windows Credential Manager, ekspor cadangan data, dan siklus privasi.
         </p>
       </div>
 
       <nav className="settings-nav-tabs" aria-label="Tab Pengaturan">
+        <button
+          className={`tab-btn ${activeTab === "credentials" ? "active" : ""}`}
+          onClick={() => setActiveTab("credentials")}
+        >
+          🔑 Kredensial & Provider AI
+        </button>
         <button
           className={`tab-btn ${activeTab === "export" ? "active" : ""}`}
           onClick={() => setActiveTab("export")}
@@ -203,7 +393,303 @@ export function SettingsView({
         </button>
       </nav>
 
-      {/* TAB 1: EKSPOR DATA */}
+      {/* TAB 1: KREDENSIAL & PROVIDER AI (SC-020) */}
+      {activeTab === "credentials" && (
+        <section className="settings-tab-content" aria-labelledby="cred-heading">
+          <div className="card">
+            <h3 id="cred-heading">Penyimpanan Kredensial AI di Windows Credential Manager</h3>
+            <p className="description-text">
+              Kunci API disimpan secara native di <strong>Windows Credential Manager</strong> pada sistem operasi Windows 11 Anda.
+              Basis data lokal SQLite hanya menyimpan referensi buram (<code>credential_ref</code>) dan tidak pernah menyimpan secret asli.
+              Kunci API tidak pernah bocor ke antarmuka, berkas ekspor, atau log diagnostik.
+            </p>
+
+            <div className="security-guarantee-badge">
+              🛡 <strong>Keamanan Kunci Terjamin:</strong> Kunci API hanya diproses di backend saat melakukan panggilan ke provider AI.
+              Setelah Anda menyimpannya, nilai rahasia tidak pernah ditampilkan kembali dalam bentuk teks mentah.
+            </div>
+
+            {credSuccessMessage && (
+              <div className="alert alert-success" role="alert" style={{ marginTop: "14px" }}>
+                ✓ {credSuccessMessage}
+              </div>
+            )}
+
+            {credErrorMessage && (
+              <div className="alert alert-error" role="alert" style={{ marginTop: "14px" }}>
+                ✕ {credErrorMessage}
+              </div>
+            )}
+
+            {/* FORM TAMBAH KREDENSIAL */}
+            <form onSubmit={handleSaveCredential} className="cred-form" style={{ marginTop: "18px" }}>
+              <h4>Tambah Kunci API Provider Baru</h4>
+
+              <div className="form-group">
+                <label htmlFor="cred-provider-type">Tipe Provider AI:</label>
+                <select
+                  id="cred-provider-type"
+                  value={newProviderType}
+                  onChange={(e) => setNewProviderType(e.target.value as ProviderType)}
+                  className="select-input"
+                >
+                  <option value="gemini">Google Gemini (Utama / Rekomendasi)</option>
+                  <option value="openai_compatible">OpenAI / Kompatibel HTTP Endpoint</option>
+                  <option value="anthropic_compatible">Anthropic Claude Kompatibel</option>
+                  <option value="custom_http">Custom HTTP Provider (Local / Private)</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="cred-label">Nama / Label Pengenal:</label>
+                <input
+                  id="cred-label"
+                  type="text"
+                  placeholder="Contoh: Gemini 1.5 Flash Utama"
+                  value={newLabel}
+                  onChange={(e) => setNewLabel(e.target.value)}
+                  maxLength={100}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="cred-secret">Kunci API Rahasia (API Key):</label>
+                <input
+                  id="cred-secret"
+                  type="password"
+                  placeholder="Tempel kunci API rahasia (contoh: AIzaSy...)"
+                  value={newSecret}
+                  onChange={(e) => setNewSecret(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                />
+              </div>
+
+              <p className="cred-security-hint">
+                🔒 Nilai kunci akan disimpan langsung ke Windows Credential Manager dan segera dihapus dari memori formulir peramban.
+              </p>
+
+              <div>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isSavingCred || !newLabel.trim() || !newSecret.trim()}
+                >
+                  {isSavingCred ? "Menyimpan ke Windows Credential Manager..." : "💾 Simpan Kredensial ke OS"}
+                </button>
+              </div>
+            </form>
+
+            <hr style={{ margin: "24px 0", border: "0", borderTop: "1px solid var(--line)" }} />
+
+            {/* DAFTAR KREDENSIAL TERSIMPAN */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h4>Daftar Kredensial yang Dikelola ({credentials.length})</h4>
+              <button
+                className="btn btn-secondary"
+                style={{ padding: "6px 12px", fontSize: "11px" }}
+                onClick={() => void loadCredentials()}
+                disabled={isCredentialsLoading}
+              >
+                {isCredentialsLoading ? "Menyegarkan..." : "🔄 Segarkan Status"}
+              </button>
+            </div>
+
+            {credentials.length === 0 ? (
+              <div className="empty-inline" style={{ marginTop: "14px" }}>
+                Belum ada kredensial API yang tersimpan di Windows Credential Manager. Silakan tambahkan kunci API di atas.
+              </div>
+            ) : (
+              <div className="cred-grid">
+                {credentials.map((cred) => {
+                  const testRes = testResults[cred.id];
+                  return (
+                    <div key={cred.id} className="cred-card">
+                      <div className="cred-card-header">
+                        <div>
+                          <h5 className="cred-card-title">{cred.label}</h5>
+                          <span className="badge" style={{ marginTop: "4px" }}>
+                            {cred.providerType === "gemini"
+                              ? "Google Gemini"
+                              : cred.providerType === "openai_compatible"
+                              ? "OpenAI Compatible"
+                              : cred.providerType === "anthropic_compatible"
+                              ? "Anthropic Compatible"
+                              : "Custom HTTP"}
+                          </span>
+                        </div>
+                        <span className={`badge badge-status-${cred.status}`}>
+                          {cred.status === "configured"
+                            ? "✓ Tersimpan di OS"
+                            : cred.status === "unconfigured"
+                            ? "✕ Belum di OS"
+                            : cred.status === "needs_update"
+                            ? "⚠ Perlu Update"
+                            : "⚠ Akses Ditolak"}
+                        </span>
+                      </div>
+
+                      <div>
+                        <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "3px" }}>
+                          Referensi Buram (SQLite):
+                        </div>
+                        <code className="cred-ref-code">{cred.credentialRef}</code>
+                      </div>
+
+                      <div className="cred-meta-row">
+                        <span>Digunakan: <strong>{cred.usageCount}</strong> provider config</span>
+                        <span>Diperbarui: {new Date(cred.updatedAt).toLocaleDateString("id-ID")}</span>
+                      </div>
+
+                      {testRes && (
+                        <div
+                          className={`alert ${testRes.isValid ? "alert-success" : "alert-error"}`}
+                          style={{ padding: "8px 10px", fontSize: "11px", margin: "4px 0" }}
+                        >
+                          {testRes.message}
+                        </div>
+                      )}
+
+                      <div className="card-actions" style={{ marginTop: "8px", borderTop: "1px solid #f2f5f3", paddingTop: "8px" }}>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: "6px 10px", fontSize: "11px" }}
+                          onClick={() => void handleTestCredential(cred.id)}
+                          disabled={testingCredId === cred.id}
+                        >
+                          {testingCredId === cred.id ? "Memeriksa..." : "🔍 Uji Akses"}
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: "6px 10px", fontSize: "11px" }}
+                          onClick={() => handleOpenUpdateModal(cred)}
+                        >
+                          ✏ Ganti Kunci
+                        </button>
+                        <button
+                          className="danger-button"
+                          style={{ padding: "6px 10px", fontSize: "11px" }}
+                          onClick={() => void handleDeleteCredentialClick(cred)}
+                        >
+                          🗑 Hapus
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* MODAL GANTI KUNCI / UPDATE */}
+      {editingCred && (
+        <div className="modal-backdrop">
+          <div className="modal-dialog">
+            <div className="modal-header">
+              <h3>Perbarui Kredensial: {editingCred.label}</h3>
+              <button className="text-button" onClick={() => setEditingCred(null)}>✕</button>
+            </div>
+            <form onSubmit={handleSaveUpdate}>
+              <div className="modal-body">
+                <label>
+                  Label Kredensial:
+                  <input
+                    type="text"
+                    value={updateLabel}
+                    onChange={(e) => setUpdateLabel(e.target.value)}
+                    required
+                  />
+                </label>
+                <label>
+                  Kunci API Baru (Kosongkan jika hanya ingin mengubah label):
+                  <input
+                    type="password"
+                    placeholder="Tempel kunci API rahasia baru (opsional)"
+                    value={updateSecret}
+                    onChange={(e) => setUpdateSecret(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                </label>
+                <p className="cred-security-hint">
+                  🔒 Kunci API baru akan menimpa data di Windows Credential Manager secara aman.
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setEditingCred(null)}
+                  disabled={isUpdatingCred}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isUpdatingCred}
+                >
+                  {isUpdatingCred ? "Menyimpan..." : "Simpan Pembaruan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL KONFIRMASI HAPUS KREDENSIAL BERSAMA */}
+      {deletingCred && (
+        <div className="modal-backdrop">
+          <div className="modal-dialog">
+            <div className="modal-header">
+              <h3 style={{ color: "#9c2b28" }}>⚠ Kredensial Masih Digunakan Bersama</h3>
+              <button className="text-button" onClick={() => setDeletingCred(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p>
+                Kredensial <strong>'{deletingCred.label}'</strong> saat ini sedang direferensikan oleh{" "}
+                <strong>{deletingCred.usageCount} konfigurasi provider AI</strong>.
+              </p>
+              <div className="danger-callout">
+                <h4>Peringatan Kredensial Bersama:</h4>
+                <p>
+                  Jika Anda menghapus kredensial ini dari Windows Credential Manager, seluruh konfigurasi provider yang menggunakannya tidak akan dapat melakukan otentikasi ke AI.
+                </p>
+              </div>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontWeight: "normal" }}>
+                <input
+                  type="checkbox"
+                  checked={forceDeleteConsent}
+                  onChange={(e) => setForceDeleteConsent(e.target.checked)}
+                />
+                <span>Saya memahami dampaknya dan tetap ingin menghapus kunci ini secara permanen dari OS.</span>
+              </label>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setDeletingCred(null)}
+                disabled={isDeletingCred}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => void handleExecuteForceDelete()}
+                disabled={!forceDeleteConsent || isDeletingCred}
+              >
+                {isDeletingCred ? "Menghapus..." : "Tetap Hapus Kredensial"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: EKSPOR DATA (SC-012) */}
       {activeTab === "export" && (
         <section className="settings-tab-content" aria-labelledby="export-heading">
           <div className="card">
@@ -321,17 +807,17 @@ export function SettingsView({
         </section>
       )}
 
-      {/* TAB 2: KEBIJAKAN PRIVASI & RETENSI */}
+      {/* TAB 3: RETENSI & KEBIJAKAN PRIVASI (SC-012) */}
       {activeTab === "retention" && (
         <section className="settings-tab-content" aria-labelledby="retention-heading">
           <div className="card">
             <h3 id="retention-heading">Kebijakan Privasi & Siklus Hidup Data</h3>
             <p className="description-text">
-              Survey Copilot beroperasi secara lokal (local-first). Berikut adalah rincian cara aplikasi mengelola dan menjaga keamanan setiap kategori data:
+              Transparansi siklus retensi data aplikasi Survey Copilot. Seluruh data responden disimpan secara lokal di mesin Anda dan tidak pernah dibagikan tanpa tindakan eksplisit.
             </p>
 
             {isRetentionLoading ? (
-              <p>Memuat informasi kebijakan...</p>
+              <p>Memuat kebijakan retensi...</p>
             ) : retentionInfo ? (
               <div className="retention-grid">
                 <div className="retention-card">
@@ -372,25 +858,22 @@ export function SettingsView({
         </section>
       )}
 
-      {/* TAB 3: ZONA BAHAYA / DELETION */}
+      {/* TAB 4: ZONA BAHAYA (SC-012) */}
       {activeTab === "danger" && (
         <section className="settings-tab-content" aria-labelledby="danger-heading">
-          {/* BAGIAN 1: HAPUS PERSONA TERTENTU */}
+          {/* HAPUS SINGLE PERSONA */}
           <div className="card danger-card">
-            <h3>Hapus Persona Tertentu</h3>
+            <h3>Hapus Persona Spesifik</h3>
             <p className="description-text">
-              Menghapus satu persona beserta seluruh fakta, sumber bukti, dan riwayat miliknya. Data persona lain dan pengaturan global tidak akan terpengaruh.
+              Pilih satu persona untuk dihapus secara tuntas beserta seluruh fakta profil, riwayat, dan sesi survei terkait.
             </p>
-
-            <div className="form-group">
-              <label htmlFor="persona-delete-select">Pilih Persona yang Ingin Dihapus:</label>
+            <div className="form-group" style={{ maxWidth: "400px", marginBottom: "14px" }}>
               <select
-                id="persona-delete-select"
                 value={personaToDeleteId}
                 onChange={(e) => setPersonaToDeleteId(e.target.value)}
                 className="select-input"
               >
-                <option value="">-- Pilih Persona --</option>
+                <option value="">-- Pilih persona untuk dihapus --</option>
                 {personas.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.displayName} {p.isActive ? "(Aktif)" : ""}
@@ -398,83 +881,76 @@ export function SettingsView({
                 ))}
               </select>
             </div>
-
             <button
               className="btn btn-danger"
-              onClick={() => void handleDeleteSelectedPersona()}
+              onClick={() => void handleExecuteDeleteSinglePersona()}
               disabled={!personaToDeleteId || isDeletingPersona}
             >
-              {isDeletingPersona ? "Menghapus..." : "Hapus Persona Terpilih"}
+              {isDeletingPersona ? "Menghapus..." : "🗑 Hapus Persona Terpilih"}
             </button>
           </div>
 
-          {/* BAGIAN 2: RESET TOTAL SEMUA DATA */}
+          {/* WIPE SELURUH DATA APLIKASI */}
           <div className="card danger-card danger-card-total">
-            <h3 id="danger-heading">⚠ Reset Total: Hapus Seluruh Data Aplikasi</h3>
+            <h3 id="danger-heading">🚨 Pembersihan Total: Hapus Seluruh Data Aplikasi</h3>
             <p className="danger-warning">
-              Tindakan ini akan menghapus <strong>seluruh persona, fakta profil, sumber bukti, riwayat pertanyaan/jawaban, dan pengaturan lokal</strong> secara permanen. Database lokal akan dipadatkan (VACUUM & TRUNCATE WAL) dan dikembalikan ke kondisi awal instalasi.
+              Tindakan ini akan <strong>MENGHAPUS PERMANEN</strong> seluruh persona responden, fakta profil, bukti sumber, riwayat jawaban, riwayat sesi survei, dan file tangkapan layar sementara.
+              Basis data akan dipadatkan (VACUUM) dan checkpoint WAL akan di-truncate.
             </p>
 
             <div className="pre-wipe-actions">
               <button
                 className="btn btn-secondary"
                 onClick={() => void handleLoadWipeSummary()}
-                disabled={isWipeSummaryLoading}
+                disabled={isWipeSummaryLoading || isWiping}
               >
-                {isWipeSummaryLoading ? "Memeriksa Database..." : "📊 Periksa Rincian Data yang Akan Dihapus"}
-              </button>
-              <button
-                className="btn btn-outline"
-                onClick={() => {
-                  setActiveTab("export");
-                  setSelectedPersonaId("ALL");
-                }}
-              >
-                📦 Ekspor Cadangan Data Terlebih Dahulu (Direkomendasikan)
+                {isWipeSummaryLoading ? "Menghitung Record..." : "📊 Hitung Jumlah Data yang Akan Terhapus"}
               </button>
             </div>
 
             {wipeSummary && (
               <div className="wipe-summary-table-box">
-                <h4>Rincian Record yang Akan Dihapus:</h4>
+                <h4>Data yang Akan Dihapus Bersih:</h4>
                 <ul className="wipe-counts-list">
-                  <li><strong>Total Persona:</strong> {wipeSummary.personas}</li>
-                  <li><strong>Fakta Profil:</strong> {wipeSummary.facts}</li>
-                  <li><strong>Sumber Bukti:</strong> {wipeSummary.sources}</li>
-                  <li><strong>Riwayat Perubahan Fakta:</strong> {wipeSummary.history}</li>
-                  <li><strong>Sesi & Pertanyaan Survei:</strong> {wipeSummary.sessions + wipeSummary.questions}</li>
-                  <li><strong>Rekomendasi & Jawaban AI:</strong> {wipeSummary.recommendations + wipeSummary.answers}</li>
-                  <li><strong>Konfigurasi Provider:</strong> {wipeSummary.providerConfigs}</li>
-                  <li><strong>Total Keseluruhan Record:</strong> {wipeSummary.total}</li>
+                  <li>Total Persona: <strong>{wipeSummary.personas}</strong></li>
+                  <li>Fakta Profil: <strong>{wipeSummary.facts}</strong></li>
+                  <li>Sumber Bukti: <strong>{wipeSummary.sources}</strong></li>
+                  <li>Riwayat Perubahan: <strong>{wipeSummary.history}</strong></li>
+                  <li>Preferensi: <strong>{wipeSummary.preferences}</strong></li>
+                  <li>Sesi Survei: <strong>{wipeSummary.sessions}</strong></li>
+                  <li>Pertanyaan: <strong>{wipeSummary.questions}</strong></li>
+                  <li>Rekomendasi Jawaban: <strong>{wipeSummary.recommendations}</strong></li>
+                  <li>Riwayat Jawaban: <strong>{wipeSummary.answers}</strong></li>
+                  <li>Hasil Kesesuaian Survei: <strong>{wipeSummary.fitResults}</strong></li>
+                  <li>Percobaan Survei: <strong>{wipeSummary.attempts}</strong></li>
                 </ul>
               </div>
             )}
 
             <div className="wipe-confirmation-container">
-              <div className="consent-checkbox-group">
+              <label className="consent-checkbox-group">
                 <input
                   type="checkbox"
-                  id="consent-wipe"
                   checked={isConsentChecked}
                   onChange={(e) => setIsConsentChecked(e.target.checked)}
                 />
-                <label htmlFor="consent-wipe">
-                  Saya memahami bahwa tindakan ini bersifat <strong>permanen</strong> dan data yang dihapus tidak dapat dipulihkan kembali.
-                </label>
-              </div>
+                <span>
+                  Saya secara sadar mengonfirmasi bahwa tindakan pembersihan total ini bersifat destruktif permanen dan tidak dapat dibatalkan.
+                </span>
+              </label>
 
               <div className="form-group">
-                <label htmlFor="wipe-confirmation-input">
-                  Ketik <code>HAPUS SEMUA DATA</code> untuk mengaktifkan tombol:
+                <label htmlFor="wipe-confirmation-text">
+                  Ketik <strong>HAPUS SEMUA DATA</strong> di bawah ini untuk mengonfirmasi:
                 </label>
                 <input
-                  id="wipe-confirmation-input"
+                  id="wipe-confirmation-text"
                   type="text"
-                  placeholder="HAPUS SEMUA DATA"
+                  placeholder="Ketik persis: HAPUS SEMUA DATA"
                   value={wipeConfirmationInput}
                   onChange={(e) => setWipeConfirmationInput(e.target.value)}
-                  className="text-input"
-                  disabled={isWiping}
+                  className="select-input"
+                  autoComplete="off"
                 />
               </div>
 
