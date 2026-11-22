@@ -1,6 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 
 type Page = "home" | "profiles" | "copilot" | "history" | "settings";
+
+type Persona = {
+  id: string;
+  displayName: string;
+  isActive: boolean;
+  status: string;
+};
 
 const pageTitles: Record<Page, string> = {
   home: "Beranda",
@@ -20,6 +28,52 @@ const navigation: { id: Page; label: string; icon: string }[] = [
 export default function App() {
   const [page, setPage] = useState<Page>("home");
   const [question, setQuestion] = useState("");
+  const [personas, setPersonas] = useState<Persona[]>([]);
+  const [profileName, setProfileName] = useState("");
+  const [profileError, setProfileError] = useState("");
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  async function refreshPersonas() {
+    try {
+      const result = await invoke<Persona[]>("persona_list");
+      setPersonas(result);
+    } catch (error) {
+      setProfileError(String(error));
+    }
+  }
+
+  useEffect(() => {
+    void refreshPersonas();
+  }, []);
+
+  async function createPersona(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = profileName.trim();
+    if (!name) return;
+    setProfileLoading(true);
+    setProfileError("");
+    try {
+      await invoke<Persona>("persona_create", { displayName: name });
+      setProfileName("");
+      await refreshPersonas();
+    } catch (error) {
+      setProfileError(String(error));
+    } finally {
+      setProfileLoading(false);
+    }
+  }
+
+  async function activatePersona(personaId: string) {
+    setProfileError("");
+    try {
+      await invoke<Persona>("persona_set_active", { personaId });
+      await refreshPersonas();
+    } catch (error) {
+      setProfileError(String(error));
+    }
+  }
+
+  const activePersona = personas.find((persona) => persona.isActive);
 
   return (
     <div className="app-shell">
@@ -60,10 +114,18 @@ export default function App() {
             <span className="eyebrow">SURVEY COPILOT</span>
             <h1>{pageTitles[page]}</h1>
           </div>
-          <div className="persona-pill" title="Pemilihan profil aktif akan tersedia setelah modul profil dibuat">
-            <span className="avatar">P</span>
-            Profil belum dibuat
-          </div>
+          <select
+            className="persona-select"
+            aria-label="Profil responden aktif"
+            value={activePersona?.id ?? ""}
+            disabled={personas.length === 0}
+            onChange={(event) => void activatePersona(event.target.value)}
+          >
+            {personas.length === 0 && <option value="">Buat profil dahulu</option>}
+            {personas.map((persona) => (
+              <option key={persona.id} value={persona.id}>{persona.displayName}</option>
+            ))}
+          </select>
         </header>
 
         {page === "home" && (
@@ -102,13 +164,25 @@ export default function App() {
               </button>
             </div>
 
-            <div className="notice">
-              <span>i</span>
-              <p>
-                Rekomendasi AI bukan jawaban yang dikirim otomatis. Kamu tetap
-                memeriksa, mengisi, dan mengirim survei sendiri.
-              </p>
-            </div>
+            {!activePersona && (
+              <div className="notice">
+                <span>!</span>
+                <p>
+                  Buat profil responden terlebih dahulu agar rekomendasi AI dapat
+                  menggunakan informasi yang benar.
+                  <button className="inline-action" onClick={() => setPage("profiles")}>Buat profil</button>
+                </p>
+              </div>
+            )}
+            {activePersona && (
+              <div className="notice">
+                <span>i</span>
+                <p>
+                  Profil aktif: <strong>{activePersona.displayName}</strong>. AI hanya
+                  akan menggunakan informasi dari profil ini.
+                </p>
+              </div>
+            )}
           </section>
         )}
 
@@ -130,7 +204,7 @@ export default function App() {
             />
             <div className="workspace-actions">
               <button className="secondary-button" disabled>Ambil screenshot</button>
-              <button className="primary-button" disabled={!question.trim()}>
+              <button className="primary-button" disabled={!question.trim() || !activePersona}>
                 Analisis pertanyaan
               </button>
             </div>
@@ -141,10 +215,49 @@ export default function App() {
         )}
 
         {page === "profiles" && (
-          <section className="content empty-state">
-            <div className="empty-icon">◉</div>
-            <h2>Profil responden</h2>
-            <p>Modul untuk membuat beberapa profil responden yang terpisah sedang disiapkan.</p>
+          <section className="content profile-content">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">DIGITAL PERSONA</span>
+                <h2>Profil responden</h2>
+              </div>
+              <span className="coming-soon">Data disimpan di perangkat ini</span>
+            </div>
+            <form className="profile-form" onSubmit={createPersona}>
+              <label className="field-label" htmlFor="profile-name">Nama profil baru</label>
+              <div className="profile-form-row">
+                <input
+                  id="profile-name"
+                  value={profileName}
+                  onChange={(event) => setProfileName(event.target.value)}
+                  maxLength={80}
+                  placeholder="Contoh: Profil Saya"
+                />
+                <button className="primary-button" type="submit" disabled={!profileName.trim() || profileLoading}>
+                  {profileLoading ? "Menyimpan..." : "Tambah profil"}
+                </button>
+              </div>
+            </form>
+            {profileError && <p className="error-message">{profileError}</p>}
+            <div className="persona-list">
+              {personas.length === 0 ? (
+                <div className="empty-inline">Belum ada profil. Buat profil pertama di atas.</div>
+              ) : personas.map((persona) => (
+                <div className="persona-card" key={persona.id}>
+                  <div>
+                    <strong>{persona.displayName}</strong>
+                    <span>{persona.isActive ? "Profil aktif" : "Profil tersimpan"}</span>
+                  </div>
+                  {persona.isActive ? (
+                    <span className="active-label">Aktif</span>
+                  ) : (
+                    <button className="secondary-button" onClick={() => void activatePersona(persona.id)}>
+                      Gunakan profil
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </section>
         )}
 
