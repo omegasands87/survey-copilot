@@ -1,13 +1,13 @@
 # Multi-Project Session Handoff: SURVEY COPILOT
 
-- **Waktu Handoff**: 2026-11-23T01:09:45+08:00
-- **ID Percakapan Asal**: `2ed87962-a628-49ec-86bd-367c08cb5c33`
+- **Waktu Handoff**: 2026-11-23T01:30:00+08:00
+- **ID Percakapan Asal**: `dcd86563-640b-448e-9d95-27d4b9de336f`
 - **Nama Proyek & Direktori**: `SURVEY COPILOT` (`d:\Antigravity\Projects\SURVEY COPILOT`)
 - **Misi / Tujuan Utama**: Mengembangkan aplikasi desktop Windows 11 x64 Survey Copilot v1.0 yang stabil, aman, dan evidence-grounded menggunakan Tauri 2, Rust, React, TypeScript, SQLite, Windows Credential Manager, dan Gemini AI adapter.
 
 ---
 
-## 1. Pekerjaan yang Telah Diselesaikan (SC-001, SC-002, SC-003, SC-010 Complete)
+## 1. Pekerjaan yang Telah Diselesaikan (SC-001, SC-002, SC-003, SC-010, SC-011 Complete)
 
 - **SC-001 — Establish reproducible builds, lockfiles, dan CI**:
   - `package-lock.json` dan `src-tauri/Cargo.lock` terkunci dan konsisten.
@@ -36,19 +36,45 @@
     - Perhitungan menyeluruh record terkait sebelum penghapusan (`profile_facts`, `fact_sources`, `survey_sessions`, `survey_questions`, `answer_recommendations`, `answer_history`, `survey_fit_results`, `survey_attempts`).
     - Modal konfirmasi eksplisit dengan rincian data yang akan terhapus dan checkbox konfirmasi.
     - Transaksi atomik dengan foreign keys `ON DELETE CASCADE` di SQLite tanpa meninggalkan orphan records.
-    - Kredensial OS dan data profil lain tetap terlindungi.
-  - **UI/UX Komprehensif Berbahasa Indonesia**:
-    - Desain responsif, tab filter ("Profil Aktif", "Diarsipkan", "Semua"), status badges, modal edit profil, modal hapus permanen dengan rincian dampak ketergantungan, serta state loading/error/empty.
-  - **Test Suites Terverifikasi**:
-    - `src-tauri/tests/persona_lifecycle_tests.rs`: mencakup 14 skenario integrasi (CRUD, atomicity, constraint DB, archive/restore safe fallback, dependency summary, cascade deletion, dan cross-persona isolation).
-    - `tests/persona_lifecycle.test.ts`: verifikasi kontrak data dan agregasi ketergantungan pada frontend.
+- **SC-011 — Fact and source lifecycle**:
+  - **Typed Facts**:
+    - Didukung penuh tipe data: `string`, `number` (integer & desimal), `boolean` (ya/tidak/true/false), `date` (ISO YYYY-MM-DD), dan `json` (objek/array terstruktur).
+    - Normalisasi otomatis tanpa mengubah esensi nilai (contoh: "15.000.000" -> `15000000`, "ya" -> `true`).
+    - Metadata lengkap per fakta: `id`, `persona_id`, `category`, `fact_key`, `attribute` (display name), `data_type`, `value`, `normalized_value`, `unit`, `verification_status`, `sensitivity`, `source_date`, `valid_from`, `valid_until`, `notes`.
+  - **Fact Verification Lifecycle**:
+    - Siklus status: `unverified` (default otomatis saat pembuatan), `confirmed` (hanya tindakan eksplisit pengguna), `disputed`, dan `outdated`.
+    - AI dilarang keras mengonfirmasi fakta secara otomatis.
+    - Fakta `disputed` dan `outdated` dicegah secara ketat di backend agar tidak pernah digunakan sebagai bukti definitif.
+  - **Sensitivity Classification**:
+    - Klasifikasi: `ordinary`, `sensitive`, `highly_sensitive`.
+    - Kebijakan bukti: fakta `sensitive` & `highly_sensitive` dilarang dikirim ke AI provider tanpa persetujuan eksplisit per-permintaan.
+    - Redaksi nilai sensitif pada logs dan diagnostics.
+  - **Fact Sources & Provenance**:
+    - Multi-sumber bukti per fakta (`fact_sources`).
+    - Jenis sumber: `manual_entry`, `user_declaration`, `uploaded_document`, `observed_action`, `external_record`.
+    - Metadata sumber: `source_type`, `title`, `description`, `reference_uri`, `observed_at`, `valid_from`, `valid_until`, `notes`.
+  - **Fact History & Audit Trail**:
+    - Tabel baru `fact_history` (Migration `0002_typed_facts_and_history.sql`).
+    - Mencatat `previous_value_json`, `new_value_json`, `previous_status`, `new_status`, `change_reason`, `source_id`, `changed_at`.
+  - **Duplicate & Conflict Detection**:
+    - Deteksi otomatis fakta bertentangan pada `fact_key` yang sama dalam profil aktif.
+    - Banner peringatan di antarmuka dan modal resolusi konflik untuk menandai fakta lama sebagai outdated atau menghapusnya.
+  - **Strict Persona Scoping & AI Fact Eligibility Policy**:
+    - Filter SQL dan validasi service berbasis `persona_id`.
+    - Mesin seleksi fakta AI memfilter hanya fakta `confirmed`, masa berlaku aktif, tanpa konflik, dan lulus persetujuan sensitivitas.
+  - **UI Berbahasa Indonesia Lengkap**:
+    - Form pembuatan fakta bertipe data lengkap dengan pemilih tipe data dinamis.
+    - Modal edit nilai fakta dengan kewajiban mengisi alasan perubahan.
+    - Modal detail fakta yang menampilkan seluruh sumber bukti dan riwayat perubahan (audit trail).
+    - Modal tambah sumber bukti tambahan.
+    - Modal resolusi konflik fakta.
 
 ---
 
 ## 2. Hasil Verifikasi Aktual
 
-- `npm.cmd run build` (`tsc -b && vite build`): **PASS** (42 modules transformed, built in 1.03s, exit code 0).
-- `npm.cmd test` (`node --experimental-strip-types --test tests/**/*.test.ts`): **PASS** (7/7 tests pass, exit code 0).
+- `npm.cmd test` (`node --experimental-strip-types --test tests/**/*.test.ts`): **PASS** (13/13 tests pass, exit code 0).
+- `npm.cmd run build` (`tsc -b && vite build`): **PASS** (42 modules transformed, exit code 0).
 - `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`: **PASS** (exit code 0).
 - `cargo +stable-x86_64-pc-windows-gnu check --tests --manifest-path src-tauri/Cargo.toml`: **PASS** (exit code 0).
 - `cargo +stable-x86_64-pc-windows-gnu clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`: **PASS** (0 warnings, exit code 0).
@@ -63,54 +89,34 @@
   - **AT-012** (*Switch active persona atomic & strictly exactly one active*): **PASS**.
   - **AT-013** (*Strict persona data isolation: facts of A invisible & inaccessible to B*): **PASS**.
   - **AT-014** (*Persona deletion with dependency summary, cascade, and zero orphan records*): **PASS**.
+  - **AT-020** (*Create typed fact and source atomically*): **PASS**.
+  - **AT-021** (*Mark fact disputed/outdated excluded from AI evidence*): **PASS**.
+  - **AT-022** (*Fact delete cascades sources and history cleanly with 0 orphans*): **PASS**.
+  - **AT-023** (*Sensitive facts excluded from AI payload absent consent*): **PASS**.
 
 ---
 
-## 3. File-file Kunci
+## 3. Kondisi Git
 
-- Persona Lifecycle:
-  - Domain Model: `src-tauri/src/domain/persona.rs`
-  - Repository: `src-tauri/src/repository/persona_repo.rs`
-  - Service: `src-tauri/src/services/persona_service.rs`
-  - Commands: `src-tauri/src/commands/persona.rs`, `src-tauri/src/commands/mod.rs`
-  - Backend Integration Tests: `src-tauri/tests/persona_lifecycle_tests.rs`
-  - Frontend Types: `src/types/persona.ts`
-  - Frontend Service: `src/services/personaService.ts`
-  - Frontend View & UI: `src/components/views/ProfilesView.tsx`, `src/App.tsx`, `src/styles.css`
-  - Frontend Tests: `tests/persona_lifecycle.test.ts`
-- Migration & Database:
-  - Migration Runner: `src-tauri/src/migrations/mod.rs`
-  - Database Initialization: `src-tauri/src/db.rs`
-  - Migration Tests: `src-tauri/tests/migration_tests.rs`
-- Panduan & Backlog:
-  - Backlog: `docs/08-agent-handoff/IMPLEMENTATION_BACKLOG.md`
-  - Test Matrix: `docs/08-agent-handoff/ACCEPTANCE_TEST_MATRIX.md`
-  - Repo Map: `docs/08-agent-handoff/REPOSITORY_MAP.md`
-  - Multi-Persona Spec: `docs/01-product/MULTI_PERSONA_SPECIFICATION.md`
-  - Addendum NQI & Memory: `docs/08-agent-handoff/ADDENDUM_NEXT_QUESTION_INTELLIGENCE_AND_SURVEY_MEMORY.md`
+- **Branch Aktif**: `main`
+- **Status Kerja**: Bersih (`working tree clean`).
+- **Commit Lokal Belum di-Push** (ahead 5 commits dari `origin/main`):
+  1. `bfc58d1` feat(infra): establish reproducible builds, lockfiles, and CI (SC-001)
+  2. `0282b44` feat(arch): introduce application layers and typed IPC client (SC-002)
+  3. `f8a74e6` feat(db): replace startup SQL replay with transactional migration runner (SC-003)
+  4. `78f3e81` feat(persona): implement persona lifecycle and cross-persona data isolation (SC-010)
+  5. `c0072e4` feat(fact): implement typed facts, provenance, verification lifecycle, and conflict detection (SC-011)
+- **Backup Branches**:
+  - `backup-head-before-sc011`
+  - `backup-sc010-clean`
 
 ---
 
-## 4. Keputusan & Batasan Kritis (Non-Negotiable)
+## 4. Langkah Kerja Berikutnya
 
-- **Tanpa Automasi Browser**: Dilarang membuat browser automation, auto-click, auto-fill, auto-submit, atau bypass proteksi platform.
-- **Fakta Nyata & Isolasi Persona**: Semua persona mewakili orang nyata yang terpisah secara mutlak. Dilarang mencampur data persona.
-- **Kredensial Aman**: API key provider AI hanya disimpan di Windows Credential Manager; tidak boleh disimpan di SQLite, frontend state persistence, plaintext, atau logs.
-- **Survey Memory & NQI Compatibility**: Setiap session dan record pertanyaan terikat kepemilikan persona (`persona_id`), memfasilitasi arsitektur NQI tanpa kebocoran data.
-
----
-
-## 5. Status Terkini & Langkah Berikutnya
-
-- **Status Saat Ini**: SC-001, SC-002, SC-003, dan SC-010 selesai 100%. Kompilasi dan linter bersih tanpa error.
-- **Langkah Berikutnya**:
-  1. **SC-011 — Implement fact and source lifecycle**:
-     - Typed values (JSON payload & normalized value representation).
-     - Siklus hidup status verifikasi lengkap (`confirmed`, `unverified`, `disputed`, `outdated`).
-     - Siklus hidup klasifikasi sensitivitas (`ordinary`, `sensitive`, `highly_sensitive`).
-     - Tanggal validitas (`source_date`, `valid_from`, `valid_until`), catatan, dan deteksi konflik/duplikasi fakta dengan UI warning.
-     - Fact archive/restore & deletion policy.
-     - Strict persona-scoped repository and service tests.
-  2. **SC-012 — Data export and deletion**:
-     - Ekspor data lokal dan per-persona dalam format JSON terisolasi tanpa rahasia API key.
-     - Penghapusan seluruh data aplikasi lokal dengan audit laporan.
+- **SC-012 — Data export and deletion**:
+  - Ekspor seluruh data lokal dan data per-persona ke format JSON yang terstruktur.
+  - Memastikan kredensial dan API keys dikecualikan secara mutlak dari berkas ekspor.
+  - Implementasi penghapusan total data lokal aplikasi dengan konfirmasi dan laporan audit.
+  - Verifikasi round-trip ekspor dan penghapusan database/file cache.
+- **P2 — SC-020: Windows Credential Manager** (Integrasi penyimpanan aman API secret di Windows).
