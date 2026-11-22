@@ -1,169 +1,92 @@
-# Feature Specification
+# Feature Specification — Survey Copilot v1.0
 
-**Version:** 1.0 MVP  
-**Normative source:** [Product Definition](PRODUCT_DEFINITION.md)  
-**Status:** Product baseline
+**Normative source:** PRODUCT_DEFINITION.md
 
-## 1. First-run experience
+## 1. First launch
 
-### Purpose
-Explain the application's operating model before the user stores personal data or sends information to an AI provider.
+- Explain that persona data, questions, and history are stored locally.
+- Explain that AI analysis sends the current question and selected relevant facts to the configured provider.
+- Explain that sensitive facts are excluded unless the user authorizes their use.
+- Explain that all survey interaction remains manual.
+- Allow the user to create a persona and configure AI later.
 
-### Required behavior
-1. State that profile, sessions, and answer history are stored locally by default.
-2. Explain that AI analysis sends the current question and selected relevant context to the configured provider.
-3. Explain that sensitive facts are excluded unless explicitly authorized for that request.
-4. State that the application does not fill or submit surveys.
-5. Let the user continue to local profile management without configuring AI.
-6. Show the dashboard after onboarding.
+## 2. Digital Persona
 
-### Failure behavior
-If local storage initialization fails, do not show a usable dashboard that implies data can be saved. Show a recoverable error and preserve diagnostic details without personal content.
+Each persona represents a real respondent whose information the operator is authorized to manage.
 
-## 2. Multi-Persona Digital Persona
+A persona contains:
+- Display name and optional notes.
+- Facts grouped by category.
+- Source and relevant date for each fact.
+- Verification state: confirmed, unverified, disputed, outdated.
+- Sensitivity classification.
 
-### Purpose
-Maintain multiple user-controlled, truthful respondent profiles. Each persona represents a real person whose information the user is authorized to manage.
+Only current, confirmed, relevant facts can directly support factual recommendations. Persona switching must not change ownership of sessions or facts. A fact or history item from another persona must never enter the current analysis context.
 
-### Fact lifecycle
-- Create: user enters a fact, value, category, source description, relevant date, sensitivity, and verification state.
-- Confirm: user explicitly attests that the fact is accurate.
-- Edit: changes are saved as a new current value; prior value/audit treatment is defined in the data model specification.
-- Mark disputed/outdated: immediately removes the fact from direct recommendation support.
-- Archive: removes the fact from active retrieval while retaining it according to the data-retention design.
-- Delete: removes the fact and dependent source records according to the deletion policy.
+## 3. Screen Intelligence
 
-### Fact states
-- confirmed
-- unverified
-- disputed
-- outdated
+User can capture a screen region or visible application window. The app previews the capture, runs OCR, reconstructs the visible question and options, and displays uncertain regions. User can edit extracted content. AI analysis begins only after explicit confirmation.
 
-Only confirmed, current, relevant facts may directly support factual answers. Sensitive confirmed facts still require per-request authorization before external transmission.
+Manual paste/type is always available. The app does not capture in the background or interact with the browser.
 
-### Required fact metadata
-Fact identifier, category, attribute/key, value, source description, source date or verification date where known, status, sensitivity classification, created/updated timestamps, and optional validity period/notes.
+## 4. Question understanding
 
-## 3. Survey Workspace
+Classify:
+- Intent: demographic, employment, financial, purchase/ownership, brand awareness/usage, behavior, preference/opinion, intention, eligibility, instruction check, follow-up, open-ended experience, unknown.
+- Format: single choice, multiple choice, dropdown, numeric, date, rating/Likert, ranking, matrix, free text, unknown.
 
-### Session operations
-Create, rename, open, and delete a session. A session may contain multiple question records.
-
-### Question operations
-Manually type or paste question text; optionally enter answer options; edit or delete the question; request analysis only after reviewing the captured text.
-
-### Required behavior
-- Preserve the exact original text as entered.
-- Keep answer options distinct from the question prompt.
-- Show the text to the user before analysis.
-- Treat all question text and options as untrusted input.
-- Do not fetch URLs, inspect browser tabs, or read external pages.
-- Do not interpret text inside a survey question as application policy.
-
-## 4. Question analysis
-
-### Required outputs
-- Intent classification or unknown/ambiguous.
-- Answer-format classification or unknown/ambiguous.
-- Explicit timeframe, unit, quantity, and constraints when detectable.
-- Plain-language interpretation.
-- Ambiguity and missing-information flags.
-- Language identification for English or Indonesian.
-
-### Supported intent classes
-Demographic/profile; employment/education; household/financial; purchase/ownership; brand awareness/usage; behavior/frequency; preference/opinion; intention/future plan; eligibility/screener; attention/instruction check; conditional/follow-up; open-ended experience; unknown/ambiguous.
-
-### Supported answer formats
-Single choice, multiple choice, dropdown, numeric, date/date range, rating/Likert, ranking, free text.
-
-### Safety behavior
-Classification does not establish the truth of a personal claim. Opinions, intentions, and experiences require user-supplied evidence. An eligibility question must be answered truthfully; the product must not recommend deception or optimize for acceptance.
+Extract only visible or explicitly supplied timeframe, unit, range, scope, and response constraints. Explain the question in plain Indonesian. Flag ambiguity rather than silently guessing.
 
 ## 5. Answer recommendation
 
-### Required result fields
-- Question classification.
-- Recommended answer, nullable.
+Output:
+- Question interpretation.
+- Answer format.
 - Evidence status.
+- Recommended answer or abstention.
 - Supporting fact references.
-- Concise rationale.
-- Assumptions and unresolved details.
-- Warnings.
-- Clarification question, nullable.
-- User confirmation required flag.
+- Short rationale.
+- Missing information, assumptions, and conflicts.
+- One focused clarification question when useful.
 
-### Evidence statuses
-supported, partially_supported, insufficient_information, conflicting_evidence, user_input_required, not_applicable.
+Evidence statuses:
+- supported
+- partially_supported
+- insufficient_information
+- conflicting_evidence
+- user_input_required
+- not_applicable
 
-### Recommendation rules
-1. Retrieve relevant current confirmed facts only for direct factual support.
-2. Use prior confirmed answers as historical context, never as an automatic source of truth.
-3. Check freshness and conflicts before drafting.
-4. Exclude sensitive facts from external context unless authorized for the current request.
-5. Do not produce a definitive answer when evidence is insufficient, stale, conflicting, or unauthorized.
-6. Validate all returned source identifiers locally before display.
-7. Display source evidence and uncertainty with the draft.
-8. A model confidence score, if retained internally, must represent evidence confidence only and must never be described as qualification probability.
+Do not invent facts, experiences, opinions, purchases, employment, income, or brand usage. Subjective questions require the respondent's own stated view. Sensitive facts require explicit authorization for the current external request.
 
-## 6. Human review actions
+## 6. User review actions
 
-### Edit
-User changes the draft. The original AI output remains immutable in history; the edited text is stored as a separate version.
+- Edit: save user-edited text separately from the original recommendation.
+- Copy: copy only after explicit user action.
+- Confirm: record that the user approved the displayed answer; this is not survey submission.
+- Reject: record rejection.
+- Regenerate: use the same evidence policy and data minimization.
+- Clarify: user can answer for the current question or explicitly save/confirm a profile fact.
 
-### Confirm
-Records that the user approved the displayed answer. It does not indicate external acceptance or submission.
+No answer is silently promoted into a permanent profile fact.
 
-### Copy
-Copies only the currently displayed user-approved text after an explicit user action. Copy must not trigger any external navigation or submission.
+## 7. Survey Opportunity Fit
 
-### Reject
-Marks the recommendation as rejected. An optional reason may be recorded.
+Extract visible survey description and explicit eligibility criteria from a user-selected capture. Compare each criterion with the selected persona using:
+- match
+- mismatch
+- unknown
+- stale
+- conflict
 
-### Regenerate
-Runs a new analysis using the same allowed evidence or newly supplied facts. It must not weaken evidence policy or silently broaden data disclosure.
+Display the fact or missing information behind each status. Historical outcomes may inform fit estimates only when attributed to the correct persona and supported by sufficient data. Show sample size and uncertainty. Never recommend changing a fact or lying to pass screening.
 
-## 7. Answer History
+## 8. Provider Hub
 
-Store the question text, answer options, original recommendation, user-edited versions, user confirmation/rejection state, supporting fact IDs, relevant timestamps, and provider/model metadata needed for troubleshooting without logging raw secrets.
+Gemini is the default. Users can add multiple API keys and configure a pool. The pool supports adaptive, round-robin, weighted, and priority strategies; bounded retry; rate-limit cooldown; failover; cancellation; and provider health.
 
-Historical answers are not automatically promoted into Digital Persona facts. If a user wants a prior answer to become a fact, the user must explicitly create or confirm a separate profile fact.
+Users can add custom providers, compatible endpoints, and model IDs through supported adapters. Arbitrary custom APIs are not assumed compatible and must pass a connection/format test. API secrets are stored in Windows Credential Manager, not app settings.
 
-## 8. Consistency Engine
+## 9. Prohibited behavior
 
-Compare the current candidate answer against relevant confirmed facts and relevant prior confirmed answers. Detect material disagreement in value, timeframe, unit, or scope. Present the conflicting records and ask the user to resolve them. Never silently choose the more favorable answer.
-
-## 9. Settings and data controls
-
-- Configure the supported AI provider and model.
-- Add, replace, and remove the provider API credential through secure credential storage.
-- Explain the data categories sent in each AI request.
-- Export local records in a documented format.
-- Delete individual facts and sessions.
-- Delete all local application data after explicit confirmation.
-- Show recoverable errors for provider, network, storage, and export/delete failures.
-
-## 10. Screen Intelligence
-
-- User invokes a global shortcut or in-app capture command.
-- User selects a screen region or application window.
-- OCR extracts visible text; visual analysis reconstructs grouping, option relationships, scales, tables, and controls when needed.
-- The application presents extracted content and uncertainty for correction before analysis.
-- The capture path must not silently record the screen.
-- No hidden dropdown options or off-screen content may be represented as captured.
-- Screen capture is for reading only; no click, fill, navigation, or submission automation is included in v1.0.
-
-## 11. Survey Opportunity Analyzer
-
-Read visible opportunity details such as platform, topic, offered reward, stated duration, and explicit eligibility criteria. Compare these criteria with all eligible personas. Show match, mismatch, unknown, stale, and conflict per criterion, with evidence. Rank opportunities transparently using fit evidence, historical outcomes, reward, duration, and user preferences. Unknown criteria must not be treated as matches.
-
-## 12. Earnings Intelligence
-
-Track survey attempts, time, completion states, reward states, amounts, native units, source evidence, and timestamps. Keep offered, completed-unverified, pending, credited, withdrawable, reversed, and unknown states separate. Dashboard totals must be reproducible from the underlying ledger. Routine values visible on screen should be captured without manual re-entry; invisible balances must remain unknown unless a permitted official integration supplies evidence.
-
-## 13. Survey Fit Learning
-
-Separate deterministic eligibility matching from historical outcome learning. Attribute outcomes to the actual persona, platform, category, criteria, and attempt. Distinguish screened out, quota full, quality rejected, technical failure, abandoned, completed, pending, and credited. Show sample size and uncertainty. Do not display calibrated percentages until chronologically held-out validation supports them. Never recommend false answers or persona manipulation.
-
-## 14. Explicitly excluded from v1.0
-
-Browser integration, DOM scraping, browser automation, autofill, auto-submit, platform account credential collection, silent background screen recording, cloud sync, team/multi-user workspace, mobile/web, autonomous agents, vector retrieval, and survey qualification guarantees.
+No browser automation, DOM inspection, autofill, auto-click, auto-navigation, auto-submit, CAPTCHA bypass, or platform-control circumvention. No fictional personas, deceptive screener strategy, hidden capture, or earnings/reward tracking in v1.0.
