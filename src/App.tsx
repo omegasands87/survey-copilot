@@ -47,7 +47,7 @@ export default function App() {
   const [factAttribute, setFactAttribute] = useState("");
   const [factValue, setFactValue] = useState("");
   const [factSource, setFactSource] = useState("Dimasukkan oleh pengguna");
-  const [factStatus, setFactStatus] = useState("unverified");
+  const [newFactVerificationStatus, setNewFactVerificationStatus] = useState("unverified");
   const [factSensitivity, setFactSensitivity] = useState("ordinary");
   const [factError, setFactError] = useState("");
   const [factLoading, setFactLoading] = useState(false);
@@ -124,7 +124,7 @@ export default function App() {
         attribute: factAttribute,
         value: factValue,
         sourceDescription: factSource,
-        verificationStatus: factStatus,
+        verificationStatus: newFactVerificationStatus,
         sensitivity: factSensitivity,
       });
       setFactAttribute("");
@@ -137,7 +137,7 @@ export default function App() {
     }
   }
 
-  async function setFactStatus(factId: string, status: string) {
+  async function updateFactVerificationStatus(factId: string, status: string) {
     if (!activePersona) return;
     try {
       await invoke("fact_set_status", { personaId: activePersona.id, factId, status });
@@ -364,7 +364,7 @@ export default function App() {
                       <input value={factSource} onChange={(event) => setFactSource(event.target.value)} maxLength={500} required />
                     </label>
                     <label>Status
-                      <select value={factStatus} onChange={(event) => setFactStatus(event.target.value)}>
+                      <select value={newFactVerificationStatus} onChange={(event) => setNewFactVerificationStatus(event.target.value)}>
                         <option value="unverified">Belum diverifikasi</option>
                         <option value="confirmed">Sudah saya pastikan</option>
                       </select>
@@ -398,7 +398,7 @@ export default function App() {
                           {fact.verificationStatus === "confirmed" ? "Terverifikasi" : fact.verificationStatus === "unverified" ? "Belum diverifikasi" : fact.verificationStatus}
                         </span>
                         {fact.verificationStatus !== "confirmed" && (
-                          <button className="secondary-button" onClick={() => void setFactStatus(fact.id, "confirmed")}>Verifikasi</button>
+                          <button className="secondary-button" onClick={() => void updateFactVerificationStatus(fact.id, "confirmed")}>Verifikasi</button>
                         )}
                         <button className="text-danger" onClick={() => void deleteFact(fact.id)}>Hapus</button>
                       </div>

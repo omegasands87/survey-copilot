@@ -12,17 +12,34 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
       - name: Install frontend dependencies
-        run: npm install
+        run: npm ci
+
       - name: Build frontend
         run: npm run build
+
+      - name: Check Rust formatting
+        working-directory: src-tauri
+        run: cargo fmt --all -- --check
+
       - name: Check Rust backend
         working-directory: src-tauri
         run: cargo check
-      - name: Test Rust backend
+
+      - name: Run Rust tests
         working-directory: src-tauri
         run: cargo test

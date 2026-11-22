@@ -1,0 +1,7 @@
+[toolchain]
+# Pinned stable toolchain for reproducible builds.
+# Update this together with the dtolnay/rust-toolchain@stable step in CI
+# whenever a new stable release is verified to build cleanly.
+channel = "stable"
+targets = ["x86_64-pc-windows-msvc"]
+components = ["rustfmt", "clippy"]

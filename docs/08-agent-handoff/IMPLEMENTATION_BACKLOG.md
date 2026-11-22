@@ -5,11 +5,11 @@ This backlog is the execution order for Antigravity. Checkboxes are intentionall
 ## P0 — Make the starter safe to extend
 
 ### SC-001 — Establish reproducible builds
-- [ ] Generate and commit `package-lock.json` and `src-tauri/Cargo.lock`.
-- [ ] Verify supported Node/Rust toolchain versions.
-- [ ] Make GitHub Actions use deterministic install (`npm ci`) after lockfile exists.
-- [ ] Run frontend build, Rust check, Rust tests, and format check.
-- [ ] Fix all compile, lint, and workflow errors; retain evidence in PR/commit notes.
+- [x] Generate and commit `package-lock.json` and `src-tauri/Cargo.lock`.
+- [x] Verify supported Node/Rust toolchain versions.
+- [x] Make GitHub Actions use deterministic install (`npm ci`) after lockfile exists.
+- [x] Run frontend build, Rust check, Rust tests, and format check.
+- [x] Fix all compile, lint, and workflow errors; retain evidence in PR/commit notes.
 
 **Acceptance:** A clean checkout can install dependencies and build frontend/Rust without undocumented local setup. CI passes.
 

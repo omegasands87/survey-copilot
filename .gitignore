@@ -9,3 +9,8 @@ src-tauri/gen
 *.sqlite
 *.sqlite3
 *.db
+# SQLite WAL journal sidecar files (generated when WAL mode is active)
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite-wal
+*.sqlite-shm

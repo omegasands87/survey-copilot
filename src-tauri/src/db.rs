@@ -34,7 +34,6 @@ impl Database {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -44,9 +43,20 @@ mod tests {
     fn initial_migration_creates_persona_and_provider_tables() {
         let database = Database::initialize(Path::new(":memory:"))
             .expect("initial database migration should succeed");
-        let connection = database.connection.lock().expect("database lock should succeed");
+        let connection = database
+            .connection
+            .lock()
+            .expect("database lock should succeed");
 
-        for table in ["personas", "profile_facts", "survey_sessions", "survey_opportunities", "survey_fit_results", "survey_attempts", "provider_configs"] {
+        for table in [
+            "personas",
+            "profile_facts",
+            "survey_sessions",
+            "survey_opportunities",
+            "survey_fit_results",
+            "survey_attempts",
+            "provider_configs",
+        ] {
             let found: Option<String> = connection
                 .query_row(
                     "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?1",

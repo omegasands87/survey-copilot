@@ -149,7 +149,6 @@ fn persona_set_active(
     read_persona(&connection, &persona_id)
 }
 
-
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct FactSummary {
@@ -232,7 +231,8 @@ fn fact_create(
     {
         return Err("Ada informasi yang melebihi batas panjang.".to_string());
     }
-    if !["confirmed", "unverified", "disputed", "outdated"].contains(&verification_status.as_str()) {
+    if !["confirmed", "unverified", "disputed", "outdated"].contains(&verification_status.as_str())
+    {
         return Err("Status verifikasi tidak valid.".to_string());
     }
     if !["ordinary", "sensitive", "highly_sensitive"].contains(&sensitivity.as_str()) {
@@ -372,7 +372,9 @@ fn fact_delete(
             "DELETE FROM profile_facts WHERE id = ?1 AND persona_id = ?2",
             (&fact_id, &persona_id),
         )
-        .map_err(|error| format!("Informasi ini masih dipakai oleh riwayat dan tidak dapat dihapus: {error}"))?;
+        .map_err(|error| {
+            format!("Informasi ini masih dipakai oleh riwayat dan tidak dapat dihapus: {error}")
+        })?;
 
     if changed == 0 {
         return Err("Informasi profil tidak ditemukan.".to_string());
@@ -391,8 +393,7 @@ pub fn run() {
             let app_data_dir = app.path().app_data_dir()?;
             fs::create_dir_all(&app_data_dir)?;
             let database_path = app_data_dir.join("survey-copilot.sqlite3");
-            let database = Database::initialize(&database_path)
-                .map_err(std::io::Error::other)?;
+            let database = Database::initialize(&database_path).map_err(std::io::Error::other)?;
             app.manage(database);
             Ok(())
         })
