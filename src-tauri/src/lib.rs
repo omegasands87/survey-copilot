@@ -175,9 +175,9 @@ fn fact_list(
     let mut statement = connection
         .prepare(
             "SELECT f.id, f.category, f.attribute, f.value_json,
-                    f.verification_status, f.sensitivity, s.description
+                    f.verification_status, f.sensitivity,
+                    (SELECT description FROM fact_sources WHERE fact_id = f.id ORDER BY created_at LIMIT 1)
              FROM profile_facts f
-             LEFT JOIN fact_sources s ON s.fact_id = f.id
              WHERE f.persona_id = ?1 AND f.archived_at IS NULL
              ORDER BY f.category COLLATE NOCASE, f.attribute COLLATE NOCASE",
         )
@@ -224,6 +224,13 @@ fn fact_create(
     }
     if source_description.is_empty() {
         return Err("Sumber informasi wajib diisi.".to_string());
+    }
+    if category.chars().count() > 80
+        || attribute.chars().count() > 100
+        || value.chars().count() > 4000
+        || source_description.chars().count() > 500
+    {
+        return Err("Ada informasi yang melebihi batas panjang.".to_string());
     }
     if !["confirmed", "unverified", "disputed", "outdated"].contains(&verification_status.as_str()) {
         return Err("Status verifikasi tidak valid.".to_string());
@@ -290,6 +297,7 @@ fn fact_create(
     transaction
         .commit()
         .map_err(|error| format!("Gagal menyelesaikan penyimpanan: {error}"))?;
+    drop(connection);
 
     let connection = database
         .connection
@@ -298,9 +306,9 @@ fn fact_create(
     connection
         .query_row(
             "SELECT f.id, f.category, f.attribute, f.value_json,
-                    f.verification_status, f.sensitivity, s.description
+                    f.verification_status, f.sensitivity,
+                    (SELECT description FROM fact_sources WHERE fact_id = f.id ORDER BY created_at LIMIT 1)
              FROM profile_facts f
-             LEFT JOIN fact_sources s ON s.fact_id = f.id
              WHERE f.id = ?1 AND f.persona_id = ?2",
             (&fact_id, &persona_id),
             |row| {
