@@ -421,11 +421,18 @@ fn log_migration_success(version: i64, name: &str, duration_ms: i64) {
 
 /// Returns the registry of all built-in migrations for the application.
 pub fn get_registered_migrations() -> Vec<Migration> {
-    vec![Migration::new(
-        1,
-        "0001_initial",
-        include_str!("../../migrations/0001_initial.sql"),
-    )]
+    vec![
+        Migration::new(
+            1,
+            "0001_initial",
+            include_str!("../../migrations/0001_initial.sql"),
+        ),
+        Migration::new(
+            2,
+            "0002_typed_facts_and_history",
+            include_str!("../../migrations/0002_typed_facts_and_history.sql"),
+        ),
+    ]
 }
 
 /// Convenience entry point to run all registered migrations on a connection.

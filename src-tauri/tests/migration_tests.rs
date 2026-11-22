@@ -7,29 +7,34 @@ use survey_copilot_lib::migrations::{
 fn at_002_fresh_database_initialization() {
     let mut conn = Connection::open_in_memory().expect("in-memory db open");
     let app_runner = MigrationRunner::with_app_migrations();
+    let total_migrations = app_runner.migrations().len();
     let report = app_runner.run(&mut conn).expect("run app migrations");
 
-    assert_eq!(report.applied_count, 1);
+    assert_eq!(report.applied_count, total_migrations);
     assert_eq!(report.skipped_count, 0);
-    assert_eq!(report.applied_versions, vec![1]);
+    assert_eq!(
+        report.applied_versions,
+        (1..=total_migrations as i64).collect::<Vec<_>>()
+    );
 
     let count: i64 = conn
         .query_row("SELECT count(*) FROM _migrations", [], |r| r.get(0))
         .expect("count");
-    assert_eq!(count, 1);
+    assert_eq!(count, total_migrations as i64);
 }
 
 #[test]
 fn at_003_idempotent_repeated_startup() {
     let mut conn = Connection::open_in_memory().expect("in-memory db open");
     let app_runner = MigrationRunner::with_app_migrations();
+    let total_migrations = app_runner.migrations().len();
 
     let report1 = app_runner.run(&mut conn).expect("first run");
-    assert_eq!(report1.applied_count, 1);
+    assert_eq!(report1.applied_count, total_migrations);
 
     let report2 = app_runner.run(&mut conn).expect("second run");
     assert_eq!(report2.applied_count, 0);
-    assert_eq!(report2.skipped_count, 1);
+    assert_eq!(report2.skipped_count, total_migrations);
     assert!(report2.applied_versions.is_empty());
 }
 

@@ -9,7 +9,16 @@ import { SettingsView } from "./components/views/SettingsView";
 import { personaService } from "./services/personaService";
 import { factService } from "./services/factService";
 import type { Persona, PersonaDependencySummary } from "./types/persona";
-import type { ProfileFact, VerificationStatus, Sensitivity } from "./types/fact";
+import type {
+  ConflictWarning,
+  CreateFactInput,
+  FactSource,
+  ProfileFact,
+  ProfileFactDetail,
+  Sensitivity,
+  UpdateFactInput,
+  VerificationStatus,
+} from "./types/fact";
 import { AppError } from "./types/error";
 
 const pageTitles: Record<Page, string> = {
@@ -29,12 +38,12 @@ export default function App() {
   const [profileLoading, setProfileLoading] = useState(false);
 
   const [facts, setFacts] = useState<ProfileFact[]>([]);
+  const [conflicts, setConflicts] = useState<ConflictWarning[]>([]);
   const [factError, setFactError] = useState("");
   const [factLoading, setFactLoading] = useState(false);
 
   async function refreshPersonas() {
     try {
-      // Mengambil seluruh persona (termasuk yang diarsipkan untuk manajemen siklus hidup)
       const result = await personaService.listPersonas(true);
       setPersonas(result);
       setProfileError("");
@@ -51,8 +60,12 @@ export default function App() {
 
   async function refreshFacts(personaId: string) {
     try {
-      const result = await factService.listFacts(personaId);
-      setFacts(result);
+      const [factList, conflictList] = await Promise.all([
+        factService.listFacts(personaId),
+        factService.detectConflicts(personaId),
+      ]);
+      setFacts(factList);
+      setConflicts(conflictList);
       setFactError("");
     } catch (error) {
       setFactError(AppError.from(error).message);
@@ -64,6 +77,7 @@ export default function App() {
       void refreshFacts(activePersona.id);
     } else {
       setFacts([]);
+      setConflicts([]);
     }
   }, [activePersona?.id]);
 
@@ -143,27 +157,26 @@ export default function App() {
     }
   }
 
-  async function handleCreateFact(factData: {
-    category: string;
-    attribute: string;
-    value: string;
-    sourceDescription: string;
-    verificationStatus: VerificationStatus;
-    sensitivity: Sensitivity;
-  }) {
+  async function handleCreateFact(input: CreateFactInput) {
     if (!activePersona) return;
     setFactLoading(true);
     setFactError("");
     try {
-      await factService.createFact({
-        personaId: activePersona.id,
-        category: factData.category,
-        attribute: factData.attribute,
-        value: factData.value,
-        sourceDescription: factData.sourceDescription,
-        verificationStatus: factData.verificationStatus,
-        sensitivity: factData.sensitivity,
-      });
+      await factService.createFact(input);
+      await refreshFacts(activePersona.id);
+    } catch (error) {
+      setFactError(AppError.from(error).message);
+    } finally {
+      setFactLoading(false);
+    }
+  }
+
+  async function handleUpdateFact(input: UpdateFactInput) {
+    if (!activePersona) return;
+    setFactLoading(true);
+    setFactError("");
+    try {
+      await factService.updateFact(input);
       await refreshFacts(activePersona.id);
     } catch (error) {
       setFactError(AppError.from(error).message);
@@ -185,8 +198,54 @@ export default function App() {
     }
   }
 
+  async function handleUpdateFactSensitivity(
+    factId: string,
+    sensitivity: Sensitivity
+  ) {
+    if (!activePersona) return;
+    try {
+      await factService.setFactSensitivity(activePersona.id, factId, sensitivity);
+      await refreshFacts(activePersona.id);
+    } catch (error) {
+      setFactError(AppError.from(error).message);
+    }
+  }
+
+  async function handleGetFactDetail(factId: string): Promise<ProfileFactDetail> {
+    if (!activePersona) {
+      throw new Error("Tidak ada persona yang aktif");
+    }
+    return factService.getFactDetail(activePersona.id, factId);
+  }
+
+  async function handleAddFactSource(input: {
+    factId: string;
+    sourceType: string;
+    title: string;
+    description: string;
+    referenceUri?: string;
+    observedAt?: string;
+    notes?: string;
+  }): Promise<FactSource> {
+    if (!activePersona) {
+      throw new Error("Tidak ada persona yang aktif");
+    }
+    const result = await factService.addFactSource({
+      personaId: activePersona.id,
+      factId: input.factId,
+      sourceType: input.sourceType,
+      title: input.title,
+      description: input.description,
+      referenceUri: input.referenceUri,
+      observedAt: input.observedAt,
+      notes: input.notes,
+    });
+    await refreshFacts(activePersona.id);
+    return result;
+  }
+
   async function handleDeleteFact(factId: string) {
-    if (!activePersona || !window.confirm("Hapus informasi profil ini?")) return;
+    if (!activePersona || !window.confirm("Hapus fakta profil ini secara permanen?")) return;
     try {
       await factService.deleteFact(activePersona.id, factId);
       await refreshFacts(activePersona.id);
@@ -224,6 +283,7 @@ export default function App() {
             personas={personas}
             activePersona={activePersona}
             facts={facts}
+            conflicts={conflicts}
             profileError={profileError}
             profileLoading={profileLoading}
             factError={factError}
@@ -236,7 +296,11 @@ export default function App() {
             onGetDependencySummary={handleGetDependencySummary}
             onDeletePersona={handleDeletePersona}
             onCreateFact={handleCreateFact}
+            onUpdateFact={handleUpdateFact}
             onUpdateFactStatus={handleUpdateFactStatus}
+            onUpdateFactSensitivity={handleUpdateFactSensitivity}
+            onGetFactDetail={handleGetFactDetail}
+            onAddFactSource={handleAddFactSource}
             onDeleteFact={handleDeleteFact}
           />
         )}

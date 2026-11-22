@@ -43,17 +43,17 @@ This backlog is the execution order for Antigravity. Checkboxes are intentionall
 **Acceptance:** Persona lifecycle works after app restart; all operations are scoped; no orphaned records. Automated integration tests cover complete lifecycle and cross-persona data isolation.
 
 ### SC-011 — Fact and source lifecycle
-- [ ] Support typed fact values and normalized value representation.
-- [ ] Add/edit facts and source metadata (type, description, observed date, source reference where safe).
-- [ ] Add verification lifecycle: confirmed, unverified, disputed, outdated.
-- [ ] Add sensitivity lifecycle: ordinary, sensitive, highly_sensitive.
-- [ ] Add validity dates, notes, and fact history where required.
-- [ ] Add fact archive/restore and deletion policy.
-- [ ] Add duplicate/conflict detection and UI warnings.
-- [ ] Prevent confirmation of facts without explicit user action.
-- [ ] Add strict persona-scoped repository tests.
+- [x] Support typed fact values and normalized value representation.
+- [x] Add/edit facts and source metadata (type, description, observed date, source reference where safe).
+- [x] Add verification lifecycle: confirmed, unverified, disputed, outdated.
+- [x] Add sensitivity lifecycle: ordinary, sensitive, highly_sensitive.
+- [x] Add validity dates, notes, and fact history where required.
+- [x] Add fact archive/restore and deletion policy.
+- [x] Add duplicate/conflict detection and UI warnings.
+- [x] Prevent confirmation of facts without explicit user action.
+- [x] Add strict persona-scoped repository tests.
 
-**Acceptance:** Facts can be created, edited, reviewed, verified, disputed, marked outdated, archived, and deleted. Sources remain attributable. A fact from persona A can never be read in persona B.
+**Acceptance:** Facts can be created, edited, reviewed, verified, disputed, marked outdated, archived, and deleted. Sources remain attributable. A fact from persona A can never be read in persona B. Automated integration tests cover typed values, lifecycle transitions, conflict detection, and strict cross-persona isolation.
 
 ### SC-012 — Data export and deletion
 - [ ] Export all local data and per-persona data in documented JSON format.

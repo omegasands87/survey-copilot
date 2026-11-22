@@ -257,7 +257,7 @@ fn test_delete_persona_cascades_and_cleans_records() {
     assert!(PersonaService::get_detail(&db, &p2.id).is_err());
 
     // Verify facts of p2 are completely removed
-    let facts_p2 = FactService::list(&db, &p2.id).expect("list facts");
+    let facts_p2 = FactService::list(&db, &p2.id, false).expect("list facts");
     assert_eq!(facts_p2.len(), 0);
 
     // Verify p1 still intact
@@ -302,7 +302,7 @@ fn test_strict_cross_persona_data_isolation() {
     .expect("fact A");
 
     // 1. Persona B queries facts -> must NOT see Persona A's facts
-    let facts_b = FactService::list(&db, &persona_b.id).expect("facts B");
+    let facts_b = FactService::list(&db, &persona_b.id, false).expect("facts B");
     assert_eq!(facts_b.len(), 0);
 
     // 2. Persona B tries to update Persona A's fact status -> MUST fail with NOT_FOUND
@@ -316,7 +316,7 @@ fn test_strict_cross_persona_data_isolation() {
     assert_eq!(delete_res.unwrap_err().code, "NOT_FOUND");
 
     // 4. Persona A's fact must still be intact
-    let facts_a = FactService::list(&db, &persona_a.id).expect("facts A");
+    let facts_a = FactService::list(&db, &persona_a.id, false).expect("facts A");
     assert_eq!(facts_a.len(), 1);
     assert_eq!(facts_a[0].id, fact_a.id);
     assert_eq!(facts_a[0].attribute, "Penghasilan Bulanan");

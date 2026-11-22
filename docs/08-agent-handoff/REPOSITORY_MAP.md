@@ -41,9 +41,9 @@ The current UI still contains placeholder screens and disabled screenshot/analys
 | `src-tauri/src/services/` | Service layer containing business logic and transactions (`persona_service.rs`, `fact_service.rs`) |
 | `src-tauri/src/repository/` | Parameterized SQLite repository layer with strict persona scoping (`persona_repo.rs`, `fact_repo.rs`) |
 | `src-tauri/src/migrations/` | Sequential, versioned, transactional migration runner and integrity verification (`mod.rs`) |
-| `src-tauri/tests/` | Automated integration tests for migration runner (`migration_tests.rs`) and persona lifecycle (`persona_lifecycle_tests.rs`) |
+| `src-tauri/tests/` | Automated integration tests for migration runner (`migration_tests.rs`), persona lifecycle (`persona_lifecycle_tests.rs`), and fact/source lifecycle (`fact_lifecycle_tests.rs`) |
 | `src-tauri/src/db.rs` | SQLite connection initialization, pragmas, and migration execution |
-| `src-tauri/migrations/0001_initial.sql` | Initial logical schema expressed as SQL |
+| `src-tauri/migrations/` | Versioned SQL migrations (`0001_initial.sql`, `0002_typed_facts_and_history.sql`) |
 | `src-tauri/tauri.conf.json` | Tauri app, window, CSP, and bundle configuration |
 | `src-tauri/capabilities/default.json` | Minimal Tauri capability allowlist |
 | `src-tauri/Cargo.toml` | Rust dependencies |

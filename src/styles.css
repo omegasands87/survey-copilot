@@ -130,3 +130,37 @@ textarea:focus { border-color: #8bb99d; box-shadow: 0 0 0 3px #eaf4ee; }
 .impact-item { background: white; border: 1px solid #f2dede; border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
 .impact-count { font-weight: 800; color: #a8322e; }
 .impact-zero { color: #8a968f; }
+
+/* Fact Lifecycle & Provenance additions (SC-011) */
+.badge-confirmed { background: #e2f4ea; color: #0d6e49; border: 1px solid #b2e4c8; }
+.badge-unverified { background: #fef8e7; color: #8a6508; border: 1px solid #f6e2a2; }
+.badge-disputed { background: #fdf0ed; color: #a83d2a; border: 1px solid #f8cdbe; }
+.badge-outdated { background: #f0f2f1; color: #6b7771; border: 1px solid #dbe0dd; }
+
+.badge-ordinary { background: #edf5f0; color: #3a6b52; }
+.badge-sensitive { background: #f4eefb; color: #6932a8; border: 1px solid #decbf4; }
+.badge-highly-sensitive { background: #fae8e8; color: #9e1f1f; border: 1px solid #f2bbbb; }
+
+.badge-datatype { background: #f2f5f3; color: #43544a; font-family: monospace; font-size: 10px; font-weight: 700; border-radius: 4px; padding: 1px 6px; }
+.badge-unit { background: #eaf1ed; color: #2e5944; font-size: 11px; font-weight: 700; border-radius: 4px; padding: 2px 6px; }
+
+.conflict-banner { background: #fff8eb; border: 1px solid #f6ddab; border-left: 4px solid #d9820e; border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; }
+.conflict-banner h4 { margin: 0 0 6px; color: #8f5305; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.conflict-banner p { margin: 0 0 8px; font-size: 12px; color: #5f4014; line-height: 1.5; }
+
+.fact-card { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; transition: border-color .15s ease; display: flex; flex-direction: column; gap: 10px; }
+.fact-card:hover { border-color: #bed6c7; }
+.fact-card.has-conflict { border-color: #f4c577; background: #fffdfa; }
+.fact-card-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fact-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fact-value-box { font-size: 15px; font-weight: 800; color: #17261f; margin: 4px 0 2px; display: flex; align-items: baseline; gap: 6px; }
+.fact-meta-row { display: flex; gap: 12px; font-size: 11px; color: var(--muted); align-items: center; flex-wrap: wrap; }
+.fact-card-actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; border-top: 1px solid #f2f5f3; padding-top: 10px; flex-wrap: wrap; }
+
+.timeline-list { display: grid; gap: 12px; margin-top: 10px; }
+.timeline-item { padding: 12px 14px; background: #fbfcfb; border: 1px solid #e7ede8; border-radius: 8px; font-size: 12px; }
+.timeline-date { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+.timeline-reason { font-weight: 600; color: #2d3b33; margin-top: 4px; font-style: italic; }
+
+.source-item { padding: 12px 14px; background: white; border: 1px solid #e3ebe5; border-radius: 8px; font-size: 12px; }
+.source-item h5 { margin: 0 0 4px; font-size: 12px; font-weight: 800; color: #1c2b23; }
