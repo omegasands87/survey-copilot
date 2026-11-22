@@ -3,6 +3,12 @@
 Survey Copilot is a Windows 11 x64 desktop AI copilot. This repository contains its product and engineering specifications; documentation does not mean the application has already been implemented.
 
 ## Start here
+- [Antigravity Engineering Handoff](08-agent-handoff/ANTIGRAVITY_HANDOFF.md)
+- [Antigravity Start Prompt](08-agent-handoff/ANTIGRAVITY_START_PROMPT.md)
+- [Implementation Backlog](08-agent-handoff/IMPLEMENTATION_BACKLOG.md)
+- [Acceptance Test Matrix](08-agent-handoff/ACCEPTANCE_TEST_MATRIX.md)
+- [Documentation Gaps](08-agent-handoff/DOCUMENTATION_GAPS.md)
+- [Repository Map](08-agent-handoff/REPOSITORY_MAP.md)
 - [Product Definition](01-product/PRODUCT_DEFINITION.md)
 - [Product Requirements](01-product/PRODUCT_REQUIREMENTS.md)
 - [Feature Specification](01-product/FEATURE_SPECIFICATION.md)
@@ -58,6 +64,12 @@ Survey Copilot is a Windows 11 x64 desktop AI copilot. This repository contains 
 - [Privacy Policy Draft](06-operations/PRIVACY_POLICY.md)
 - [Troubleshooting](06-operations/TROUBLESHOOTING.md)
 - [Architecture Decision Records](07-decisions/README.md)
+
+## Agent handoff
+- Root [AGENTS.md](../AGENTS.md) defines mandatory coding-agent rules.
+- [Antigravity workspace rule](../.agent/rules/survey-copilot.md) applies project constraints.
+- [Implement Next workflow](../.agent/workflows/implement-next.md) defines the incremental coding loop.
+- Backlog checkboxes require implementation and test evidence before being checked.
 
 ## Governance
 - Product Definition is the authoritative product scope.
