@@ -150,12 +150,7 @@ fn persona_set_active(
 }
 
 fn chrono_timestamp() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let seconds = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    format!("{seconds}")
+    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
