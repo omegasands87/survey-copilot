@@ -20,10 +20,10 @@ Explain the application's operating model before the user stores personal data o
 ### Failure behavior
 If local storage initialization fails, do not show a usable dashboard that implies data can be saved. Show a recoverable error and preserve diagnostic details without personal content.
 
-## 2. Digital Persona
+## 2. Multi-Persona Digital Persona
 
 ### Purpose
-Maintain a user-controlled source of personal facts for accurate recommendations.
+Maintain multiple user-controlled, truthful respondent profiles. Each persona represents a real person whose information the user is authorized to manage.
 
 ### Fact lifecycle
 - Create: user enters a fact, value, category, source description, relevant date, sensitivity, and verification state.
@@ -142,6 +142,28 @@ Compare the current candidate answer against relevant confirmed facts and releva
 - Delete all local application data after explicit confirmation.
 - Show recoverable errors for provider, network, storage, and export/delete failures.
 
-## 10. Explicitly excluded from v1.0
+## 10. Screen Intelligence
 
-OCR, screenshots, image parsing, browser integration, browser automation, autofill, auto-submit, platform account connections, cloud sync, multi-user, mobile/web, autonomous agents, vector retrieval, and survey success prediction.
+- User invokes a global shortcut or in-app capture command.
+- User selects a screen region or application window.
+- OCR extracts visible text; visual analysis reconstructs grouping, option relationships, scales, tables, and controls when needed.
+- The application presents extracted content and uncertainty for correction before analysis.
+- The capture path must not silently record the screen.
+- No hidden dropdown options or off-screen content may be represented as captured.
+- Screen capture is for reading only; no click, fill, navigation, or submission automation is included in v1.0.
+
+## 11. Survey Opportunity Analyzer
+
+Read visible opportunity details such as platform, topic, offered reward, stated duration, and explicit eligibility criteria. Compare these criteria with all eligible personas. Show match, mismatch, unknown, stale, and conflict per criterion, with evidence. Rank opportunities transparently using fit evidence, historical outcomes, reward, duration, and user preferences. Unknown criteria must not be treated as matches.
+
+## 12. Earnings Intelligence
+
+Track survey attempts, time, completion states, reward states, amounts, native units, source evidence, and timestamps. Keep offered, completed-unverified, pending, credited, withdrawable, reversed, and unknown states separate. Dashboard totals must be reproducible from the underlying ledger. Routine values visible on screen should be captured without manual re-entry; invisible balances must remain unknown unless a permitted official integration supplies evidence.
+
+## 13. Survey Fit Learning
+
+Separate deterministic eligibility matching from historical outcome learning. Attribute outcomes to the actual persona, platform, category, criteria, and attempt. Distinguish screened out, quota full, quality rejected, technical failure, abandoned, completed, pending, and credited. Show sample size and uncertainty. Do not display calibrated percentages until chronologically held-out validation supports them. Never recommend false answers or persona manipulation.
+
+## 14. Explicitly excluded from v1.0
+
+Browser integration, DOM scraping, browser automation, autofill, auto-submit, platform account credential collection, silent background screen recording, cloud sync, team/multi-user workspace, mobile/web, autonomous agents, vector retrieval, and survey qualification guarantees.
