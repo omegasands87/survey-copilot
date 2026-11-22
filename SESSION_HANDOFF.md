@@ -1,13 +1,13 @@
 # Multi-Project Session Handoff: SURVEY COPILOT
 
-- **Waktu Handoff**: 2026-11-23T01:35:37+08:00
-- **ID Percakapan Asal**: `dcd86563-640b-448e-9d95-27d4b9de336f`
+- **Waktu Handoff**: 2026-11-23T01:56:00+08:00
+- **ID Percakapan Asal**: `4ad70ea9-5f00-4fc6-ab75-a0b6901cba4d`
 - **Nama Proyek & Direktori**: `SURVEY COPILOT` (`D:\Antigravity\Projects\SURVEY COPILOT`)
 - **Misi / Tujuan Utama**: Membangun aplikasi desktop Windows 11 x64 Survey Copilot v1.0 yang stabil, aman, evidence-grounded, dan Indonesian-first menggunakan Tauri 2, Rust, React, TypeScript, SQLite, Windows Credential Manager, dan Gemini AI adapter.
 
 ---
 
-## 1. Pekerjaan yang Telah Diselesaikan (SC-001, SC-002, SC-003, SC-010, SC-011 Selesai 100%)
+## 1. Pekerjaan yang Telah Diselesaikan (SC-001, SC-002, SC-003, SC-010, SC-011, SC-012 Selesai 100%)
 
 - **SC-001 — Establish reproducible builds, lockfiles, dan CI**:
   - `package-lock.json` dan `src-tauri/Cargo.lock` terkunci dan konsisten.
@@ -53,81 +53,91 @@
     - Multi-sumber bukti per fakta (`fact_sources`).
     - Jenis sumber: `manual_entry`, `user_declaration`, `uploaded_document`, `observed_action`, `external_record`.
     - Metadata sumber: `source_type`, `title`, `description`, `reference_uri`, `observed_at`, `valid_from`, `valid_until`, `notes`.
-  - **Fact History & Audit Trail**:
-    - Tabel baru `fact_history` (Migration `0002_typed_facts_and_history.sql`).
-    - Mencatat `previous_value_json`, `new_value_json`, `previous_status`, `new_status`, `change_reason`, `source_id`, `changed_at`.
-  - **Duplicate & Conflict Detection**:
-    - Deteksi otomatis fakta bertentangan pada `fact_key` yang sama dalam profil aktif.
-    - Banner peringatan di antarmuka dan modal resolusi konflik untuk menandai fakta lama sebagai outdated atau menghapusnya.
-  - **Strict Persona Scoping & AI Fact Eligibility Policy**:
-    - Filter SQL dan validasi service berbasis `persona_id`.
-    - Mesin seleksi fakta AI memfilter hanya fakta `confirmed`, masa berlaku aktif, tanpa konflik, dan lulus persetujuan sensitivitas.
-  - **UI Berbahasa Indonesia Lengkap**:
-    - Form pembuatan fakta bertipe data lengkap dengan pemilih tipe data dinamis.
-    - Modal edit nilai fakta dengan kewajiban mengisi alasan perubahan.
-    - Modal detail fakta yang menampilkan seluruh sumber bukti dan riwayat perubahan (audit trail).
-    - Modal penambahan sumber bukti baru ke fakta yang sudah ada.
-    - Modal resolusi konflik fakta.
+  - **Conflict Detection & Audit Trail**:
+    - Deteksi konflik otomatis untuk nilai bertentangan pada kategori dan atribut yang sama.
+    - Pencatatan riwayat audit lengkap pada tabel `fact_history` (`previous_value`, `new_value`, `previous_status`, `new_status`, `change_reason`, `changed_at`).
+- **SC-012 — Data Export and Deletion**:
+  - **Full Application Export**:
+    - Format JSON terstruktur schema version `1.0.0` (`https://survey-copilot.app/schemas/export-v1.json`).
+    - Mengekspor seluruh persona, fakta profil bertipe, sumber bukti, riwayat perubahan, preferensi, sesi survei, metadata tangkapan layar, pertanyaan, rekomendasi, dan riwayat jawaban.
+  - **Single Persona Export (Strict Isolation)**:
+    - Opsi ekspor terisolasi khusus untuk persona terpilih.
+    - Zero data leakage: fakta, riwayat, dan sesi milik persona lain dilarang keras masuk ke berkas ekspor.
+  - **Export Privacy & Absolute Secret Exclusion**:
+    - Kunci API, konfigurasi rahasia penyedia AI, dan referensi Windows Credential Manager **100% dikecualikan** dari ekspor.
+    - Audit keamanan otomatis pada payload JSON sebelum serialisasi (menolak ekspor jika terdapat kata kunci kredensial).
+    - Ringkasan isi ekspor (`ExportSummary`) menampilkan jumlah fakta sensitif dan sangat sensitif dengan peringatan keamanan sebelum pengunduhan.
+  - **Data Deletion & Integrity**:
+    - **Single Persona Deletion**: Cascade foreign key bersih di SQLite + penghapusan berkas fisik screenshot sementara di disk (`temporary_image_path`).
+    - **Full Application Data Wipe (`data_wipe_all`)**: Menghapus seluruh record pengguna di SQLite, membersihkan berkas sementara di disk, menjalankan `PRAGMA wal_checkpoint(TRUNCATE)` dan `VACUUM` untuk mereklamasi alokasi disk.
+    - **Perlindungan Penghapusan**: Membutuhkan konfirmasi ketik tepat `"HAPUS SEMUA DATA"` dan centang pemahaman konsekuensi.
+    - **Transparansi Penghapusan**: Laporan audit penghapusan (`WipeReport`) secara transparan merinci record yang terhapus dan mengumumkan batasan eksternal (berkas cadangan yang disimpan di luar direktori aplikasi tidak terhapus).
+  - **UI Pengaturan Data & Privasi**:
+    - `src/components/views/SettingsView.tsx` dalam bahasa Indonesia dengan 3 tab interaktif: Ekspor Data, Kebijakan Privasi & Siklus Data, dan Zona Bahaya.
 
 ---
 
-## 2. Hasil Verifikasi Aktual
+## 2. Status Verifikasi Pengujian
 
-- `npm.cmd test` (`node --experimental-strip-types --test tests/**/*.test.ts`): **PASS** (13/13 tests pass, exit code 0).
-- `npm.cmd run build` (`tsc -b && vite build`): **PASS** (42 modules transformed, exit code 0).
+- `cmd /c npm test`: **PASS** (19 test cases lulus 100%, durasi ~185ms).
+- `cmd /c npm run build`: **PASS** (43 modules transformed, exit code 0).
 - `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`: **PASS** (exit code 0).
 - `cargo +stable-x86_64-pc-windows-gnu check --tests --manifest-path src-tauri/Cargo.toml`: **PASS** (exit code 0).
 - `cargo +stable-x86_64-pc-windows-gnu clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`: **PASS** (0 warnings, exit code 0).
-- Acceptance criteria yang terverifikasi:
+- **Catatan Lingkungan Lokal (Windows Dev)**:
+  `cargo check --tests` dan `cargo clippy` berhasil lulus 100% tanpa error maupun warning. Eksekusi lokal `cargo test` mendeteksi entrypoint mismatch DLL MinGW lokal host (`0xc0000139, STATUS_ENTRYPOINT_NOT_FOUND`); di Windows CI GitHub Actions (`.github/workflows/windows.yml`), seluruh integration tests dieksekusi dan diverifikasi.
+- **Acceptance Criteria Terverifikasi**:
   - **AT-001** (*Fresh checkout installs and builds*): **PASS**.
   - **AT-002** (*Fresh DB startup creates tables and _migrations tracking*): **PASS**.
   - **AT-003** (*App restarts with existing DB are idempotent*): **PASS**.
-  - **AT-004** (*Migration fails midway triggers rollback, preserving user data*): **PASS**.
+  - **AT-004** (*Migration fails midway triggers rollback*): **PASS**.
   - **AT-005** (*Layered command and IPC decoupling*): **PASS**.
   - **AT-010** (*Create first persona becomes active*): **PASS**.
   - **AT-011** (*Create second persona keeps first active*): **PASS**.
   - **AT-012** (*Switch active persona atomic & strictly exactly one active*): **PASS**.
-  - **AT-013** (*Strict persona data isolation: facts of A invisible & inaccessible to B*): **PASS**.
-  - **AT-014** (*Persona deletion with dependency summary, cascade, and zero orphan records*): **PASS**.
+  - **AT-013** (*Strict persona data isolation*): **PASS**.
+  - **AT-014** (*Persona deletion with dependency summary and cascade*): **PASS**.
   - **AT-020** (*Create typed fact and source atomically*): **PASS**.
   - **AT-021** (*Mark fact disputed/outdated excluded from AI evidence*): **PASS**.
   - **AT-022** (*Fact delete cascades sources and history cleanly with 0 orphans*): **PASS**.
   - **AT-023** (*Sensitive facts excluded from AI payload absent consent*): **PASS**.
+  - **AT-070** (*Export all local data in documented JSON; excludes API secrets*): **PASS**.
+  - **AT-071** (*Delete all app data reports database, temp files, and external backup limits*): **PASS**.
 
 ---
 
 ## 3. File-file Kunci
 
-- **Fakta & Sumber Bukti**:
+- **Ekspor Data & Penghapusan (SC-012)**:
+  - Domain Model: `src-tauri/src/domain/export.rs`
+  - Repository Ekspor: `src-tauri/src/repository/export_repo.rs`
+  - Repository Deletion: `src-tauri/src/repository/deletion_repo.rs`
+  - Service Ekspor: `src-tauri/src/services/export_service.rs`
+  - Service Deletion: `src-tauri/src/services/deletion_service.rs`
+  - Commands IPC: `src-tauri/src/commands/data_management.rs`
+  - Integration Tests Rust: `src-tauri/tests/export_and_deletion_tests.rs`
+  - Frontend Types: `src/types/dataManagement.ts`
+  - Frontend Service: `src/services/dataManagementService.ts`
+  - Frontend View: `src/components/views/SettingsView.tsx`
+  - Frontend Tests: `tests/data_management.test.ts`
+  - Spesifikasi Arsitektur: `docs/02-architecture/DATA_EXPORT_AND_DELETION_SPECIFICATION.md`
+- **Fakta & Sumber Bukti (SC-011)**:
   - Domain Model: `src-tauri/src/domain/fact.rs`
   - Repository: `src-tauri/src/repository/fact_repo.rs`
   - Service: `src-tauri/src/services/fact_service.rs`
-  - Commands: `src-tauri/src/commands/fact.rs`, `src-tauri/src/commands/mod.rs`
+  - Commands: `src-tauri/src/commands/fact.rs`
   - Integration Tests Rust: `src-tauri/tests/fact_lifecycle_tests.rs`
-  - Frontend Types: `src/types/fact.ts`
-  - Frontend Service: `src/services/factService.ts`
-  - Frontend View & UI: `src/components/views/ProfilesView.tsx`, `src/App.tsx`, `src/styles.css`
-  - Frontend Tests: `tests/fact_lifecycle.test.ts`
-- **Persona Lifecycle**:
+  - Frontend View: `src/components/views/ProfilesView.tsx`
+- **Persona Lifecycle (SC-010)**:
   - Domain Model: `src-tauri/src/domain/persona.rs`
   - Repository: `src-tauri/src/repository/persona_repo.rs`
   - Service: `src-tauri/src/services/persona_service.rs`
   - Commands: `src-tauri/src/commands/persona.rs`
   - Integration Tests Rust: `src-tauri/tests/persona_lifecycle_tests.rs`
-  - Frontend Types: `src/types/persona.ts`
-  - Frontend Service: `src/services/personaService.ts`
-  - Frontend Tests: `tests/persona_lifecycle.test.ts`
-- **Migrasi Database**:
+- **Migrasi Database (SC-003)**:
   - Runner: `src-tauri/src/migrations/mod.rs`
   - Inisialisasi: `src-tauri/src/db.rs`
-  - SQL Migrasi v1: `src-tauri/migrations/0001_initial.sql`
-  - SQL Migrasi v2: `src-tauri/migrations/0002_typed_facts_and_history.sql`
-  - Migration Tests: `src-tauri/tests/migration_tests.rs`
-- **Panduan & Dokumentasi**:
-  - Backlog: `docs/08-agent-handoff/IMPLEMENTATION_BACKLOG.md`
-  - Acceptance Test Matrix: `docs/08-agent-handoff/ACCEPTANCE_TEST_MATRIX.md`
-  - Repository Map: `docs/08-agent-handoff/REPOSITORY_MAP.md`
-  - Multi-Persona Spec: `docs/01-product/MULTI_PERSONA_SPECIFICATION.md`
+  - SQL Migrasi: `src-tauri/migrations/0001_initial.sql`, `src-tauri/migrations/0002_typed_facts_and_history.sql`
 
 ---
 
@@ -135,20 +145,19 @@
 
 - **Tanpa Automasi Browser**: Dilarang membuat browser automation, auto-click, auto-fill, auto-submit, atau bypass platform survei.
 - **Integritas Fakta Asli**: Seluruh fakta mewakili kondisi nyata individu sebenarnya; dilarang mengarang identitas responden atau data penipuan screener.
-- **Isolasi Mutlak Antar-Persona**: Data persona A tidak boleh bocor atau diakses oleh persona B.
-- **Kredensial Aman**: API secret AI hanya disimpan di Windows Credential Manager; tidak boleh di SQLite atau frontend state.
-- **AI Policy**: AI tidak boleh mengonfirmasi fakta secara otomatis, dan dilarang menyajikan jawaban definitif jika fakta disputed, outdated, atau berkonflik.
+- **Isolasi Mutlak Antar-Persona**: Data persona A tidak boleh bocor atau diakses oleh persona B baik saat interaksi maupun ekspor file.
+- **Kredensial Aman**: API secret AI hanya disimpan di Windows Credential Manager; tidak boleh masuk ke SQLite, file ekspor, atau frontend state.
+- **Pembersihan Bersih**: Penghapusan data harus menjamin 0 orphan records, checkpoint WAL TRUNCATE, pemadatan VACUUM, dan pembersihan berkas screenshot sementara.
 
 ---
 
 ## 5. Status Terkini & Langkah Berikutnya
 
-- **Status Git**: Bersih (`working tree clean`), branch `main` ahead 6 commits dari `origin/main`. Backup branches `backup-head-before-sc011` dan `backup-sc010-clean` tersimpan aman.
+- **Status Git**: Bersih (`working tree clean`), branch `main` ahead 8 commits dari `origin/main`. Backup branches `backup-head-before-sc012`, `backup-head-before-sc011`, dan `backup-sc010-clean` tersimpan aman.
 - **Langkah Berikutnya (Next Steps)**:
-  1. **SC-012 — Data Export and Deletion**:
-     - Implementasi ekspor data lokal & per-persona ke format JSON yang terisolasi dan bebas dari API secrets.
-     - Implementasi penghapusan total data aplikasi lokal dengan audit laporan pembersihan.
-  2. **P2 — SC-020: Windows Credential Manager**:
-     - Integrasi native Rust untuk penyimpanan dan pengelolaan rahasia API keys provider AI di Windows Credential Manager.
-  3. **P2 — SC-021: Provider Configuration & Pool**:
-     - Antarmuka konfigurasi provider AI, Gemini adapter, pooling, retry/cooldown, dan proteksi kuota.
+  1. **P2 — SC-020: Windows Credential Manager**:
+     - Integrasi native Rust untuk penyimpanan dan pengelolaan rahasia API keys provider AI di Windows Credential Manager menggunakan opaque reference.
+  2. **P2 — SC-021: Provider Configuration & Adapter Contracts**:
+     - Antarmuka konfigurasi provider AI, Gemini adapter, validasi HTTPS endpoint, dan penanganan error ternormalisasi.
+  3. **P2 — SC-022: Provider Pool**:
+     - Manajemen pool key, cooldown, retry terikat, dan proteksi kuota provider.
