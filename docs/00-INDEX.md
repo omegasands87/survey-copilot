@@ -8,6 +8,10 @@ This repository contains the product and engineering specifications for Survey C
 - [Product Requirements](01-product/PRODUCT_REQUIREMENTS.md) — testable product requirements derived from the definition.
 - [Feature Specification](01-product/FEATURE_SPECIFICATION.md) — required feature behavior and user-visible rules.
 - [User Flows](01-product/USER_FLOWS.md) — normative end-to-end workflows.
+- [Screen Intelligence](01-product/SCREEN_INTELLIGENCE.md) — capture, OCR, visual interpretation, and verification.
+- [Multi-Persona Specification](01-product/MULTI_PERSONA_SPECIFICATION.md) — multiple real respondent profiles and isolation rules.
+- [Earnings Intelligence](01-product/EARNINGS_INTELLIGENCE.md) — reward evidence, outcome states, and dashboard accounting.
+- [Survey Fit Learning](01-product/SURVEY_FIT_LEARNING.md) — eligibility matching and outcome-based learning.
 - [Technical Blueprint](BLUEPRINT.md) — legacy high-level overview; subordinate to the detailed specifications.
 
 ## Product
@@ -16,6 +20,10 @@ This repository contains the product and engineering specifications for Survey C
 - [Feature Specification](01-product/FEATURE_SPECIFICATION.md)
 - [Target User and Usage Model](01-product/USER_PERSONAS.md)
 - [User Flows](01-product/USER_FLOWS.md)
+- [Screen Intelligence](01-product/SCREEN_INTELLIGENCE.md)
+- [Multi-Persona Specification](01-product/MULTI_PERSONA_SPECIFICATION.md)
+- [Earnings Intelligence](01-product/EARNINGS_INTELLIGENCE.md)
+- [Survey Fit Learning](01-product/SURVEY_FIT_LEARNING.md)
 
 ## Architecture
 - [System architecture](02-architecture/SYSTEM_ARCHITECTURE.md)
