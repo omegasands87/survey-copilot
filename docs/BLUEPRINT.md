@@ -45,4 +45,4 @@ Tauri 2, Rust, React, TypeScript, SQLite, Windows Credential Manager, local OCR,
 
 ## Project status
 
-The repository contains specifications and planning documents. Application source code has not yet been implemented.
+The repository contains product/engineering specifications and an initial React + Tauri application shell. Persona storage, screen capture/OCR, provider pooling, answer analysis, and release packaging remain to be implemented and verified.
