@@ -47,7 +47,7 @@ export default function App() {
 
         <div className="sidebar-bottom">
           <span className="status-dot" />
-          <span>Data tersimpan lokal</span>
+          <span>Mode lokal</span>
           <button className="settings-link" onClick={() => setPage("settings")}>
             Pengaturan
           </button>
