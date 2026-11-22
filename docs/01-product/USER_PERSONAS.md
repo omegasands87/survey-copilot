@@ -1,29 +1,51 @@
-# User Personas
+# Target User and Usage Model
 
-These are design archetypes, not claims about every user.
+**Version:** 1.0 MVP  
+**Normative source:** [Product Definition](PRODUCT_DEFINITION.md)
 
-## Persona A — The careful respondent
-**Need:** Understand questions and phrase accurate answers without repeatedly searching for personal details.  
-**Pain points:** Ambiguous wording, inconsistent recall, repetitive profile questions.  
-**Success:** Can inspect the evidence behind a draft and correct it before copying.  
-**Design implication:** Keep provenance and review actions visible.
+## 1. Primary target user
 
-## Persona B — The privacy-conscious respondent
-**Need:** Receive useful assistance without uploading an entire personal profile.  
-**Pain points:** Unclear AI data handling, persistent cloud storage, hidden transmission.  
-**Success:** Knows exactly what information is stored locally and what leaves the device.  
-**Design implication:** Local-first defaults, per-request context minimization, explicit disclosure.
+A single individual who periodically completes online surveys and wants help interpreting questions, recalling personal facts, and drafting truthful responses without automating interaction with survey platforms.
 
-## Persona C — The user with incomplete records
-**Need:** Know when a question cannot be answered from available information.  
-**Pain points:** AI systems that fill gaps with plausible but false details.  
-**Success:** The application asks a targeted clarification or abstains.  
-**Design implication:** Missing evidence is a valid outcome, not an error state.
+The application is designed around one local user and one Digital Persona per installation. Shared workspaces, multiple profiles, teams, and account-based collaboration are excluded from v1.0.
 
-## Shared assumptions to validate
+## 2. Core user needs
+
+### Need A — Understand the question
+The user needs a plain-language interpretation, recognized answer format, timeframe, units, and constraints.
+
+### Need B — Recall personal facts accurately
+The user needs to store facts once, identify their source and verification status, and retrieve only relevant information for a question.
+
+### Need C — Avoid unsupported answers
+The user needs the application to abstain or ask for clarification rather than generate plausible personal claims.
+
+### Need D — Retain control
+The user needs to inspect, edit, confirm, reject, and copy every answer manually.
+
+### Need E — Protect personal information
+The user needs local-first storage, visibility into external AI requests, and explicit control over sensitive information.
+
+## 3. Design implications
+
+- Evidence must be visible next to the recommendation.
+- Missing evidence must be represented as a normal outcome, not hidden behind fluent text.
+- The application must distinguish confirmed facts from unverified, disputed, and outdated records.
+- User edits and confirmations must be auditable and separate from AI output.
+- No external action may occur as a side effect of generating an answer.
+- Local profile and session workflows must remain available without an AI provider.
+
+## 4. Product assumptions to validate
+
+These assumptions inform usability research but do not change the v1.0 scope without formal approval:
 - Users are willing to manually paste survey questions.
-- Users value explainability more than fully automated completion.
-- Users can maintain a small set of profile facts.
-- Users understand that a suggested answer is a draft requiring their judgment.
+- Users will maintain a small set of profile facts.
+- Users value evidence transparency and correctness over automatic completion.
+- Users understand that the final external survey response remains their responsibility.
 
-Validate these assumptions through interviews and usability tests before expanding scope.
+## 5. Out-of-target users for v1.0
+
+- Organizations managing survey response teams.
+- Users seeking automated survey completion or reward maximization.
+- Users requiring browser extensions, mobile apps, cloud-synced profiles, or multi-user collaboration.
+- Users expecting the application to infer unknown personal information.
