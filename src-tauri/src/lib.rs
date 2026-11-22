@@ -96,7 +96,7 @@ fn persona_create(
     connection
         .execute(
             "INSERT INTO personas (id, display_name, is_active, status, created_at, updated_at)
-             VALUES (?1, ?2, 0, 'active', ?3, ?3)",
+             VALUES (?1, ?2, CASE WHEN EXISTS (SELECT 1 FROM personas WHERE is_active = 1) THEN 0 ELSE 1 END, 'active', ?3, ?3)",
             (&id, display_name, &now),
         )
         .map_err(|error| format!("Gagal menyimpan profil: {error}"))?;
