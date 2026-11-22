@@ -28,10 +28,10 @@
 ## Flow 3 — Create survey session and enter a question
 
 1. User creates a session and optionally enters a title/platform label.
-2. User types or pastes one question.
-3. User enters answer options separately if applicable.
-4. Application displays the captured prompt and options for review.
-5. User corrects the text if necessary.
+2. User invokes the screen-capture shortcut and selects the question region/window, or uses manual text input.
+3. OCR and visual analysis extract prompt, instructions, visible options, labels, and layout.
+4. Application displays extracted content and uncertain regions for review.
+5. User corrects any extraction error.
 6. User explicitly requests analysis.
 
 **Rule:** The application does not inspect the survey website or retrieve question text from a URL.
@@ -94,3 +94,35 @@
 2. Application allows local profile and survey-session management.
 3. If the user requests AI analysis, application explains that provider/network setup is required.
 4. No local data is lost or blocked by the unavailable provider.
+
+
+## Flow 10 — Compare survey opportunity across personas
+
+1. User opens a survey listing or offer page.
+2. User invokes capture for the visible offer and eligibility details.
+3. Application extracts platform, topic, reward, stated duration, and explicit criteria.
+4. Application compares each criterion with every active persona.
+5. Application shows match, mismatch, unknown, stale, or conflict with supporting facts.
+6. Application presents a transparent opportunity ranking and identifies missing information.
+7. User selects the persona that truthfully represents the actual respondent and decides whether to start.
+
+## Flow 11 — Track survey attempt and reward
+
+1. User starts a survey attempt and selects the active persona.
+2. Application starts an elapsed/active-time record with visible controls.
+3. Screen Intelligence detects visible progress, completion, screening, or reward states when possible.
+4. Application records each observation with source, timestamp, amount, unit, persona, and confidence.
+5. Offered reward remains an offer; completion without credit remains unverified or pending.
+6. Credited and withdrawable values are recorded only when supported by visible platform evidence or a permitted official integration.
+7. User can correct an observation only when the application cannot reliably determine it; correction is recorded as user-supplied evidence.
+8. Dashboard updates from the event ledger without requiring routine manual bookkeeping.
+
+## Flow 12 — Learn persona-specific survey fit
+
+1. Before an attempt, the application stores the criteria and persona facts available at that time.
+2. After an observable outcome, the application attaches the outcome to that exact attempt and persona.
+3. The learning system separates screened-out, quota-full, technical failure, quality rejection, completion, and reward-credit events.
+4. The system updates historical category/platform/criteria statistics when evidence is sufficient.
+5. Sparse data is labeled insufficient history; no confident prediction is shown.
+6. Any predictive ranking is evaluated on later, chronologically held-out attempts and shows sample size and uncertainty.
+7. The system uses the result to prioritize future suitable opportunities, never to alter personal facts or recommend deceptive answers.
