@@ -10,6 +10,16 @@ type Persona = {
   status: string;
 };
 
+type ProfileFact = {
+  id: string;
+  category: string;
+  attribute: string;
+  value: string;
+  verificationStatus: string;
+  sensitivity: string;
+  sourceDescription: string | null;
+};
+
 const pageTitles: Record<Page, string> = {
   home: "Beranda",
   profiles: "Profil",
@@ -32,6 +42,15 @@ export default function App() {
   const [profileName, setProfileName] = useState("");
   const [profileError, setProfileError] = useState("");
   const [profileLoading, setProfileLoading] = useState(false);
+  const [facts, setFacts] = useState<ProfileFact[]>([]);
+  const [factCategory, setFactCategory] = useState("Umum");
+  const [factAttribute, setFactAttribute] = useState("");
+  const [factValue, setFactValue] = useState("");
+  const [factSource, setFactSource] = useState("Dimasukkan oleh pengguna");
+  const [factStatus, setFactStatus] = useState("unverified");
+  const [factSensitivity, setFactSensitivity] = useState("ordinary");
+  const [factError, setFactError] = useState("");
+  const [factLoading, setFactLoading] = useState(false);
 
   async function refreshPersonas() {
     try {
@@ -45,6 +64,26 @@ export default function App() {
   useEffect(() => {
     void refreshPersonas();
   }, []);
+
+  const activePersona = personas.find((persona) => persona.isActive);
+
+  async function refreshFacts(personaId: string) {
+    try {
+      const result = await invoke<ProfileFact[]>("fact_list", { personaId });
+      setFacts(result);
+      setFactError("");
+    } catch (error) {
+      setFactError(String(error));
+    }
+  }
+
+  useEffect(() => {
+    if (activePersona) {
+      void refreshFacts(activePersona.id);
+    } else {
+      setFacts([]);
+    }
+  }, [activePersona?.id]);
 
   async function createPersona(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -73,7 +112,50 @@ export default function App() {
     }
   }
 
-  const activePersona = personas.find((persona) => persona.isActive);
+  async function createFact(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!activePersona) return;
+    setFactLoading(true);
+    setFactError("");
+    try {
+      await invoke<ProfileFact>("fact_create", {
+        personaId: activePersona.id,
+        category: factCategory,
+        attribute: factAttribute,
+        value: factValue,
+        sourceDescription: factSource,
+        verificationStatus: factStatus,
+        sensitivity: factSensitivity,
+      });
+      setFactAttribute("");
+      setFactValue("");
+      await refreshFacts(activePersona.id);
+    } catch (error) {
+      setFactError(String(error));
+    } finally {
+      setFactLoading(false);
+    }
+  }
+
+  async function setFactStatus(factId: string, status: string) {
+    if (!activePersona) return;
+    try {
+      await invoke("fact_set_status", { personaId: activePersona.id, factId, status });
+      await refreshFacts(activePersona.id);
+    } catch (error) {
+      setFactError(String(error));
+    }
+  }
+
+  async function deleteFact(factId: string) {
+    if (!activePersona || !window.confirm("Hapus informasi profil ini?")) return;
+    try {
+      await invoke("fact_delete", { personaId: activePersona.id, factId });
+      await refreshFacts(activePersona.id);
+    } catch (error) {
+      setFactError(String(error));
+    }
+  }
 
   return (
     <div className="app-shell">
@@ -258,6 +340,73 @@ export default function App() {
                 </div>
               ))}
             </div>
+
+            {activePersona && (
+              <div className="facts-section">
+                <div className="facts-heading">
+                  <div>
+                    <span className="eyebrow">DATA RESPONDEN</span>
+                    <h3>Informasi {activePersona.displayName}</h3>
+                  </div>
+                </div>
+                <form className="fact-form" onSubmit={createFact}>
+                  <div className="fact-form-grid">
+                    <label>Kelompok
+                      <input value={factCategory} onChange={(event) => setFactCategory(event.target.value)} maxLength={80} required />
+                    </label>
+                    <label>Informasi
+                      <input value={factAttribute} onChange={(event) => setFactAttribute(event.target.value)} placeholder="Contoh: Pekerjaan" maxLength={100} required />
+                    </label>
+                    <label className="fact-value-field">Nilai
+                      <input value={factValue} onChange={(event) => setFactValue(event.target.value)} placeholder="Masukkan fakta yang benar" maxLength={4000} required />
+                    </label>
+                    <label>Sumber
+                      <input value={factSource} onChange={(event) => setFactSource(event.target.value)} maxLength={500} required />
+                    </label>
+                    <label>Status
+                      <select value={factStatus} onChange={(event) => setFactStatus(event.target.value)}>
+                        <option value="unverified">Belum diverifikasi</option>
+                        <option value="confirmed">Sudah saya pastikan</option>
+                      </select>
+                    </label>
+                    <label>Sensitivitas
+                      <select value={factSensitivity} onChange={(event) => setFactSensitivity(event.target.value)}>
+                        <option value="ordinary">Biasa</option>
+                        <option value="sensitive">Sensitif</option>
+                        <option value="highly_sensitive">Sangat sensitif</option>
+                      </select>
+                    </label>
+                  </div>
+                  <button className="primary-button" type="submit" disabled={factLoading || !factAttribute.trim() || !factValue.trim()}>
+                    {factLoading ? "Menyimpan..." : "Simpan informasi"}
+                  </button>
+                </form>
+                {factError && <p className="error-message">{factError}</p>}
+                <div className="fact-list">
+                  {facts.length === 0 ? (
+                    <div className="empty-inline">Belum ada informasi untuk profil ini.</div>
+                  ) : facts.map((fact) => (
+                    <article className="fact-card" key={fact.id}>
+                      <div className="fact-card-main">
+                        <span className="fact-category">{fact.category}</span>
+                        <strong>{fact.attribute}</strong>
+                        <p>{String(fact.value)}</p>
+                        <small>Sumber: {fact.sourceDescription || "Tidak dicatat"} · {fact.sensitivity === "ordinary" ? "Biasa" : "Sensitif"}</small>
+                      </div>
+                      <div className="fact-card-actions">
+                        <span className={fact.verificationStatus === "confirmed" ? "active-label" : "fact-unverified"}>
+                          {fact.verificationStatus === "confirmed" ? "Terverifikasi" : fact.verificationStatus === "unverified" ? "Belum diverifikasi" : fact.verificationStatus}
+                        </span>
+                        {fact.verificationStatus !== "confirmed" && (
+                          <button className="secondary-button" onClick={() => void setFactStatus(fact.id, "confirmed")}>Verifikasi</button>
+                        )}
+                        <button className="text-danger" onClick={() => void deleteFact(fact.id)}>Hapus</button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         )}
 
