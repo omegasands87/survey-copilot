@@ -5,8 +5,14 @@
 ## Information the application may store
 The planned local application may store profile facts supplied by the user, source notes, survey questions, AI recommendations, user edits, answer history, preferences, and operational metadata.
 
-## Storage
-The design is local-first and plans to use a local SQLite database. Exact storage paths, backup behavior, encryption, and deletion semantics must be documented after implementation.
+## Storage and Retention Lifecycle
+The application operates on a local-first architecture using a local SQLite database and restricted application directory.
+- **Active Facts**: Retained locally in SQLite; only relevant, non-disputed facts are sent to external AI providers with user consent.
+- **Archived Facts**: Kept locally but excluded from AI retrieval context.
+- **Screen Captures**: Temporary screenshot files are processed locally and deleted immediately after OCR review unless explicitly saved.
+- **Survey Memory & History**: Scoped strictly to the owning persona and preserved for survey recognition and audit.
+- **Export Files**: JSON exports are generated strictly upon explicit user request and 100% exclude any API keys, provider credentials, or internal secrets.
+- **Deletion Controls**: Full application wipe removes all user data records, unlinks temporary capture files, checkpoints WAL logs with TRUNCATE, and vacuums SQLite storage. Files exported outside the app directory and OS filesystem slack remain outside the app's scope of deletion.
 
 ## AI provider requests
 If the user configures an AI provider and requests analysis, the application may send the survey question and a minimized subset of relevant profile facts to that provider. The full profile should not be sent by default. Sensitive information requires explicit authorization and a justified need.

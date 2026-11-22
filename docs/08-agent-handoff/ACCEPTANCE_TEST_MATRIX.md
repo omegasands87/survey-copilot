@@ -47,8 +47,8 @@ Use this matrix to convert product requirements into automated tests and manual 
 | AT-064 | Survey Memory | Exact question sequence and answer separation | Questions persisted in sequence; actual user answers stored separately from AI recommendations | P5 |
 | AT-065 | NQI | Predicted question distinction | Predicted questions explicitly marked as not yet detected; branch evidence surfaced | P5 |
 | AT-066 | Survey Memory | Cross-persona isolation | Historical personal answers from persona A are inaccessible to persona B | P5 |
-| AT-070 | Privacy | Export all local data | Includes selected data only; never includes API secrets | P6 |
-| AT-071 | Deletion | Delete all app data | Reports database, temp files, backups, and credential cleanup outcome | P6 |
+| AT-070 | Privacy | Export all local data | Includes selected data only; never includes API secrets (Automated test: `test_at_070_export_all_local_data_excludes_secrets` & `tests/data_management.test.ts`) | P1/P6 |
+| AT-071 | Deletion | Delete all app data | Reports database, temp files, backups, and credential cleanup outcome (Automated test: `test_at_071_full_application_wipe_and_zero_orphans` & `tests/data_management.test.ts`) | P1/P6 |
 | AT-072 | Release | Clean Windows 11 x64 install | App launches and primary local workflows work | P6 |
 | AT-073 | Release | Uninstall | Behavior for user data is clearly disclosed and tested | P6 |
 | AT-074 | Product boundary | Attempt automated survey action | No such command, dependency, or capability exists | All |

@@ -6,11 +6,12 @@ pub mod repository;
 pub mod services;
 
 use commands::{
-    app_status, fact_add_source, fact_archive, fact_create, fact_delete, fact_detect_conflicts,
-    fact_get_detail, fact_get_eligible_for_ai, fact_list, fact_restore, fact_set_sensitivity,
-    fact_set_status, fact_update, persona_archive, persona_create, persona_delete, persona_get,
-    persona_get_dependency_summary, persona_list, persona_restore, persona_set_active,
-    persona_update,
+    app_status, data_get_retention_info, data_get_wipe_summary, data_wipe_all,
+    export_generate_json, export_get_summary, fact_add_source, fact_archive, fact_create,
+    fact_delete, fact_detect_conflicts, fact_get_detail, fact_get_eligible_for_ai, fact_list,
+    fact_restore, fact_set_sensitivity, fact_set_status, fact_update, persona_archive,
+    persona_create, persona_delete, persona_get, persona_get_dependency_summary, persona_list,
+    persona_restore, persona_set_active, persona_update,
 };
 use db::Database;
 use std::fs;
@@ -49,7 +50,12 @@ pub fn run() {
             fact_restore,
             fact_delete,
             fact_detect_conflicts,
-            fact_get_eligible_for_ai
+            fact_get_eligible_for_ai,
+            export_get_summary,
+            export_generate_json,
+            data_get_wipe_summary,
+            data_wipe_all,
+            data_get_retention_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running Survey Copilot");

@@ -307,7 +307,14 @@ export default function App() {
 
         {page === "history" && <HistoryView />}
 
-        {page === "settings" && <SettingsView />}
+        {page === "settings" && (
+          <SettingsView
+            personas={personas}
+            activePersona={activePersona}
+            onRefreshPersonas={refreshPersonas}
+            onDeletePersona={handleDeletePersona}
+          />
+        )}
       </main>
     </div>
   );

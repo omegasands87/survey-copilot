@@ -1,8 +1,13 @@
 pub mod app;
+pub mod data_management;
 pub mod fact;
 pub mod persona;
 
 pub use app::app_status;
+pub use data_management::{
+    data_get_retention_info, data_get_wipe_summary, data_wipe_all, export_generate_json,
+    export_get_summary,
+};
 pub use fact::{
     fact_add_source, fact_archive, fact_create, fact_delete, fact_detect_conflicts,
     fact_get_detail, fact_get_eligible_for_ai, fact_list, fact_restore, fact_set_sensitivity,

@@ -56,13 +56,13 @@ This backlog is the execution order for Antigravity. Checkboxes are intentionall
 **Acceptance:** Facts can be created, edited, reviewed, verified, disputed, marked outdated, archived, and deleted. Sources remain attributable. A fact from persona A can never be read in persona B. Automated integration tests cover typed values, lifecycle transitions, conflict detection, and strict cross-persona isolation.
 
 ### SC-012 — Data export and deletion
-- [ ] Export all local data and per-persona data in documented JSON format.
-- [ ] Exclude credentials and secrets from exports.
-- [ ] Implement full deletion with confirmation and verification.
-- [ ] Document whether deletion includes backups, temporary screenshots, and WAL files.
-- [ ] Test export round-trip and deletion.
+- [x] Export all local data and per-persona data in documented JSON format.
+- [x] Exclude credentials and secrets from exports.
+- [x] Implement full deletion with confirmation and verification.
+- [x] Document whether deletion includes backups, temporary screenshots, and WAL files.
+- [x] Test export round-trip and deletion.
 
-**Acceptance:** Export contains the requested scope and no secrets; deletion removes owned data and reports any remaining OS credential references.
+**Acceptance:** Export contains the requested scope and no secrets; deletion removes owned data and reports any remaining OS credential references. Automated integration tests cover full application export, single-persona export isolation, secret exclusion, database wipe with foreign key cascade, SQLite WAL checkpoint TRUNCATE, VACUUM, and temporary screenshot cleanup.
 
 ## P2 — Secure AI provider infrastructure
 

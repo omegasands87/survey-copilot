@@ -22,11 +22,11 @@ This map describes the current starter repository. Verify paths before assuming 
 |---|---|
 | `src/main.tsx` | React entry point |
 | `src/App.tsx` | App root shell coordinating navigation, state, and typed service delegates |
-| `src/types/` | Strongly-typed domain and IPC contracts (`error.ts`, `persona.ts`, `fact.ts`, `survey.ts`) |
-| `src/services/` | Typed IPC client and domain service wrappers (`ipcClient.ts`, `personaService.ts`, `factService.ts`) |
-| `src/components/` | Modular layout and view components (`Sidebar.tsx`, `Topbar.tsx`, views: `HomeView`, `CopilotView`, `ProfilesView`, `HistoryView`, `SettingsView`) |
+| `src/types/` | Strongly-typed domain and IPC contracts (`error.ts`, `persona.ts`, `fact.ts`, `survey.ts`, `dataManagement.ts`) |
+| `src/services/` | Typed IPC client and domain service wrappers (`ipcClient.ts`, `personaService.ts`, `factService.ts`, `dataManagementService.ts`) |
+| `src/components/` | Modular layout and view components (`Sidebar.tsx`, `Topbar.tsx`, views: `HomeView`, `CopilotView`, `ProfilesView`, `HistoryView`, `SettingsView` with Export & Wipe UI) |
 | `src/styles.css` | Current global styles |
-| `tests/` | Unit and integration tests for frontend error handling and types |
+| `tests/` | Unit and integration tests for frontend error handling, types, and data management (`error_normalization.test.ts`, `persona_lifecycle.test.ts`, `fact_lifecycle.test.ts`, `data_management.test.ts`) |
 
 The current UI still contains placeholder screens and disabled screenshot/analysis actions. Replace placeholders only as their corresponding backlog items are implemented. Do not present a disabled control as working functionality.
 
@@ -36,12 +36,12 @@ The current UI still contains placeholder screens and disabled screenshot/analys
 |---|---|
 | `src-tauri/src/main.rs` | Windows/Tauri process entry |
 | `src-tauri/src/lib.rs` | Tauri setup, state management, and command registration |
-| `src-tauri/src/commands/` | Thin Tauri command handlers (`app.rs`, `persona.rs`, `fact.rs`) without business logic or SQL |
-| `src-tauri/src/domain/` | Core domain entities, validation, error types, and NQI / Survey Memory contracts (`error.rs`, `persona.rs`, `fact.rs`, `survey.rs`) |
-| `src-tauri/src/services/` | Service layer containing business logic and transactions (`persona_service.rs`, `fact_service.rs`) |
-| `src-tauri/src/repository/` | Parameterized SQLite repository layer with strict persona scoping (`persona_repo.rs`, `fact_repo.rs`) |
+| `src-tauri/src/commands/` | Thin Tauri command handlers (`app.rs`, `persona.rs`, `fact.rs`, `data_management.rs`) without business logic or SQL |
+| `src-tauri/src/domain/` | Core domain entities, validation, error types, NQI / Survey Memory, and Export/Wipe contracts (`error.rs`, `persona.rs`, `fact.rs`, `survey.rs`, `export.rs`) |
+| `src-tauri/src/services/` | Service layer containing business logic and transactions (`persona_service.rs`, `fact_service.rs`, `export_service.rs`, `deletion_service.rs`) |
+| `src-tauri/src/repository/` | Parameterized SQLite repository layer with strict persona scoping (`persona_repo.rs`, `fact_repo.rs`, `export_repo.rs`, `deletion_repo.rs`) |
 | `src-tauri/src/migrations/` | Sequential, versioned, transactional migration runner and integrity verification (`mod.rs`) |
-| `src-tauri/tests/` | Automated integration tests for migration runner (`migration_tests.rs`), persona lifecycle (`persona_lifecycle_tests.rs`), and fact/source lifecycle (`fact_lifecycle_tests.rs`) |
+| `src-tauri/tests/` | Automated integration tests for migration runner (`migration_tests.rs`), persona lifecycle (`persona_lifecycle_tests.rs`), fact/source lifecycle (`fact_lifecycle_tests.rs`), and data export/deletion (`export_and_deletion_tests.rs`) |
 | `src-tauri/src/db.rs` | SQLite connection initialization, pragmas, and migration execution |
 | `src-tauri/migrations/` | Versioned SQL migrations (`0001_initial.sql`, `0002_typed_facts_and_history.sql`) |
 | `src-tauri/tauri.conf.json` | Tauri app, window, CSP, and bundle configuration |

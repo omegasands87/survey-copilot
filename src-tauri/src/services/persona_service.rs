@@ -341,6 +341,14 @@ impl PersonaService {
             }
         }
 
+        // Kumpulkan path gambar tangkapan layar terkait persona sebelum cascade delete
+        let temp_paths =
+            crate::repository::DeletionRepository::get_capture_image_paths_for_persona(
+                &transaction,
+                persona_id,
+            )
+            .unwrap_or_default();
+
         // Hapus persona. Foreign keys dengan ON DELETE CASCADE akan otomatis menghapus record terkait
         let deleted =
             PersonaRepository::delete(&transaction, persona_id).map_err(AppError::from)?;
@@ -353,6 +361,14 @@ impl PersonaService {
         transaction
             .commit()
             .map_err(|e| AppError::database(format!("Gagal menghapus profil: {e}")))?;
+
+        // Bersihkan file fisik tangkapan layar di disk setelah commit berhasil
+        for path_str in temp_paths {
+            let p = std::path::Path::new(&path_str);
+            if p.exists() {
+                let _ = std::fs::remove_file(p);
+            }
+        }
 
         Ok(summary)
     }

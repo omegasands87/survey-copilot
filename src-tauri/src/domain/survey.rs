@@ -62,7 +62,7 @@ pub enum AnswerState {
 }
 
 /// Entitas Survei dalam Survey Memory (berorientasi pada kepemilikan persona)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SurveyRecord {
     pub id: String,
