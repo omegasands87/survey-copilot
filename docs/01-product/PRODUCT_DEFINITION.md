@@ -252,7 +252,7 @@ Separate deterministic eligibility matching from historical outcome learning. At
 
 The exact provider, model, API contract, encryption design, and credential-store implementation are architecture decisions for Stage 2; they must comply with this product contract.
 
-## 10. Language behavior
+## 11. Language behavior
 
 - The initial application UI language is English.
 - The question analyzer must accept English and Indonesian question text.
@@ -260,7 +260,7 @@ The exact provider, model, API contract, encryption design, and credential-store
 - Language detection must not change the underlying evidence rules.
 - Additional UI localization is outside v1.0.
 
-## 11. Product quality requirements
+## 12. Product quality requirements
 
 The first release is acceptable only if:
 - Unsupported personal facts are never presented as established facts.
@@ -274,7 +274,7 @@ The first release is acceptable only if:
 
 Quantitative AI quality thresholds and measurement protocols are defined in the AI evaluation specification and must be finalized before release qualification.
 
-## 12. MVP acceptance checklist
+## 13. MVP acceptance checklist
 
 - [ ] A new user can complete first-run disclosure and reach the dashboard.
 - [ ] A user can create and manage multiple real-personas with isolated facts and histories.
@@ -294,7 +294,7 @@ Quantitative AI quality thresholds and measurement protocols are defined in the 
 - [ ] Survey fit learning separates explicit criteria matching from historical outcomes and exposes uncertainty.
 - [ ] No browser automation, autofill, auto-submit, CAPTCHA bypass, or eligibility manipulation is present.
 
-## 13. Change control
+## 14. Change control
 
 This document is the product-scope baseline for v1.0. Any proposed scope change must include:
 1. The requirement being changed and the reason.
@@ -305,6 +305,6 @@ This document is the product-scope baseline for v1.0. Any proposed scope change 
 
 No developer may add a feature merely because it is technically convenient or easy to prototype.
 
-## 14. Stage 1 completion definition
+## 15. Stage 1 completion definition
 
 Stage 1 is complete when the product owner approves this baseline and the linked product requirements, feature specification, personas, and user flows agree with it. Technical architecture choices are deliberately deferred to Stage 2; they must not reopen the product scope without formal change control.
