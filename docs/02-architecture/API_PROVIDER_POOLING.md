@@ -41,7 +41,7 @@ Default strategy: adaptive availability-aware rotation.
 10. On invalid request/model/schema errors, do not rotate blindly across keys; report a configuration/request error.
 11. If every configuration is unavailable, show one concise status and offer Retry. Preserve the question and profile context locally.
 
-The pool must never send the same request concurrently to multiple keys merely to race for a response.
+The pool must never send the same request concurrently to multiple keys merely to race for a response. Key rotation is for resilience across legitimately configured credentials; it must not be used to evade provider quotas, account limits, billing controls, or terms of service. Respect aggregate project/account limits and stop routing when the provider indicates an account-level restriction.
 
 ## 4. Retry policy
 
