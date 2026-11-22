@@ -1,70 +1,83 @@
 # System Architecture
 
-**Status:** Proposed architecture for the MVP.
+**Target:** Windows 11 x64  
+**Status:** Normative technical architecture
 
-## 1. Architectural style
-Local-first desktop application with a narrow native boundary and a modular TypeScript frontend. The desktop process owns filesystem/database access and secrets; the UI communicates through typed commands. AI calls are explicit network operations.
+## 1. Architecture overview
 
-## 2. Technology baseline
-- Desktop runtime: Tauri 2.
-- Native layer: Rust.
+Survey Copilot is a local-first desktop app. React renders the UI. Tauri/Rust owns native screen capture, SQLite access, Windows Credential Manager access, filesystem operations, and outbound AI requests. All communication crosses a typed, validated IPC boundary.
+
+## 2. Technology
+
+- Desktop shell: Tauri 2.
+- Native backend: Rust.
 - UI: React + TypeScript.
-- Styling/components: Tailwind CSS and shadcn/ui, subject to accessibility review.
-- Persistence: SQLite with migrations.
-- Validation: Zod in the UI/service boundary and Rust-side validation for native commands.
-- State: Zustand for local UI state; TanStack Query for asynchronous operations where useful.
-- Search: SQLite FTS5 if local search requirements justify it.
+- Styling: Tailwind CSS and accessible UI primitives.
+- Local persistence: SQLite with immutable migrations.
+- Secrets: Windows Credential Manager.
+- OCR: local OCR implementation selected after Windows 11 packaging and accuracy evaluation.
+- AI: Gemini adapter first; provider adapter abstraction for custom compatible APIs.
+- State: lightweight client state; async request state managed explicitly.
 
-See [technology stack](TECH_STACK.md).
+## 3. Runtime modules
 
-## 3. Logical components
-1. **Presentation:** Dashboard, Persona, Workspace, Recommendation Review, History, Settings.
-2. **Application services:** session orchestration, profile management, answer workflow, export/delete.
-3. **Domain:** fact, question, recommendation, evidence, and consistency models.
-4. **Infrastructure:** SQLite repositories, migration runner, credential-store adapter, AI provider adapter, logging.
-5. **Native boundary:** allowlisted Tauri commands with typed inputs and outputs.
+1. Persona service: profile CRUD, fact status, provenance, persona isolation.
+2. Screen intelligence: user-triggered capture, OCR, layout reconstruction, preview and correction.
+3. Survey workspace: sessions, question records, options, and review state.
+4. Answer copilot: classification, retrieval, consistency, context minimization, generation, validation.
+5. Opportunity fit: visible criteria extraction and deterministic persona matching.
+6. Provider hub: provider configurations, credential references, pool selection, cooldown, retry, and health.
+7. History: recommendation versions and user actions.
+8. Data management: export, deletion, migrations, and backup.
 
-## 4. AI request lifecycle
-Question input → normalize and classify → extract constraints → retrieve relevant facts → run consistency checks → build minimized context → provider request → parse and validate structured output → validate source IDs locally → present evidence → user action → persist outcome.
+## 4. Main request lifecycle
 
-## 5. Trust boundaries
-- Survey text is untrusted external content.
-- Model output is untrusted until validated.
-- Provider network is outside the local trust boundary.
-- API keys are secrets and never enter frontend logs or persisted plain-text settings.
-- Tauri commands are privileged and must be allowlisted and input-validated.
+Capture or paste → user verifies question → select active persona → classify question → retrieve eligible facts → check consistency → minimize context → choose compatible provider configuration → dispatch request → validate structured output and source IDs → show recommendation → user edits/confirms/copies/rejects → persist history.
 
-## 6. Failure behavior
-- Database unavailable: do not silently fall back to volatile writes; explain and preserve recoverable input.
-- Provider unavailable: retain question locally and show retry/manual mode.
-- Invalid model output: reject it, log a redacted diagnostic, and offer retry or abstention.
-- Migration failure: back up database before migration and provide a recovery path.
-- Missing credential: prompt user to configure it; never ask them to paste secrets into survey content.
+## 5. Provider dispatch lifecycle
 
-## 7. Suggested repository layout
-```
-src/
-  app/
-  components/
-  features/
-    persona/
-    survey-workspace/
-    answer-copilot/
-    history/
-    settings/
-  domain/
-  services/
-  lib/
-src-tauri/
-  src/
-  capabilities/
-  migrations/
-docs/
-```
+User request → operation/model compatibility filter → enabled credential references → health and cooldown filter → pool strategy selects one key → enforce concurrency/rate limit → provider request → normalize response/error → success health update OR cooldown/failover/retry → terminal error if no eligible key remains.
 
-## 8. Architectural constraints
-- No browser automation or hidden form interaction.
-- UI must not access SQLite directly.
-- Provider-specific code stays behind an adapter interface.
-- Repositories own SQL; domain services own business rules.
-- No AI output may create or update a confirmed profile fact without user review.
+No speculative parallel fan-out. No unbounded retries.
+
+## 6. Trust boundaries
+
+- Survey text, OCR text, screenshots, and model responses are untrusted.
+- React is not trusted with API secrets or direct database access.
+- Rust IPC commands are privileged and must be allowlisted and validated.
+- Provider endpoints are external; custom endpoint configuration is user-controlled but still validated.
+- A provider response cannot invoke tools, execute code, or access local files.
+- Persona ID must be validated on every query and persistence operation.
+
+## 7. Failure handling
+
+- Capture failure: retain manual text entry path.
+- OCR uncertainty: show preview and correction; do not auto-analyze.
+- Provider unavailable: retain the question and show retry/manual mode.
+- Rate limit: cool down the key and try another eligible key.
+- All keys unavailable: show concise status and user-controlled retry.
+- Invalid model output: reject and offer retry or abstention.
+- Database error: preserve recoverable input; never pretend a write succeeded.
+- Migration failure: backup first and provide recovery instructions.
+
+## 8. Native command groups
+
+- persona_*: create, list, activate, update, archive, delete.
+- fact_*: create, update, verify, dispute, mark_stale, search, delete.
+- capture_*: begin_region_capture, capture_window, preview, discard.
+- ocr_*: extract, correct, confirm.
+- survey_*: create_session, save_question, list_history.
+- answer_*: analyze, cancel, save_review_action.
+- provider_*: list, add, update, test, enable, disable, remove, inspect_health.
+- data_*: export, delete, backup, restore.
+
+All commands return typed result/error objects. Do not expose generic shell, arbitrary file, or browser-control commands.
+
+## 9. Architectural constraints
+
+- No browser automation, DOM inspection, autofill, auto-click, or auto-submit.
+- No earnings/reward tracking module in v1.0.
+- No UI-to-SQL direct access.
+- No provider-specific logic inside domain services.
+- No cross-persona fact retrieval.
+- No AI-generated fact can become confirmed without explicit user review.
