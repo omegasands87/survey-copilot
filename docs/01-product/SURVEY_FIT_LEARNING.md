@@ -1,43 +1,36 @@
 # Survey Fit Learning Specification
 
-**Version:** 1.0 product specification  
+**Version:** 1.0  
 **Status:** Required MVP capability  
-**Normative source:** [Product Definition](PRODUCT_DEFINITION.md)
+**Normative source:** PRODUCT_DEFINITION.md
 
 ## 1. Purpose
 
-Learn which survey opportunities are historically more compatible with each truthful persona, using explicit eligibility criteria and observed survey outcomes. The system helps prioritize opportunities; it does not guarantee qualification or alter answers to manipulate screeners.
+Help the user decide which survey opportunities appear relevant to each real persona. The app combines deterministic matching of visible eligibility criteria with carefully qualified historical outcome patterns. It does not promise qualification or manipulate answers.
 
-## 2. Two separate signals
+## 2. Deterministic eligibility matching
 
-### 2.1 Deterministic eligibility matching
-
-Before a survey attempt, compare explicit survey criteria with persona facts. Each criterion receives one state:
+Before a survey attempt, compare explicit visible criteria with current persona facts. Each criterion receives one state:
 - match
 - mismatch
 - unknown
 - stale
 - conflict
 
-This layer is explainable and evidence-based. Unknown is not a match. A known mismatch must be surfaced rather than concealed.
+Unknown is never treated as a match. Every result must show the criterion and supporting fact or missing information.
 
-### 2.2 Historical outcome learning
+## 3. Historical outcome learning
 
-After an attempt, associate the observed outcome with:
-- Survey platform.
+If the user records or confirms an observed survey outcome, associate it with:
 - Persona ID.
-- Survey category and topic.
-- Explicit eligibility criteria, where available.
-- Reward offer and estimated duration.
+- Platform label, if known.
+- Survey category/topic, if known.
+- Explicit eligibility criteria, if captured.
 - Attempt timestamp.
 - Outcome label and evidence source.
 - Whether the outcome is confirmed or uncertain.
 
-The system may learn historical patterns by persona, platform, and category when enough data exists.
-
-## 3. Outcome taxonomy
-
-Keep outcomes separate:
+Outcome labels:
 - qualified
 - screened_out
 - quota_full
@@ -48,56 +41,44 @@ Keep outcomes separate:
 - pending
 - unknown
 
-A survey may have a sequence of events (qualified, completed, reward pending, credited); these are not mutually exclusive states of one generic success flag. Model the attempt lifecycle explicitly.
+These labels describe survey fit and attempt outcome only. They do not create an earnings, reward, balance, payout, or income ledger.
 
-## 4. Prediction and confidence rules
+## 4. Prediction rules
 
-- Do not display a percentage prediction until a minimum sample and calibration requirements are established in technical/evaluation design.
-- Always show sample size, observation window, and uncertainty.
-- Separate eligibility match from historical completion/credit rates.
-- Avoid pooling different personas or materially different survey types.
-- Account for recency and changing platform behavior.
-- Use a baseline or uncertainty-aware estimate when data is sparse; label it as insufficient history.
-- Validate predictions on later, held-out attempts, not on the same data used to train them.
-- Prevent data leakage: predictors may use only information available before the attempt; outcomes are labels observed afterward.
+- Do not display a percentage prediction until minimum sample and calibration requirements are defined and tested.
+- Show sample size, observation window, and uncertainty.
+- Keep deterministic criterion matching separate from historical outcome estimates.
+- Do not pool materially different personas or survey categories without a validated method.
+- Use chronological holdout data to validate estimates.
+- Avoid data leakage: predictors use only information available before an attempt.
 - Do not claim causation from observational correlations.
+- Sparse history must be labeled insufficient.
 
-## 5. Learning behavior
+## 5. Ranking
 
-The model may identify that certain categories, criteria, platforms, or reward/time combinations have historically produced better outcomes for a persona. It may rank opportunities by transparent factors such as:
+The app may sort opportunities using transparent factors:
 - Explicit eligibility match.
-- Historical qualification/completion evidence.
-- Reward value and duration.
-- Data freshness and confidence.
-- User-defined practical preferences.
+- Historical outcome evidence, where sufficient.
+- Survey category relevance.
+- User-selected preferences.
 
-The system must explain which factors contributed to a ranking. It must not optimize the persona's answers to appear eligible.
+Do not use reward or income tracking as a v1.0 feature. Do not recommend changing a personal fact or answer to improve fit.
 
-## 6. Integrity and safety constraints
+## 6. Integrity constraints
 
 - Never change or recommend changing a personal fact to improve a score.
 - Never recommend a false answer to pass screening.
-- Never infer that a persona qualifies solely from previous success.
-- Treat each new survey's explicit criteria as authoritative for that survey.
-- Do not use outcomes from one persona as personal facts for another persona.
-- Distinguish screening failure from quota exhaustion, technical failure, and quality rejection.
+- Never infer qualification solely from previous success.
+- Use each survey's explicit criteria as authoritative for that survey.
+- Keep outcomes attributed to the actual persona used.
 
-## 7. Evaluation
+## 7. Acceptance criteria
 
-Before presenting predictive percentages, evaluate:
-- Calibration on chronologically held-out attempts.
-- Precision/recall for qualification and completion labels where meaningful.
-- Performance by platform/category/persona with minimum sample thresholds.
-- Drift over time.
-- Confidence behavior under sparse data.
-- Whether rankings improve useful opportunity selection without encouraging misrepresentation.
-
-## 8. Acceptance criteria
-
-- [ ] Explicit criteria matching is separate from statistical historical learning.
+- [ ] Explicit matching is separate from historical learning.
 - [ ] Unknown criteria are never silently treated as matches.
-- [ ] Outcomes are recorded with persona, platform, time, and evidence provenance.
+- [ ] Outcomes are attributed to persona and attempt.
 - [ ] Screening failure, quota full, technical failure, and quality rejection are distinct.
-- [ ] Sparse history is labeled insufficient rather than shown as a confident prediction.
-- [ ] Predictions are validated on future/held-out data before display.
+- [ ] Sparse history is labeled insufficient.
+- [ ] Predictions are validated on chronologically held-out data.
+- [ ] No reward, balance, payout, or income ledger is implemented.
 - [ ] The system never recommends false answers or persona manipulation.
