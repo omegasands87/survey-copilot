@@ -1,63 +1,34 @@
 # Implementation Plan
 
 **Target:** Survey Copilot v1.0, Windows 11 x64  
-**Current state:** Documentation/specification only until implementation commits exist.
+**Current state:** Starter implementation exists; core product capabilities remain incomplete.  
+**Execution authority:** `docs/08-agent-handoff/IMPLEMENTATION_BACKLOG.md`
 
-## Phase 1 — App foundation
-- Bootstrap Tauri 2, Rust, React, TypeScript.
-- Configure CI, lint, formatting, type checks, tests, and lockfiles.
-- Implement typed Tauri IPC and capability allowlists.
-- Add SQLite migrations, backup, and repository layer.
-- Add Windows Credential Manager wrapper.
+## Implementation sequence
 
-## Phase 2 — Persona
-- Implement multiple real-persona CRUD.
-- Implement persona-scoped facts, sources, preferences, verification, and sensitivity.
-- Implement active persona selection.
-- Enforce isolation in repository queries and service layer.
-- Add data export and deletion.
+The detailed, testable tasks and acceptance conditions are maintained in the Antigravity backlog. Do not duplicate task state in this file. The required sequence is:
 
-## Phase 3 — Screen intelligence
-- Implement region/window capture initiated by the user.
-- Implement OCR and question/option layout extraction.
-- Add preview, correction, uncertainty markers, and manual paste fallback.
-- Add optional external vision with explicit consent.
-- Verify temporary screenshot deletion.
+1. **Foundation:** reproducible builds, lockfiles, CI, migration runner, domain/service/repository layers, typed IPC.
+2. **Persona data:** persona lifecycle, typed facts, source provenance, verification, sensitivity, strict isolation, export/delete.
+3. **Provider infrastructure:** Windows Credential Manager, provider CRUD, Gemini adapter, bounded pool, custom compatible adapters.
+4. **Answer workflow:** sessions, manual question input, classification, evidence retrieval, consistency, structured AI answer, user review/history.
+5. **Screen Intelligence:** Windows capture, OCR, layout reconstruction, preview, correction, explicit confirmation.
+6. **Survey Fit:** visible opportunity criteria, deterministic matching, persona-scoped outcome observations, validated learning.
+7. **Release hardening:** privacy, settings, accessibility, diagnostics, installer, clean-machine tests.
 
-## Phase 4 — Provider hub
-- Define normalized provider interface and error taxonomy.
-- Implement Gemini adapter.
-- Implement multiple API keys, adaptive pool, round-robin, weighted, priority.
-- Implement rate-limit cooldown, bounded retry, cancellation, and health.
-- Implement custom compatible provider and endpoint configuration.
-- Test secret storage and redaction.
+## Working rules
 
-## Phase 5 — Answer copilot
-- Implement classifier and constraint extraction.
-- Implement persona-specific fact retrieval.
-- Implement consistency checks and abstention.
-- Implement strict structured response and local evidence-ID validation.
-- Implement edit, confirm, copy, reject, regenerate, and history.
-
-## Phase 6 — Survey fit
-- Extract visible opportunity criteria.
-- Implement deterministic match/mismatch/unknown/stale/conflict checks.
-- Add transparent fit explanation.
-- Add historical outcome learning only where sufficient persona-specific evidence and uncertainty are available.
-
-## Phase 7 — Release
-- Complete Indonesian-first UI.
-- Complete keyboard/accessibility review.
-- Run security, privacy, migration, performance, and clean-machine tests.
-- Build and test signed Windows x64 installer.
-- Complete installation, configuration, and troubleshooting guides.
+- Implement small vertical slices in backlog order.
+- A document, placeholder, disabled button, or mock is not a completed feature.
+- Every feature needs automated tests and relevant manual Windows acceptance evidence.
+- Keep product boundaries and security invariants in `AGENTS.md` and the Antigravity handoff.
+- Update the backlog only after acceptance evidence exists.
 
 ## Release gates
-- No browser automation, autofill, auto-click, or auto-submit.
-- No fabricated facts or fictional personas.
-- No cross-persona leakage.
-- No plaintext API keys.
-- No silent capture.
-- No unbounded retry.
-- No earnings/reward tracking in v1.0.
-- No feature may be described as shipped before implementation and verification.
+
+- No browser automation, autofill, auto-click, navigation, or auto-submit.
+- No fabricated facts, fictional personas, or cross-persona leakage.
+- No plaintext API keys or silent capture.
+- No unbounded retry or quota evasion by key rotation.
+- No earnings/reward/balance/income tracking in v1.0.
+- No release claim without successful Windows 11 x64 build and install verification.
