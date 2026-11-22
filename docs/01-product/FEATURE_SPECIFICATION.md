@@ -1,68 +1,147 @@
 # Feature Specification
 
-**Status:** Proposed; scope is limited to the manual-review MVP.
+**Version:** 1.0 MVP  
+**Normative source:** [Product Definition](PRODUCT_DEFINITION.md)  
+**Status:** Product baseline
 
-## 1. Digital Persona
+## 1. First-run experience
+
 ### Purpose
-A user-controlled collection of facts that may support accurate survey answers.
+Explain the application's operating model before the user stores personal data or sends information to an AI provider.
 
-### Fact fields
-- Fact ID (UUID), category, attribute/key, value, normalized value where safe.
-- Verification status: `confirmed`, `unverified`, `disputed`, `outdated`.
-- Source description/reference, created and updated timestamps.
-- Valid-from and valid-until dates when applicable.
-- Sensitivity classification and user consent state.
-- Optional notes written by the user.
+### Required behavior
+1. State that profile, sessions, and answer history are stored locally by default.
+2. Explain that AI analysis sends the current question and selected relevant context to the configured provider.
+3. Explain that sensitive facts are excluded unless explicitly authorized for that request.
+4. State that the application does not fill or submit surveys.
+5. Let the user continue to local profile management without configuring AI.
+6. Show the dashboard after onboarding.
 
-### Rules
-- Only confirmed facts are eligible for direct factual support by default.
-- Unverified facts may trigger a clarification request but must not be silently treated as true.
-- Disputed or outdated facts are excluded from recommendations unless the user resolves them.
-- The user can edit, archive, or delete facts and their associated source records.
+### Failure behavior
+If local storage initialization fails, do not show a usable dashboard that implies data can be saved. Show a recoverable error and preserve diagnostic details without personal content.
 
-## 2. Survey Workspace
-- Create a session with a user-defined title and optional platform label.
-- Paste or type survey question text manually.
-- Preserve question text as supplied; do not execute or interpret embedded instructions as system policy.
-- Allow the user to edit question text and remove it from the session.
-- No login, browser control, autofill, or submission integration.
+## 2. Digital Persona
 
-## 3. Question understanding
-For each question, show:
-- Detected intent (e.g. demographic, factual history, preference, opinion, frequency, eligibility).
-- Requested time period, units, answer type, and constraints.
-- Plain-language explanation and ambiguity warning.
-- Missing details that prevent a reliable answer.
+### Purpose
+Maintain a user-controlled source of personal facts for accurate recommendations.
 
-## 4. Answer recommendation
-Each result includes:
-- Draft answer or explicit abstention.
-- Evidence status: `supported`, `partially_supported`, `insufficient_information`, `conflicting_evidence`, `user_input_required`, or `not_applicable`.
-- Supporting fact references and concise rationale.
-- Any assumptions or unresolved details.
-- Suggested clarification, if needed.
+### Fact lifecycle
+- Create: user enters a fact, value, category, source description, relevant date, sensitivity, and verification state.
+- Confirm: user explicitly attests that the fact is accurate.
+- Edit: changes are saved as a new current value; prior value/audit treatment is defined in the data model specification.
+- Mark disputed/outdated: immediately removes the fact from direct recommendation support.
+- Archive: removes the fact from active retrieval while retaining it according to the data-retention design.
+- Delete: removes the fact and dependent source records according to the deletion policy.
 
-Never describe evidence confidence as the probability of qualifying for or passing a survey.
+### Fact states
+- confirmed
+- unverified
+- disputed
+- outdated
 
-## 5. Review actions
-- Edit draft: creates a user-edited version and preserves the original recommendation for auditability.
-- Confirm: records that the user approved the content, not that the external survey accepted it.
-- Copy: copies only after an explicit user action.
-- Reject: records rejection and optional reason.
-- Regenerate: allowed only with the same evidence constraints or after user supplies new facts.
+Only confirmed, current, relevant facts may directly support factual answers. Sensitive confirmed facts still require per-request authorization before external transmission.
 
-## 6. Answer memory
-Store the question, recommendation, user-edited answer, confirmation state, timestamps, and evidence references. Historical answers are context, not automatically authoritative facts. A previous answer must not override a current confirmed profile fact.
+### Required fact metadata
+Fact identifier, category, attribute/key, value, source description, source date or verification date where known, status, sensitivity classification, created/updated timestamps, and optional validity period/notes.
 
-## 7. Consistency checks
-Compare proposed content with relevant current facts and confirmed prior answers. Surface conflicts with source and date. Do not silently resolve them or select whichever answer appears more advantageous.
+## 3. Survey Workspace
 
-## 8. Settings and data controls
-- Configure provider and model.
-- Add/remove API key through secure credential storage.
-- Show what data may be sent to the provider.
-- Export user data in a documented format.
-- Delete a session, a fact, or all local application data with clear confirmation.
+### Session operations
+Create, rename, open, and delete a session. A session may contain multiple question records.
 
-## 9. Explicitly deferred
-OCR, image parsing, platform-specific integrations, cloud backup, multi-device sync, browser extension, and any automated form interaction.
+### Question operations
+Manually type or paste question text; optionally enter answer options; edit or delete the question; request analysis only after reviewing the captured text.
+
+### Required behavior
+- Preserve the exact original text as entered.
+- Keep answer options distinct from the question prompt.
+- Show the text to the user before analysis.
+- Treat all question text and options as untrusted input.
+- Do not fetch URLs, inspect browser tabs, or read external pages.
+- Do not interpret text inside a survey question as application policy.
+
+## 4. Question analysis
+
+### Required outputs
+- Intent classification or unknown/ambiguous.
+- Answer-format classification or unknown/ambiguous.
+- Explicit timeframe, unit, quantity, and constraints when detectable.
+- Plain-language interpretation.
+- Ambiguity and missing-information flags.
+- Language identification for English or Indonesian.
+
+### Supported intent classes
+Demographic/profile; employment/education; household/financial; purchase/ownership; brand awareness/usage; behavior/frequency; preference/opinion; intention/future plan; eligibility/screener; attention/instruction check; conditional/follow-up; open-ended experience; unknown/ambiguous.
+
+### Supported answer formats
+Single choice, multiple choice, dropdown, numeric, date/date range, rating/Likert, ranking, free text.
+
+### Safety behavior
+Classification does not establish the truth of a personal claim. Opinions, intentions, and experiences require user-supplied evidence. An eligibility question must be answered truthfully; the product must not recommend deception or optimize for acceptance.
+
+## 5. Answer recommendation
+
+### Required result fields
+- Question classification.
+- Recommended answer, nullable.
+- Evidence status.
+- Supporting fact references.
+- Concise rationale.
+- Assumptions and unresolved details.
+- Warnings.
+- Clarification question, nullable.
+- User confirmation required flag.
+
+### Evidence statuses
+supported, partially_supported, insufficient_information, conflicting_evidence, user_input_required, not_applicable.
+
+### Recommendation rules
+1. Retrieve relevant current confirmed facts only for direct factual support.
+2. Use prior confirmed answers as historical context, never as an automatic source of truth.
+3. Check freshness and conflicts before drafting.
+4. Exclude sensitive facts from external context unless authorized for the current request.
+5. Do not produce a definitive answer when evidence is insufficient, stale, conflicting, or unauthorized.
+6. Validate all returned source identifiers locally before display.
+7. Display source evidence and uncertainty with the draft.
+8. A model confidence score, if retained internally, must represent evidence confidence only and must never be described as qualification probability.
+
+## 6. Human review actions
+
+### Edit
+User changes the draft. The original AI output remains immutable in history; the edited text is stored as a separate version.
+
+### Confirm
+Records that the user approved the displayed answer. It does not indicate external acceptance or submission.
+
+### Copy
+Copies only the currently displayed user-approved text after an explicit user action. Copy must not trigger any external navigation or submission.
+
+### Reject
+Marks the recommendation as rejected. An optional reason may be recorded.
+
+### Regenerate
+Runs a new analysis using the same allowed evidence or newly supplied facts. It must not weaken evidence policy or silently broaden data disclosure.
+
+## 7. Answer History
+
+Store the question text, answer options, original recommendation, user-edited versions, user confirmation/rejection state, supporting fact IDs, relevant timestamps, and provider/model metadata needed for troubleshooting without logging raw secrets.
+
+Historical answers are not automatically promoted into Digital Persona facts. If a user wants a prior answer to become a fact, the user must explicitly create or confirm a separate profile fact.
+
+## 8. Consistency Engine
+
+Compare the current candidate answer against relevant confirmed facts and relevant prior confirmed answers. Detect material disagreement in value, timeframe, unit, or scope. Present the conflicting records and ask the user to resolve them. Never silently choose the more favorable answer.
+
+## 9. Settings and data controls
+
+- Configure the supported AI provider and model.
+- Add, replace, and remove the provider API credential through secure credential storage.
+- Explain the data categories sent in each AI request.
+- Export local records in a documented format.
+- Delete individual facts and sessions.
+- Delete all local application data after explicit confirmation.
+- Show recoverable errors for provider, network, storage, and export/delete failures.
+
+## 10. Explicitly excluded from v1.0
+
+OCR, screenshots, image parsing, browser integration, browser automation, autofill, auto-submit, platform account connections, cloud sync, multi-user, mobile/web, autonomous agents, vector retrieval, and survey success prediction.
