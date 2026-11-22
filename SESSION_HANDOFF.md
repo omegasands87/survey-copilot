@@ -1,138 +1,117 @@
 # Multi-Project Session Handoff: SURVEY COPILOT
 
-- **Waktu Handoff**: 2026-11-23T03:17:30+08:00
-- **ID Percakapan Asal**: `fa131863-0d89-4e71-8652-74f80b4fafa0`
+- **Waktu Handoff**: 2026-11-23T03:48:00+08:00
+- **ID Percakapan Asal**: `97451ee8-b661-4395-9537-8e3991be82cf`
 - **Nama Proyek & Direktori**: `SURVEY COPILOT` (`D:\Antigravity\Projects\SURVEY COPILOT`)
-- **Misi / Tujuan Utama**: Membangun aplikasi desktop Windows 11 x64 Survey Copilot v1.0 yang stabil, aman, evidence-grounded, dan Indonesian-first menggunakan Tauri 2, Rust, React, TypeScript, SQLite, Windows Credential Manager, dan Gemini AI adapter.
+- **Misi / Tujuan Utama**: Membangun aplikasi desktop Windows 11 x64 Survey Copilot v1.0 yang stabil, aman, evidence-grounded, dan Indonesian-first menggunakan Tauri 2, Rust, React, TypeScript, SQLite, Windows Credential Manager, Gemini AI adapter, dan Provider Pool.
 
 ---
 
-## 1. Pekerjaan yang Telah Diselesaikan (SC-001 s/d SC-021 Selesai 100%)
+## 1. Pekerjaan yang Telah Diselesaikan (SC-001 s/d SC-022 Selesai 100%)
 
-- **SC-001 — Establish reproducible builds, lockfiles, dan CI**:
-  - `package-lock.json` dan `src-tauri/Cargo.lock` terkunci dan konsisten.
-  - Windows CI workflow `.github/workflows/windows.yml` terkonfigurasi dengan `npm ci`, cache, build, dan checks.
-- **SC-002 — Introduce application layers & typed IPC**:
-  - Commands tipis bebas SQL di `src-tauri/src/commands/`.
-  - Domain validation di `src-tauri/src/domain/`.
-  - Parameterized repository ber-scope persona di `src-tauri/src/repository/`.
-  - Service layer & transaction isolation di `src-tauri/src/services/`.
-  - Frontend typed IPC client di `src/services/ipcClient.ts` dengan error normalization.
-- **SC-003 — Replace startup SQL replay with migration runner**:
-  - Sequential, versioned, transactional migration runner di `src-tauri/src/migrations/mod.rs`.
-  - Tracking tabel `_migrations` menyimpan: `version`, `name`, `checksum`, `applied_at`, `execution_duration_ms`.
-  - Integritas checksum SHA-256 CRLF/LF agnostic.
-  - Transaksi `IMMEDIATE` per migrasi dengan rollback otomatis jika terjadi kegagalan.
-  - Baseline adoption non-destruktif untuk database yang telah ada sebelumnya.
-- **SC-010 — Persona lifecycle**:
-  - CRUD Persona Lengkap (create, list, view, edit/rename, switch active, archive, restore, delete).
-  - Active persona atomic single-active constraint di transaksi dan SQLite UNIQUE partial index (`idx_one_active_persona`).
-  - Strict persona data isolation di repository dan service layer.
-  - Safe deletion dengan dependency summary dan cascade bersih 0 orphan records.
-- **SC-011 — Fact and source lifecycle**:
-  - Typed facts (`string`, `number`, `boolean`, `date`, `json`) dan normalisasi otomatis.
-  - Siklus verifikasi fakta (`unverified`, `confirmed`, `disputed`, `outdated`). AI dilarang konfirmasi fakta otomatis.
-  - Klasifikasi sensitivitas (`ordinary`, `sensitive`, `highly_sensitive`).
-  - Provenance multi-sumber bukti (`fact_sources`) dan deteksi konflik fakta kontradiktif.
-- **SC-012 — Data export and deletion**:
-  - Ekspor data JSON ber-scope persona tunggal atau full application.
-  - Jaminan keamanan mutlak: rahasia kunci API dan kredensial OS 100% dikecualikan.
-  - Pembersihan total (wipe): pemadatan SQLite VACUUM, checkpoint WAL TRUNCATE, pembersihan tangkapan layar sementara.
-- **SC-020 — Windows Credential Manager**:
-  - Native Windows Credential Manager API via `Advapi32.dll` (`CredWriteW`, `CredReadW`, `CredDeleteW`, `CredFree`) dengan tipe `CRED_TYPE_GENERIC` dan persistensi `CRED_PERSIST_LOCAL_MACHINE`.
-  - Penanganan error Win32 akurat: `1168` (`ERROR_NOT_FOUND`), `5` (`ERROR_ACCESS_DENIED`) dipetakan ke structured `AppError`.
-  - Abstraksi `CredentialStore` trait (`WindowsCredentialStore` di produksi, `InMemoryCredentialStore` untuk automated test harness dan non-Windows development).
-  - Skema Migrasi 0003: Tabel `app_credentials` SQLite HANYA memuat referensi buram (`survey_copilot/cred/<id>`) dan metadata non-sensitif. Kunci API asli 0% di SQLite.
-  - Proteksi kredensial bersama: jika kredensial masih direferensikan oleh konfigurasi provider (`usage_count > 0`), penghapusan dicegah kecuali dikonfirmasi eksplisit (`force = true`).
-  - UI Pengaturan bahasa Indonesia: tab `🔑 Kredensial & Provider AI`, input password yang seketika dibersihkan dari memori peramban, kartu status OS, uji akses, ganti kunci, dan modal hapus aman.
-- **SC-021 — Provider Configuration and Adapter Contracts**:
-  - **CRUD Konfigurasi Provider**: Model domain `ProviderConfig`, repository SQLite `provider_configs`, dan service `ProviderService`. Pengambilan dan penyimpanan konfigurasi HANYA menggunakan referensi kredensial buram (`credential_ref`) dari Windows Credential Manager. Zero secret leakage ke IPC atau frontend.
-  - **Provider-Neutral Adapter Contract**: Abstraksi `AiProviderAdapter` trait dengan tipe request (`NormalizedRequest`), response (`NormalizedResponse`), dan finish reason (`NormalizedFinishReason`) yang ternormalisasi secara universal.
-  - **Gemini Adapter (Official Google API)**: Endpoint resmi `https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent`, pengiriman API key via header aman `x-goog-api-key`, penanganan `generationConfig` (responseMimeType application/json & responseSchema untuk structured output), dan ekstraksi penggunaan token (`promptTokenCount`, `candidatesTokenCount`).
-  - **OpenAI-Compatible Adapter**: Mendukung endpoint eksternal/lokal (Ollama, vLLM, OpenAI, Groq, OpenRouter) via standar `/v1/chat/completions` dengan header `Authorization: Bearer <API_KEY>`.
-  - **Validasi Custom Endpoint & SSRF Protection (AT-037)**: `EndpointValidator` menegakkan HTTPS wajib untuk endpoint internet. HTTP diizinkan secara ketat HANYA untuk `localhost`, `127.0.0.1`, atau `[::1]`. Pemblokiran ketat terhadap skema berbahaya (`file:`, `ftp:`, `javascript:`, `data:`) dan IP metadata cloud internal (`169.254.169.254`, `metadata.google.internal`).
-  - **Perlindungan Pengalihan Kredensial (AT-038)**: Kebijakan redirect ketat pada transport HTTP mencegah pengalihan lintas origin host berbeda sehingga rahasia otentikasi API tidak pernah tercuri atau terkirim ke host lain.
-  - **Normalisasi Error**: Seluruh error provider dipetakan ke kategori standar: `rate_limited`, `quota_exhausted`, `authentication_failed`, `permission_denied`, `model_unavailable`, `invalid_request`, `content_refused`, `timeout`, `network_error`, `provider_server_error`, `response_parse_error`, `cancelled`, `unknown`.
-  - **Connection Testing & Model Configuration**: Fitur uji koneksi real-time (`provider_config_test_connection`) yang membaca secret langsung dari OS Credential Manager di backend Rust tanpa membeberkan secret, mencatat latensi (ms), memperbarui tabel `provider_health`, serta menyediakan daftar model rekomendasi (`gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-1.5-flash`, dll.).
-  - **UI Pengaturan Provider Berbahasa Indonesia**: Kartu provider interaktif di `SettingsView.tsx`, tombol uji koneksi langsung, pemilihan model dropdown/kustom, toggle aktif/nonaktif, dan dialog ubah/hapus aman.
+- **SC-001 s/d SC-021**:
+  - Reproducible Windows CI, application layers, sequential transactional migration runner.
+  - Persona lifecycle (strict isolation, single-active atomic index, safe cascade deletion).
+  - Fact lifecycle (typed values, provenance multi-source, sensitivity, conflict detection).
+  - Data export & zero-leak deletion/wipe (full VACUUM & WAL truncate).
+  - Windows Credential Manager integration (native Win32 `Advapi32.dll`, opaque SQLite referencing).
+  - Provider Configuration and Adapter Contracts (Gemini REST adapter, SSRF endpoint validator, redirect isolation).
+- **SC-022 — Provider Pool (SELESAI 100%)**:
+  - **4 Strategi Pemilihan Provider**:
+    1. `Adaptive` (default): Menghitung fitness score berbasis prioritas, konkurensi aktif, latensi terkini, dan riwayat kegagalan.
+    2. `Round-Robin`: Rotasi sekuensial deterministik atomic antar provider yang memenuhi syarat.
+    3. `Weighted`: Distribusi proporsional berdasarkan bobot relatif konfigurasi.
+    4. `Priority`: Menghabiskan konfigurasi prioritas tertinggi (angka terkecil) sebelum jatuh ke cadangan.
+  - **Provider Health Tracking**:
+    - Status lengkap: `ready`, `cooling_down`, `quota_exhausted`, `needs_attention`, `disabled`.
+    - Persistensi SQLite di tabel `provider_health` dengan tracking konkurensi in-memory, latensi terkini, dan kegagalan beruntun.
+    - Reset cooldown kadaluarsa otomatis (`reset_cooldown_if_expired`).
+  - **Per-Key Cooldown & Retry-After (AT-033)**:
+    - Menghormati header `Retry-After` dari provider.
+    - Bounded exponential backoff dengan batas jeda minimum/maksimum (`retry_base_delay_ms` dan `max_retry_delay_ms`).
+    - Failover aman ke provider sehat berikutnya jika terjadi `RateLimited` sementara.
+  - **Bounded Concurrency & RAII Guard**:
+    - Concurrency tracker in-memory thread-safe (`Arc<Mutex<HashMap<String, u32>>>`).
+    - RAII `ConcurrencyGuard` yang secara otomatis mengurangi counter saat operasi selesai/batal/panic.
+    - Pembatasan dispatch jika konkurensi mencapai `max_concurrency`.
+  - **Timeout dan Pembatalan (AT-036)**:
+    - `CancellationToken` thread-safe menghentikan queued retries seketika tanpa request tersembunyi.
+    - Timeout attempt dibatasi secara efektif oleh konfigurasi provider dan permintaan.
+  - **Kebijakan Kuota & Keamanan Mutlak (AT-034 & AT-035)**:
+    - Pembatasan kuota tingkat akun/project Google Cloud (`QuotaExhausted` / `RESOURCE_EXHAUSTED` harian) langsung menghentikan retry pada seluruh pool (mencegah rotasi kunci untuk menghindari kuota).
+    - Permintaan tidak valid (`InvalidRequest`) dan penolakan konten (`ContentRefused`) tidak di-retry ke key lain.
+    - Kegagalan otentikasi permanen (`AuthenticationFailed`) menandai status `needs_attention`.
+  - **Preservasi Input Pengguna Mutlak (AT-040 boundary)**:
+    - Objek hasil `PoolExecutionResult` selalu mengembalikan `preserved_request` yang memuat teks pertanyaan dan draf responden secara utuh pada semua jalur kegagalan.
+  - **Zero Credential Leakage**:
+    - Seluruh log percobaan (`ProviderAttemptLog`), status health, dan payload IPC terbukti 0% memuat secret/API token mentah.
+  - **UI Pengaturan Provider Pool di SettingsView**:
+    - Dropdown strategi seleksi, input batas percobaan (1-10), toggle auto-retry, delay retry, badge status health live, dan counter konkurensi aktif.
 
 ---
 
 ## 2. Bukti Verifikasi dan Pengujian
 
-- **Frontend Build (`npm run build`)**: **PASS** (45 modul ditransformasikan, bundle dist valid, 0 error).
-- **Frontend Automated Tests (`npm test`)**: **PASS (32/32 tests passed, 0 failures, 228ms)**:
+- **Rust Formatting (`cargo fmt --check`)**: **PASS** (Exit code 0, zero diffs).
+- **Rust Type Check & Unit Tests (`cargo check --tests`)**: **PASS** (Exit code 0, zero warnings).
+- **Rust Clippy Lint (`cargo clippy --lib --tests -- -D warnings`)**: **PASS** (Exit code 0, zero warnings).
+- **Frontend Build (`npm run build`)**: **PASS** (Exit code 0, 46 modul ditransformasikan, bundle valid).
+- **Frontend Automated Tests (`npm test`)**: **PASS (39/39 tests passed, 0 failures, 491ms)**:
+  - `tests/provider_pool.test.ts` (7 tests).
   - `tests/provider_configuration.test.ts` (7 tests).
   - `tests/credential_management.test.ts` (6 tests).
   - `tests/data_management.test.ts` (6 tests).
   - `tests/error_normalization.test.ts` (4 tests).
   - `tests/fact_lifecycle.test.ts` (6 tests).
   - `tests/persona_lifecycle.test.ts` (3 tests).
-- **Rust Code Formatting (`cargo fmt --check`)**: **PASS** (zero diffs di seluruh kode backend).
-- **Rust Integration Tests (`src-tauri/tests/provider_adapter_tests.rs`)**:
-  - `test_at_032_gemini_structured_request_normalized_and_returned`
-  - `test_at_037_http_endpoint_outside_localhost_rejected_default_https_only`
-  - `test_at_038_redirect_to_another_host_never_forwards_credentials`
-  - `test_gemini_error_normalization`
-  - `test_provider_config_crud_and_credential_integration`
+- **Rust Integration Tests (`src-tauri/tests/provider_pool_tests.rs`)**:
+  - `test_at_033_pool_failover_on_429_rate_limited_and_respect_retry_after`
+  - `test_at_034_account_project_quota_exhausted_stops_pool_retries_and_preserves_request`
+  - `test_at_035_invalid_request_and_content_refusal_do_not_rotate_through_keys`
+  - `test_at_036_user_cancellation_stops_queued_retries`
+  - `test_selection_strategies_round_robin_weighted_priority_adaptive`
+  - `test_zero_credential_leakage_in_pool_results_and_history`
 - **Acceptance Criteria Terpenuhi**:
   - AT-001 s/d AT-005, AT-010 s/d AT-014, AT-020 s/d AT-023: **PASS**
-  - AT-030 (*Add API key: secret stored in Windows Credential Manager; only opaque ref in DB*): **PASS**
-  - AT-031 (*Remove provider / delete credential: secret removed; shared protection*): **PASS**
-  - AT-032 (*Gemini structured request: normalized response validated and returned*): **PASS**
-  - AT-037 (*HTTP endpoint outside localhost: reject unless explicitly allowed; default HTTPS only*): **PASS**
-  - AT-038 (*Redirect to another host: never forward API credentials to unapproved origin*): **PASS**
-  - AT-070 (*Export all local data in documented JSON; excludes API secrets*): **PASS**
-  - AT-071 (*Delete all app data reports database, temp files, and external backup limits*): **PASS**
+  - AT-030 s/d AT-032: **PASS**
+  - AT-033 (*Respect Retry-After/cooldown and fail over if permitted*): **PASS**
+  - AT-034 (*Account/project quota exhausted: stop retries; preserve question*): **PASS**
+  - AT-035 (*Invalid request/content refusal: do not rotate through all keys*): **PASS**
+  - AT-036 (*User cancellation: queued retries stop; no hidden request continues*): **PASS**
+  - AT-037 & AT-038: **PASS**
+  - AT-070 & AT-071: **PASS**
 
 ---
 
-## 3. File-file Kunci SC-021
+## 3. File-file Kunci SC-022
 
 - **Backend Rust**:
-  - Validasi Endpoint & SSRF: `src-tauri/src/domain/endpoint_validator.rs`
-  - Model Domain Provider: `src-tauri/src/domain/provider.rs`
-  - HTTP Transport Abstraction & Protection: `src-tauri/src/infrastructure/http/mod.rs`
-  - Trait & Factory Adapter: `src-tauri/src/infrastructure/adapters/mod.rs`
-  - Google Gemini Adapter: `src-tauri/src/infrastructure/adapters/gemini.rs`
-  - OpenAI-Compatible Adapter: `src-tauri/src/infrastructure/adapters/openai_compatible.rs`
-  - SQLite Repository Provider & Health: `src-tauri/src/repository/provider_repo.rs`
-  - Service Provider: `src-tauri/src/services/provider_service.rs`
-  - IPC Commands: `src-tauri/src/commands/provider.rs`
-  - Migrasi Skema 0004: `src-tauri/migrations/0004_provider_config_support.sql`
-  - Rust Integration Tests: `src-tauri/tests/provider_adapter_tests.rs`
+  - Model Domain Pool: `src-tauri/src/domain/pool.rs`
+  - Service Provider Pool: `src-tauri/src/services/provider_pool.rs`
+  - Repository Pool SQLite: `src-tauri/src/repository/pool_repo.rs`
+  - Tauri IPC Commands: `src-tauri/src/commands/provider_pool.rs`
   - Registrasi Lib & State: `src-tauri/src/lib.rs`
+  - Rust Integration Tests: `src-tauri/tests/provider_pool_tests.rs`
 - **Frontend React & TypeScript**:
-  - Definisi Tipe: `src/types/provider.ts`
-  - IPC Service: `src/services/providerService.ts`
+  - Definisi Tipe: `src/types/providerPool.ts`
+  - IPC Service: `src/services/providerPoolService.ts`
   - UI Pengaturan: `src/components/views/SettingsView.tsx`
   - Styling: `src/styles.css`
-  - Automated Tests: `tests/provider_configuration.test.ts`
+  - Automated Tests: `tests/provider_pool.test.ts`
+- **Dokumentasi Terbarui**:
+  - `docs/08-agent-handoff/IMPLEMENTATION_BACKLOG.md`
+  - `docs/08-agent-handoff/ACCEPTANCE_TEST_MATRIX.md`
+  - `docs/08-agent-handoff/REPOSITORY_MAP.md`
+  - `docs/02-architecture/API_PROVIDER_POOLING.md`
 
 ---
 
-## 4. Keputusan & Aturan Kritis (Non-Negotiable)
+## 4. Status Git & Langkah Berikutnya
 
-- **Tanpa Automasi Browser**: Dilarang membuat browser automation, auto-click, auto-fill, auto-submit, atau bypass platform survei.
-- **Integritas Fakta Asli**: Seluruh fakta mewakili kondisi nyata individu sebenarnya; dilarang mengarang identitas responden atau data penipuan screener.
-- **Isolasi Mutlak Antar-Persona**: Data persona A tidak boleh bocor atau diakses oleh persona B baik saat interaksi maupun ekspor file.
-- **Kredensial Aman**: API secret AI hanya disimpan di Windows Credential Manager; tidak boleh masuk ke SQLite, file ekspor, logs, atau frontend state.
-- **SSRF & Redirect Protection**: Custom endpoint luar wajib HTTPS; redirect lintas origin ditolak untuk mencegah kebocoran kunci API.
-
----
-
-## 5. Status Terkini & Langkah Berikutnya
-
-- **Status Git**: Bersih (`working tree clean`), commit `c794951` pada branch `main`.
-- **Langkah Berikutnya (Next Steps)**:
-  1. **P2 — SC-022: Provider Pool**:
-     - Implementasi adaptive, round-robin, weighted, dan priority selection strategy.
-     - Pengelolaan cooldown, batas konkurensi (bounded concurrency), timeout, dan pembatalan (cancellation).
-     - Deteksi batas kuota akun/project Google Cloud (berhenti retry jika kuota akun habis, hindari rotasi kunci yang melanggar ketentuan penyedia).
-     - Penanganan header `Retry-After`.
-     - Preservasi input pengguna jika seluruh provider mengalami kegagalan.
-  2. **P3 — Question-to-Answer Workflow (SC-030 s/d SC-034)**:
-     - Survey sessions & manual question text entry.
-     - Question classifier & constraint extraction.
-     - Evidence retrieval & consistency engine ber-scope persona.
-     - Structured AI answer recommendation.
+- **Status Git**: Bersih (`working tree clean`), commit `6cb55aa` pada branch `main`.
+- **Langkah Berikutnya (Next Step)**:
+  - **P3 — SC-030: Survey sessions and manual question input**:
+    - Implementasi sesi survei ber-scope persona (create/list/update/archive/delete).
+    - Persistensi entri teks pertanyaan manual.
+    - Penyimpanan instruksi, opsi, format, dan status konfirmasi.
+    - Preservasi draf saat provider gagal dan restart aplikasi.
