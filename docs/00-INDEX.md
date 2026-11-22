@@ -27,11 +27,14 @@ Survey Copilot is a Windows 11 x64 desktop AI copilot. This repository contains 
 - [Technology Stack](02-architecture/TECH_STACK.md)
 - [AI Provider and API Pooling](02-architecture/API_PROVIDER_POOLING.md)
 - [Screen Intelligence Technical Specification](02-architecture/SCREEN_INTELLIGENCE_TECHNICAL_SPEC.md)
+- [Tauri Command Contracts](02-architecture/TAURI_COMMAND_CONTRACTS.md)
+- [Provider Adapter Contract](02-architecture/PROVIDER_ADAPTER_CONTRACT.md)
 
 ## AI engine
 - [Prompt Specification](03-ai-engine/AI_PROMPT_SPECIFICATION.md)
 - [Question Classifier](03-ai-engine/QUESTION_CLASSIFIER.md)
 - [Answer Engine](03-ai-engine/ANSWER_ENGINE.md)
+- [Structured Output Schema](03-ai-engine/STRUCTURED_OUTPUT_SCHEMA.md)
 - [Memory System](03-ai-engine/MEMORY_SYSTEM.md)
 - [Consistency Engine](03-ai-engine/CONSISTENCY_ENGINE.md)
 - [AI Evaluation](03-ai-engine/AI_EVALUATION.md)
@@ -44,6 +47,7 @@ Survey Copilot is a Windows 11 x64 desktop AI copilot. This repository contains 
 ## Development
 - [Development Roadmap](05-development/DEVELOPMENT_ROADMAP.md)
 - [Implementation Plan](05-development/IMPLEMENTATION_PLAN.md)
+- [Build Checklist](05-development/BUILD_CHECKLIST.md)
 - [Coding Standards](05-development/CODING_STANDARDS.md)
 - [Testing Strategy](05-development/TESTING_STRATEGY.md)
 - [Release Plan](05-development/RELEASE_PLAN.md)
