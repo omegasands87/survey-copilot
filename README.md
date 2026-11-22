@@ -39,4 +39,4 @@ Tauri 2, Rust, React, TypeScript, SQLite, Windows Credential Manager, local OCR,
 
 ## Status
 
-This repository currently contains specifications and planning documents. Application source code and installer have not yet been implemented. Do not treat planned capabilities as shipped.
+An initial React + Tauri application shell is now in the repository. Core features (persona storage, screen capture/OCR, Gemini API pooling, answer analysis, and installer validation) are not implemented yet. Do not treat planned capabilities as shipped.
