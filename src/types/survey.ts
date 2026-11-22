@@ -1,3 +1,5 @@
+export type SessionStatus = "active" | "archived" | "completed";
+
 export type QuestionType =
   | "single_choice"
   | "multiple_choice"
@@ -9,68 +11,151 @@ export type QuestionType =
   | "other"
   | "unknown";
 
-export type QuestionStatus =
-  | "detected"
-  | "predicted"
-  | "historical"
-  | "unknown";
-
-export type AnswerState =
-  | "draft"
-  | "user_edited"
-  | "user_confirmed"
-  | "skipped"
-  | "not_answered"
+export type AnswerFormat =
+  | "single_choice"
+  | "multiple_selection"
+  | "text"
+  | "number"
+  | "rating_scale"
+  | "matrix"
+  | "boolean"
   | "unknown";
 
 export type Provenance =
-  | "user_entered"
+  | "manual_entry"
   | "manually_confirmed"
   | "ocr_detected"
   | "ai_inferred";
 
-export interface SurveyRecord {
+export type QuestionStatus = "detected" | "predicted" | "historical" | "unknown";
+
+export type ConfirmationStatus = "draft" | "confirmed" | "skipped" | "rejected";
+
+export interface SurveySession {
   id: string;
   personaId: string;
   title: string;
-  sourcePlatform?: string;
-  sourceUrl?: string;
-  providerSurveyId?: string;
-  recognitionFingerprint?: string;
-  firstSeenAt: string;
-  lastSeenAt: string;
+  platformLabel?: string | null;
+  sourceUrl?: string | null;
+  externalSurveyId?: string | null;
+  status: SessionStatus;
+  language: string;
+  category?: string | null;
+  fingerprint?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt?: string | null;
 }
 
-export interface SurveyQuestionRecord {
+export interface SurveySessionSummary {
   id: string;
-  surveyId: string;
   personaId: string;
-  sequenceOrder: number;
-  promptText: string;
-  normalizedText?: string;
-  instructions?: string;
-  optionsJson?: unknown;
+  title: string;
+  platformLabel?: string | null;
+  sourceUrl?: string | null;
+  status: SessionStatus;
+  language: string;
+  category?: string | null;
+  questionCount: number;
+  confirmedAnswerCount: number;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt?: string | null;
+}
+
+export interface SurveyQuestion {
+  id: string;
+  sessionId: string;
+  personaId: string;
+  captureId?: string | null;
+  questionOrder: number;
+  questionTextOriginal: string;
+  questionTextCorrected?: string | null;
+  instructions?: string | null;
+  options: string[];
+  structureJson?: Record<string, unknown> | null;
+  extractionStatus: string;
   questionType: QuestionType;
-  questionStatus: QuestionStatus;
+  answerFormat: AnswerFormat;
   provenance: Provenance;
-  observedAt: string;
+  observationType: QuestionStatus;
+  confirmationStatus: ConfirmationStatus;
+  userAnswerDraft?: string | null;
+  userAnswerConfirmed?: string | null;
+  confirmedAt?: string | null;
+  precedingQuestionId?: string | null;
+  branchLogic?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface ActualUserAnswer {
-  id: string;
-  questionId: string;
+export interface SurveySessionDetail {
+  session: SurveySession;
+  questions: SurveyQuestion[];
+}
+
+export interface CreateSessionInput {
   personaId: string;
-  answerText: string;
-  answerState: AnswerState;
-  confirmedAt: string;
+  title: string;
+  platformLabel?: string | null;
+  sourceUrl?: string | null;
+  externalSurveyId?: string | null;
+  language?: string | null;
+  category?: string | null;
+  notes?: string | null;
 }
 
-export interface NextQuestionPrediction {
-  candidateQuestionText: string;
-  questionType: QuestionType;
-  evidenceSource: string;
-  confidence: number;
-  explanation: string;
-  leadingCondition?: string;
-  isPredictedNotDetected: true;
+export interface UpdateSessionInput {
+  personaId: string;
+  sessionId: string;
+  title: string;
+  platformLabel?: string | null;
+  sourceUrl?: string | null;
+  externalSurveyId?: string | null;
+  language?: string | null;
+  category?: string | null;
+  notes?: string | null;
+  status?: SessionStatus | null;
+}
+
+export interface CreateQuestionInput {
+  personaId: string;
+  sessionId: string;
+  questionTextOriginal: string;
+  instructions?: string | null;
+  options?: string[] | null;
+  questionType?: QuestionType | null;
+  answerFormat?: AnswerFormat | null;
+  provenance?: Provenance | null;
+  questionOrder?: number | null;
+  precedingQuestionId?: string | null;
+  branchLogic?: string | null;
+}
+
+export interface UpdateQuestionInput {
+  personaId: string;
+  questionId: string;
+  questionTextOriginal?: string | null;
+  questionTextCorrected?: string | null;
+  instructions?: string | null;
+  options?: string[] | null;
+  questionType?: QuestionType | null;
+  answerFormat?: AnswerFormat | null;
+  confirmationStatus?: ConfirmationStatus | null;
+  userAnswerDraft?: string | null;
+  precedingQuestionId?: string | null;
+  branchLogic?: string | null;
+}
+
+export interface SaveQuestionDraftInput {
+  personaId: string;
+  questionId: string;
+  userAnswerDraft: string;
+}
+
+export interface ConfirmAnswerInput {
+  personaId: string;
+  questionId: string;
+  userAnswer: string;
 }

@@ -5,6 +5,7 @@ pub mod fact_repo;
 pub mod persona_repo;
 pub mod pool_repo;
 pub mod provider_repo;
+pub mod survey_repo;
 
 pub use credential_repo::CredentialRepository;
 pub use deletion_repo::{AllRecordCounts, DeletionRepository, WipeTableCounts};
@@ -13,3 +14,4 @@ pub use fact_repo::FactRepository;
 pub use persona_repo::PersonaRepository;
 pub use pool_repo::PoolRepository;
 pub use provider_repo::ProviderRepository;
+pub use survey_repo::SurveyRepository;

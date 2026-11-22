@@ -442,6 +442,11 @@ pub fn get_registered_migrations() -> Vec<Migration> {
             "0004_provider_config_support",
             include_str!("../../migrations/0004_provider_config_support.sql"),
         ),
+        Migration::new(
+            5,
+            "0005_survey_sessions_and_questions",
+            include_str!("../../migrations/0005_survey_sessions_and_questions.sql"),
+        ),
     ]
 }
 

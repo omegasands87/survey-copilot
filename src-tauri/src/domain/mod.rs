@@ -27,3 +27,9 @@ pub use provider::{
     NormalizedErrorCategory, NormalizedFinishReason, NormalizedRequest, NormalizedResponse,
     ProviderConfig, ProviderConfigSummary, ProviderType, UpdateProviderConfigInput,
 };
+pub use survey::{
+    AnswerFormat, AnswerState, ConfirmAnswerInput, ConfirmationStatus, CreateQuestionInput,
+    CreateSessionInput, NextQuestionPrediction, Provenance, QuestionStatus, QuestionType,
+    SaveQuestionDraftInput, SessionStatus, SurveyQuestion, SurveyRecord, SurveySession,
+    SurveySessionDetail, SurveySessionSummary, UpdateQuestionInput, UpdateSessionInput,
+};

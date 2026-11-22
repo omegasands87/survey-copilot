@@ -31,7 +31,6 @@ const pageTitles: Record<Page, string> = {
 
 export default function App() {
   const [page, setPage] = useState<Page>("home");
-  const [question, setQuestion] = useState("");
 
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [profileError, setProfileError] = useState("");
@@ -272,9 +271,7 @@ export default function App() {
 
         {page === "copilot" && (
           <CopilotView
-            question={question}
             activePersona={activePersona}
-            onChangeQuestion={setQuestion}
           />
         )}
 
@@ -305,7 +302,14 @@ export default function App() {
           />
         )}
 
-        {page === "history" && <HistoryView />}
+        {page === "history" && (
+          <HistoryView
+            activePersona={activePersona}
+            onOpenSessionInCopilot={() => {
+              setPage("copilot");
+            }}
+          />
+        )}
 
         {page === "settings" && (
           <SettingsView

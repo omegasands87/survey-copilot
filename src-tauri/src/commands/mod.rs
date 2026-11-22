@@ -5,6 +5,7 @@ pub mod fact;
 pub mod persona;
 pub mod provider;
 pub mod provider_pool;
+pub mod survey;
 
 pub use app::app_status;
 pub use credential::{
@@ -31,4 +32,10 @@ pub use provider::{
 pub use provider_pool::{
     provider_pool_execute_request, provider_pool_get_settings, provider_pool_list_health,
     provider_pool_update_settings,
+};
+pub use survey::{
+    survey_question_confirm_answer, survey_question_create, survey_question_delete,
+    survey_question_get, survey_question_list, survey_question_save_draft, survey_question_update,
+    survey_session_archive, survey_session_create, survey_session_delete, survey_session_get,
+    survey_session_get_detail, survey_session_list, survey_session_restore, survey_session_update,
 };

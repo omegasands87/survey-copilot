@@ -28,7 +28,11 @@ use commands::{
     provider_config_delete, provider_config_get, provider_config_list,
     provider_config_test_connection, provider_config_update, provider_get_recommended_models,
     provider_pool_execute_request, provider_pool_get_settings, provider_pool_list_health,
-    provider_pool_update_settings,
+    provider_pool_update_settings, survey_question_confirm_answer, survey_question_create,
+    survey_question_delete, survey_question_get, survey_question_list, survey_question_save_draft,
+    survey_question_update, survey_session_archive, survey_session_create, survey_session_delete,
+    survey_session_get, survey_session_get_detail, survey_session_list, survey_session_restore,
+    survey_session_update,
 };
 use db::Database;
 use std::fs;
@@ -102,7 +106,22 @@ pub fn run() {
             provider_pool_get_settings,
             provider_pool_update_settings,
             provider_pool_list_health,
-            provider_pool_execute_request
+            provider_pool_execute_request,
+            survey_session_create,
+            survey_session_list,
+            survey_session_get,
+            survey_session_update,
+            survey_session_archive,
+            survey_session_restore,
+            survey_session_delete,
+            survey_session_get_detail,
+            survey_question_create,
+            survey_question_get,
+            survey_question_list,
+            survey_question_update,
+            survey_question_save_draft,
+            survey_question_confirm_answer,
+            survey_question_delete
         ])
         .run(tauri::generate_context!())
         .expect("error while running Survey Copilot");

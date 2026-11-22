@@ -27,7 +27,7 @@ Use this matrix to convert product requirements into automated tests and manual 
 | AT-036 | Pool | User cancels request | Queued retries stop; no hidden request continues (Automated tests: `test_at_036_user_cancellation_stops_queued_retries` & `tests/provider_pool.test.ts`) | P2 |
 | AT-037 | Custom endpoint | HTTP endpoint outside localhost | Reject unless explicitly allowed by policy; default HTTPS only (Automated tests: `test_at_037_http_endpoint_outside_localhost_rejected_default_https_only` & `tests/provider_configuration.test.ts`) | P2 |
 | AT-038 | Security | Redirect to another host | Never forward API credentials to unapproved origin (Automated tests: `test_at_038_redirect_to_another_host_never_forwards_credentials` & `tests/provider_configuration.test.ts`) | P2 |
-| AT-040 | Question | Paste question | Original text persists and is recoverable after restart | P3 |
+| AT-040 | Question | Paste question | Original text persists and is recoverable after restart (Automated tests: `test_draft_persistence_and_actual_answer_separation`, `test_provider_failure_preserves_question_and_draft` & `tests/survey_session.test.ts`) | P3 |
 | AT-041 | Question | Ambiguous timeframe/unit | Ask clarification; do not infer silently | P3 |
 | AT-042 | Retrieval | Persona A has evidence, B does not | B's request contains no A facts and abstains if evidence missing | P3 |
 | AT-043 | AI output | Model cites unknown fact ID | Reject or remove unsupported citation; do not show as evidence | P3 |

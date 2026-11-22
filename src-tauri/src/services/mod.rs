@@ -5,6 +5,7 @@ pub mod fact_service;
 pub mod persona_service;
 pub mod provider_pool;
 pub mod provider_service;
+pub mod survey_service;
 
 pub use credential_service::CredentialService;
 pub use deletion_service::DeletionService;
@@ -13,3 +14,4 @@ pub use fact_service::FactService;
 pub use persona_service::PersonaService;
 pub use provider_pool::ProviderPoolService;
 pub use provider_service::ProviderService;
+pub use survey_service::SurveyService;

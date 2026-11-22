@@ -99,13 +99,13 @@ This backlog is the execution order for Antigravity. Checkboxes are intentionall
 ## P3 — Question-to-answer workflow
 
 ### SC-030 — Survey sessions and manual question input
-- [ ] Implement session create/list/update/archive/delete scoped to persona.
-- [ ] Implement manual question text entry and persistence.
-- [ ] Store instructions, options, format, source, and confirmation status.
-- [ ] Preserve drafts after provider failures and app restart.
-- [ ] Add session/question repository tests.
+- [x] Implement session create/list/update/archive/delete scoped to persona.
+- [x] Implement manual question text entry and persistence.
+- [x] Store instructions, options, format, source, and confirmation status.
+- [x] Preserve drafts after provider failures and app restart.
+- [x] Add session/question repository tests.
 
-**Acceptance:** A user can create a persona-owned session, paste a question, close/reopen the app, and recover it.
+**Acceptance:** A user can create a persona-owned session, paste a question, close/reopen the app, and recover it. Automated integration and unit tests cover session CRUD, strict persona isolation, ordered question sequence, options builder, draft auto-save and persistence across restart, separation of actual user confirmed answers, and foreign-key cascade deletion (`src-tauri/tests/survey_session_tests.rs` and `tests/survey_session.test.ts`).
 
 ### SC-031 — Question classifier and constraint extraction
 - [ ] Implement deterministic normalization and typed classifier output.
