@@ -279,7 +279,9 @@ Quantitative AI quality thresholds and measurement protocols are defined in the 
 - [ ] A new user can complete first-run disclosure and reach the dashboard.
 - [ ] A user can create and manage multiple real-personas with isolated facts and histories.
 - [ ] A user can create, update, verify, dispute, mark outdated, archive, and delete a fact.
-- [ ] A user can capture a screen region/window and verify OCR/visual extraction before analysis.
+- [ ] A user can capture a selected screen region/window and verify OCR/visual extraction before analysis.
+- [ ] The app extracts visible survey offer details such as reward, duration, and eligibility criteria when present.
+- [ ] The app compares each explicit criterion with all eligible personas and shows match/mismatch/unknown/stale/conflict with evidence.
 - [ ] A user can enter or correct question text and answer options manually.
 - [ ] The analyzer identifies supported question intent and answer format or returns unknown/ambiguous.
 - [ ] The answer engine retrieves only eligible, relevant evidence.
@@ -290,6 +292,8 @@ Quantitative AI quality thresholds and measurement protocols are defined in the 
 - [ ] Export and deletion are functional and tested.
 - [ ] AI provider failure leaves local records intact and produces a recoverable error.
 - [ ] Survey outcomes and reward events are stored with persona, source, timestamp, and verification state.
+- [ ] Visible reward and outcome information is captured without routine manual bookkeeping when reliably detectable.
+- [ ] Dashboard distinguishes offered, completed-unverified, pending, credited, and withdrawable values.
 - [ ] Offered, pending, credited, and withdrawable amounts are never conflated.
 - [ ] Survey fit learning separates explicit criteria matching from historical outcomes and exposes uncertainty.
 - [ ] No browser automation, autofill, auto-submit, CAPTCHA bypass, or eligibility manipulation is present.
