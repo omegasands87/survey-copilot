@@ -1,45 +1,90 @@
 # UI/UX Specification
 
-## 1. Experience goals
-- Clear, calm, and evidence-oriented.
-- Make uncertainty and provenance easy to inspect.
-- Keep the user in control of every external action.
-- Avoid visual cues that imply guaranteed survey success.
+## 1. Product experience
 
-## 2. Navigation
-Primary areas:
-1. Dashboard
-2. Digital Persona
-3. Survey Workspace
-4. Answer History
-5. Settings
+The application should feel simple: choose a profile, capture a question, get a recommendation. Advanced provider-pool configuration stays in Settings and should not interrupt ordinary use.
 
-The recommendation review is a focused state within Survey Workspace rather than a separate autonomous workflow.
+## 2. Main navigation
 
-## 3. Core recommendation panel
-Show in this order:
-1. Evidence status.
-2. Draft answer or abstention.
-3. Supporting facts with source/date.
-4. Rationale and limitations.
-5. Missing information or conflict.
-6. User actions: Edit, Confirm, Copy, Reject.
+Use four primary destinations:
+1. Beranda
+2. Profil
+3. Copilot
+4. Riwayat
 
-Do not hide evidence behind a tooltip or require navigation away from the draft to inspect it.
+Settings is accessed from a persistent gear icon. Do not add an earnings dashboard.
 
-## 4. Interaction rules
-- Copy requires explicit user action and visible confirmation.
-- Confirmation must not imply submission to a survey platform.
-- Destructive actions require clear scope and confirmation.
-- Preserve unsaved text on recoverable provider errors.
-- Keyboard focus must remain predictable after dialogs and state changes.
-- Do not use color alone to convey support status.
+## 3. Beranda
 
-## 5. Empty and error states
-Explain what the user can do next. Distinguish no profile facts, no relevant facts, provider unavailable, invalid output, database error, and unresolved conflict.
+Show:
+- Active persona selector.
+- Primary action: Baca Pertanyaan.
+- Secondary action: Tempel Teks.
+- Recent sessions.
+- Provider status in a compact indicator.
 
-## 6. Accessibility
-Target WCAG 2.2 AA principles where applicable: keyboard access, visible focus, semantic labels, contrast, scalable text, reduced motion, and screen-reader announcements for status changes.
+Avoid analytics dashboards and decorative metrics.
 
-## 7. Research
-Validate navigation labels, evidence comprehension, and whether users understand the difference between Confirm and Copy through usability testing.
+## 4. Profil
+
+- List persona profiles with clear names.
+- Create, edit, archive, and delete profile.
+- Show facts grouped by category.
+- Show verification and source status.
+- Keep each persona's facts and history isolated.
+- Require clear confirmation before deleting a persona.
+
+## 5. Copilot workspace
+
+Main layout:
+- Left/upper area: screenshot preview or pasted question and answer options.
+- Right/lower area: question interpretation and recommendation.
+- Active persona always visible.
+- Extraction errors and uncertain text are highlighted before analysis.
+- User must confirm extracted question content before AI analysis.
+
+Recommendation panel order:
+1. Recommended answer or request for clarification.
+2. Evidence status.
+3. Supporting profile facts.
+4. Short explanation.
+5. Warnings/conflicts.
+6. Actions: Edit, Copy, Confirm, Reject, Regenerate.
+
+The app must not present a recommendation as submitted or accepted by the survey website.
+
+## 6. Survey fit
+
+Show each explicit criterion with one of: Cocok, Tidak cocok, Belum diketahui, Perlu diperbarui, Konflik. Each result links to the supporting profile fact or explains what is missing. Never use a green success indicator to imply guaranteed qualification.
+
+## 7. Provider settings
+
+Basic view:
+- Gemini key list.
+- Add API key.
+- Test.
+- Enable/disable.
+- Health state.
+- Add provider.
+
+Advanced view:
+- Custom endpoint and model.
+- Adapter type.
+- Pool strategy.
+- Retry and timeout controls.
+- Priority/weight and concurrency.
+
+Mask secrets after saving. Keep provider health understandable without exposing raw technical errors by default.
+
+## 8. Language and accessibility
+
+- Indonesian is the default UI language.
+- Use simple labels and short explanations.
+- Keyboard access and visible focus for all primary actions.
+- Do not rely on color alone for state.
+- Support scalable text and Windows display scaling.
+- Preserve user text when dialogs close or requests fail.
+
+## 9. Error states
+
+Use concise, actionable messages: screenshot gagal, teks kurang jelas, API terkena batas, semua API tidak tersedia, konfigurasi perlu diperiksa, atau jawaban belum didukung data profil.
