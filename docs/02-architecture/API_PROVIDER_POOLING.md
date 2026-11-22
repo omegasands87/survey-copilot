@@ -6,7 +6,7 @@
 
 ## 1. User outcome
 
-The user can add many API configurations, including multiple free Gemini API keys, and the application automatically chooses an available configuration. The user should not need to understand rate-limit mechanics during normal use.
+The user can configure multiple legitimately authorized provider credentials (including separate keys where permitted by the provider) and the application automatically selects an eligible configuration. Pooling is for operational resilience and user-managed provider configurations, never for evading free-tier limits, project/account quotas, billing controls, or provider terms. The user should not need to understand transient rate-limit mechanics during normal use.
 
 ## 2. Provider configuration
 
