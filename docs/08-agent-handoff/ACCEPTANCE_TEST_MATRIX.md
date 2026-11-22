@@ -8,6 +8,7 @@ Use this matrix to convert product requirements into automated tests and manual 
 | AT-002 | Migration | Fresh DB startup | All initial tables/indexes exist; foreign keys enabled | P0 |
 | AT-003 | Migration | App restarts with existing DB | No schema reset or duplicate migration | P0 |
 | AT-004 | Migration | Migration fails midway | Existing user data remains recoverable; startup reports safe error | P0 |
+| AT-005 | Architecture | Layered command and IPC decoupling | Tauri commands act as thin controllers; business logic and parameterized SQL isolated in service/repository layers; frontend uses typed IPC client | P0 |
 | AT-010 | Persona | Create first persona | First persona becomes active | P1 |
 | AT-011 | Persona | Create second persona | First remains active until explicit switch | P1 |
 | AT-012 | Persona | Switch active persona | Exactly one active persona; existing sessions retain original owner | P1 |
@@ -43,6 +44,9 @@ Use this matrix to convert product requirements into automated tests and manual 
 | AT-061 | Survey fit | Criterion evidence absent | Return unknown, never match | P5 |
 | AT-062 | Survey fit | Criterion fact is stale/disputed | Return stale/conflict as appropriate | P5 |
 | AT-063 | Learning | No or sparse historical outcomes | Show insufficient data; no fabricated probability | P5 |
+| AT-064 | Survey Memory | Exact question sequence and answer separation | Questions persisted in sequence; actual user answers stored separately from AI recommendations | P5 |
+| AT-065 | NQI | Predicted question distinction | Predicted questions explicitly marked as not yet detected; branch evidence surfaced | P5 |
+| AT-066 | Survey Memory | Cross-persona isolation | Historical personal answers from persona A are inaccessible to persona B | P5 |
 | AT-070 | Privacy | Export all local data | Includes selected data only; never includes API secrets | P6 |
 | AT-071 | Deletion | Delete all app data | Reports database, temp files, backups, and credential cleanup outcome | P6 |
 | AT-072 | Release | Clean Windows 11 x64 install | App launches and primary local workflows work | P6 |

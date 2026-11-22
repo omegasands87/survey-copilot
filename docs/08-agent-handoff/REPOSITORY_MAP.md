@@ -21,8 +21,12 @@ This map describes the current starter repository. Verify paths before assuming 
 | Path | Current responsibility |
 |---|---|
 | `src/main.tsx` | React entry point |
-| `src/App.tsx` | Current app shell and initial persona/fact UI; should be decomposed into routes/features/services |
+| `src/App.tsx` | App root shell coordinating navigation, state, and typed service delegates |
+| `src/types/` | Strongly-typed domain and IPC contracts (`error.ts`, `persona.ts`, `fact.ts`, `survey.ts`) |
+| `src/services/` | Typed IPC client and domain service wrappers (`ipcClient.ts`, `personaService.ts`, `factService.ts`) |
+| `src/components/` | Modular layout and view components (`Sidebar.tsx`, `Topbar.tsx`, views: `HomeView`, `CopilotView`, `ProfilesView`, `HistoryView`, `SettingsView`) |
 | `src/styles.css` | Current global styles |
+| `tests/` | Unit and integration tests for frontend error handling and types |
 
 The current UI still contains placeholder screens and disabled screenshot/analysis actions. Replace placeholders only as their corresponding backlog items are implemented. Do not present a disabled control as working functionality.
 
@@ -31,8 +35,12 @@ The current UI still contains placeholder screens and disabled screenshot/analys
 | Path | Current responsibility |
 |---|---|
 | `src-tauri/src/main.rs` | Windows/Tauri process entry |
-| `src-tauri/src/lib.rs` | Tauri setup and initial persona/fact commands; currently too monolithic |
-| `src-tauri/src/db.rs` | SQLite connection initialization and one migration smoke test |
+| `src-tauri/src/lib.rs` | Tauri setup, state management, and command registration |
+| `src-tauri/src/commands/` | Thin Tauri command handlers (`app.rs`, `persona.rs`, `fact.rs`) without business logic or SQL |
+| `src-tauri/src/domain/` | Core domain entities, validation, error types, and NQI / Survey Memory contracts (`error.rs`, `persona.rs`, `fact.rs`, `survey.rs`) |
+| `src-tauri/src/services/` | Service layer containing business logic and transactions (`persona_service.rs`, `fact_service.rs`) |
+| `src-tauri/src/repository/` | Parameterized SQLite repository layer with strict persona scoping (`persona_repo.rs`, `fact_repo.rs`) |
+| `src-tauri/src/db.rs` | SQLite connection initialization and migration smoke test |
 | `src-tauri/migrations/0001_initial.sql` | Initial logical schema expressed as SQL |
 | `src-tauri/tauri.conf.json` | Tauri app, window, CSP, and bundle configuration |
 | `src-tauri/capabilities/default.json` | Minimal Tauri capability allowlist |

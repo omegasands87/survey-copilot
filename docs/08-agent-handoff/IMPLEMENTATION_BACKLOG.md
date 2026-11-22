@@ -14,11 +14,11 @@ This backlog is the execution order for Antigravity. Checkboxes are intentionall
 **Acceptance:** A clean checkout can install dependencies and build frontend/Rust without undocumented local setup. CI passes.
 
 ### SC-002 — Introduce application layers
-- [ ] Move Tauri commands from `src-tauri/src/lib.rs` into thin command modules.
-- [ ] Add domain types, service layer, and repository layer.
-- [ ] Add typed frontend IPC client wrappers.
-- [ ] Use structured error codes rather than exposing raw internal errors.
-- [ ] Add tests for command validation and error mapping.
+- [x] Move Tauri commands from `src-tauri/src/lib.rs` into thin command modules.
+- [x] Add domain types, service layer, and repository layer.
+- [x] Add typed frontend IPC client wrappers.
+- [x] Use structured error codes rather than exposing raw internal errors.
+- [x] Add tests for command validation and error mapping.
 
 **Acceptance:** React components do not call arbitrary command strings directly except through typed wrappers; command handlers do not contain business logic or SQL.
 
@@ -192,6 +192,25 @@ This backlog is the execution order for Antigravity. Checkboxes are intentionall
 - [ ] Use chronological holdout and prevent data leakage.
 
 **Acceptance:** Sparse history is labeled insufficient; predictions disclose sample size and uncertainty; no answer manipulation is suggested.
+
+### SC-053 — Survey Memory persistence and recognition
+- [ ] Record survey session metadata: title, source platform, URL/domain, timestamps, persona ownership, and structural fingerprint.
+- [ ] Store ordered question sequence with exact prompt text, instructions, options, and provenance (user-entered, OCR-detected, manually confirmed).
+- [ ] Store actual user-confirmed answers strictly separately from AI recommendations.
+- [ ] Implement survey recognition comparing structure, title, and source against Survey Memory with confidence scoring.
+- [ ] Enforce strict persona isolation: historical personal answers from persona A are inaccessible to persona B.
+- [ ] Provide Survey History UI to browse, inspect, and manage historical survey sessions and questions.
+
+**Acceptance:** Survey structure and question history are persisted in order; actual answers are kept distinct from AI drafts; persona isolation is enforced in repository and service layers.
+
+### SC-054 — Next Question Intelligence and branch prediction
+- [ ] Model observed branch transitions and question sequences from historical survey sessions.
+- [ ] Predict likely next question(s) with confidence, source evidence, and explicit "Predicted — not yet detected" labeling.
+- [ ] Update branch models when actual questions are observed after manual screen capture / user advancement.
+- [ ] Return insufficient evidence when history is sparse or conflicting; never invent certain predictions.
+- [ ] Integrate Next Question Intelligence panel into the active Copilot workspace view.
+
+**Acceptance:** Predicted questions are clearly distinguished from detected questions; prediction quality improves with verified observations; screener deception or fabricated answers are prohibited.
 
 ## P6 — Release hardening
 
