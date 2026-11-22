@@ -1,8 +1,8 @@
 import { useState } from "react";
 
-type Page = "home" | "profiles" | "copilot" | "history";
+type Page = "home" | "profiles" | "copilot" | "history" | "settings";
 
-const navigation: { id: Page; label: string; icon: string }[] = [
+const pageTitles: Record<Page, string> = { home: "Beranda", profiles: "Profil", copilot: "Copilot", history: "Riwayat", settings: "Pengaturan" };\n\nconst navigation: { id: Page; label: string; icon: string }[] = [
   { id: "home", label: "Beranda", icon: "⌂" },
   { id: "profiles", label: "Profil", icon: "◉" },
   { id: "copilot", label: "Copilot", icon: "✳" },
@@ -38,7 +38,7 @@ export default function App() {
         <div className="sidebar-bottom">
           <span className="status-dot" />
           <span>Data tersimpan lokal</span>
-          <button className="settings-link" onClick={() => setPage("home")}>Pengaturan</button>
+          <button className="settings-link" onClick={() => setPage("settings")}>Pengaturan</button>
         </div>
       </aside>
 
@@ -46,7 +46,7 @@ export default function App() {
         <header className="topbar">
           <div>
             <span className="eyebrow">SURVEY COPILOT</span>
-            <h1>{navigation.find((item) => item.id === page)?.label}</h1>
+            <h1>{pageTitles[page]}</h1>
           </div>
           <button className="persona-pill" title="Profil aktif akan tersedia setelah modul profil dibuat">
             <span className="avatar">P</span>
