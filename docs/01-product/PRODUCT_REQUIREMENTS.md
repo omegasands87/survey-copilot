@@ -11,14 +11,12 @@ This document translates the approved product definition into testable product r
 
 ## 2. Product outcome
 
-A Windows 11 desktop application that lets one user maintain a local Digital Persona, manually enter survey questions, understand the question, receive an evidence-grounded draft or a clear abstention, and review/edit/confirm/copy the result manually.
-
-The application is not an automated survey participant and does not interact with external survey pages.
+A Windows 11 desktop application that lets one local user manage multiple truthful personas, capture survey content from the screen, assess survey/persona fit, receive evidence-grounded answer assistance, track observed outcomes and rewards, and learn from historical results. The user retains control over survey interactions and final submission in v1.0.
 
 ## 3. User and operating assumptions
 
-- One local user and one personal profile per installation.
-- The user manually supplies question text and answer choices.
+- One local user may manage multiple real-personas per installation.
+- The user may capture a selected screen region/window; manual text entry remains a fallback.
 - The user is responsible for external survey entry and submission.
 - Local profile/session features work without an AI provider.
 - AI analysis requires a configured provider and network access.
@@ -29,14 +27,14 @@ The application is not an automated survey participant and does not interact wit
 | ID | Requirement | Priority | Acceptance evidence |
 |---|---|---:|---|
 | PR-001 | Show first-run explanation of local storage and optional external AI processing | MUST | First-run flow test |
-| PR-002 | Maintain one local Digital Persona | MUST | Profile CRUD tests |
+| PR-002 | Maintain multiple real-personas with isolated facts and histories | MUST | Multi-persona isolation tests |
 | PR-003 | Store source description and relevant date for each profile fact | MUST | Persistence and UI tests |
 | PR-004 | Support confirmed, unverified, disputed, and outdated fact states | MUST | State transition tests |
 | PR-005 | Exclude unverified, disputed, and outdated facts from direct factual support | MUST | Retrieval policy tests |
 | PR-006 | Mark sensitive facts and exclude them from external requests by default | MUST | Request payload tests |
 | PR-007 | Require explicit per-request authorization before sending sensitive facts | MUST | Consent and payload tests |
 | PR-008 | Create, rename, open, and delete survey sessions | MUST | Session workflow tests |
-| PR-009 | Add, edit, and delete manually entered questions | MUST | Question workflow tests |
+| PR-009 | Capture survey questions from selected screen regions/windows and allow manual correction | MUST | Capture/OCR/vision workflow tests |
 | PR-010 | Store answer options separately from question text when provided | MUST | Input validation tests |
 | PR-011 | Classify question intent and answer format | MUST | Classifier evaluation |
 | PR-012 | Extract explicit timeframe, unit, constraints, and response-length requirements | MUST | Parser/classifier tests |
@@ -55,7 +53,13 @@ The application is not an automated survey participant and does not interact wit
 | PR-025 | Delete a fact or session and provide full local-data deletion | MUST | Deletion tests |
 | PR-026 | Configure AI provider and manage its credential securely | MUST | Settings/security tests |
 | PR-027 | Remain usable for local profile/session management when AI is unavailable | MUST | Offline workflow test |
-| PR-028 | Support OCR, image input, and screenshot parsing | OUT | Must not ship in v1.0 |
+| PR-028 | Support selected screen capture, OCR, visual question/option reconstruction, and user verification | MUST | Screen intelligence tests |
+| PR-031 | Extract visible offer reward, stated duration, and eligibility criteria | MUST | Opportunity extraction tests |
+| PR-032 | Match explicit survey criteria against each persona with match/mismatch/unknown/stale/conflict states | MUST | Persona matching tests |
+| PR-033 | Track survey attempts, outcomes, time, reward states, and evidence provenance | MUST | Outcome and earnings ledger tests |
+| PR-034 | Distinguish offered, pending, credited, and withdrawable reward values | MUST | Reward accounting tests |
+| PR-035 | Learn persona-specific historical fit from attributed, observed outcomes | MUST | Chronological validation tests |
+| PR-036 | Display sample size, uncertainty, and insufficient-history state for fit learning | MUST | Calibration and sparse-data tests |
 | PR-029 | Fill or submit external survey forms | PROHIBITED | Architecture and release audit |
 | PR-030 | Connect to survey-platform accounts or store their credentials | PROHIBITED | Architecture and release audit |
 
@@ -79,9 +83,9 @@ Numerical performance and AI quality thresholds must be specified with a reprodu
 ## 6. Product constraints
 
 - Windows 11 64-bit is the sole v1.0 target.
-- One local user/profile per installation.
-- Manual text entry only.
-- No cloud account, cloud sync, browser integration, OCR, autonomous execution, or multi-user mode.
+- One local user may maintain multiple truthful personas per installation; this is not a shared multi-user workspace.
+- User-initiated screen capture, OCR, and visual analysis are in scope; silent background recording is not.
+- No cloud account, cloud sync, browser integration, DOM scraping, autonomous survey interaction, or team collaboration.
 - Sensitive facts are opt-in for each external request.
 - Survey text is untrusted data.
 - No answer may be framed as increasing the likelihood of survey qualification or reward acceptance.
