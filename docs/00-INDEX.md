@@ -1,12 +1,21 @@
 # Documentation Index
 
-This directory is the product and engineering reference for Survey Copilot. The project is currently in the documentation and planning stage; this documentation does not imply that the described features have been implemented.
+This repository contains the product and engineering specifications for Survey Copilot. The project remains in the specification stage; documentation does not imply that application functionality has been implemented.
+
+## Read this first
+
+- [Product Definition v1.0](01-product/PRODUCT_DEFINITION.md) — authoritative product scope, user promise, boundaries, and acceptance baseline.
+- [Product Requirements](01-product/PRODUCT_REQUIREMENTS.md) — testable product requirements derived from the definition.
+- [Feature Specification](01-product/FEATURE_SPECIFICATION.md) — required feature behavior and user-visible rules.
+- [User Flows](01-product/USER_FLOWS.md) — normative end-to-end workflows.
+- [Technical Blueprint](BLUEPRINT.md) — legacy high-level overview; subordinate to the detailed specifications.
 
 ## Product
-- [Product requirements](01-product/PRODUCT_REQUIREMENTS.md)
-- [Feature specification](01-product/FEATURE_SPECIFICATION.md)
-- [User personas](01-product/USER_PERSONAS.md)
-- [User flows](01-product/USER_FLOWS.md)
+- [Product Definition v1.0](01-product/PRODUCT_DEFINITION.md)
+- [Product Requirements](01-product/PRODUCT_REQUIREMENTS.md)
+- [Feature Specification](01-product/FEATURE_SPECIFICATION.md)
+- [Target User and Usage Model](01-product/USER_PERSONAS.md)
+- [User Flows](01-product/USER_FLOWS.md)
 
 ## Architecture
 - [System architecture](02-architecture/SYSTEM_ARCHITECTURE.md)
@@ -42,9 +51,12 @@ This directory is the product and engineering reference for Survey Copilot. The 
 - [Troubleshooting](06-operations/TROUBLESHOOTING.md)
 - [Architecture decision records](07-decisions/README.md)
 
-## Document conventions
-- **Status:** Proposed unless explicitly marked otherwise.
-- **MVP:** The first usable release described in the product requirements.
-- **Normative language:** “Must” indicates a requirement; “should” indicates a strong recommendation; “may” indicates an option.
-- Update relevant documentation in the same pull request as a behavior, schema, security, or architecture change.
+## Document governance
+
+- Product Definition v1.0 is the authoritative source for product scope.
+- Product requirements, feature behavior, and user flows must remain consistent with that definition.
+- Architecture and implementation documents must implement the product contract; they may not expand product scope.
+- A conflict between documents must be resolved before implementation, not left for developers to interpret.
+- **MUST** and **MUST NOT** indicate binding requirements. **SHOULD** indicates a strong recommendation. **MAY** indicates an option.
 - Do not represent planned functionality as shipped functionality.
+- Update all affected documents in the same change as an approved requirement or behavior change.
