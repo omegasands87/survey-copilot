@@ -8,7 +8,7 @@ import { HistoryView } from "./components/views/HistoryView";
 import { SettingsView } from "./components/views/SettingsView";
 import { personaService } from "./services/personaService";
 import { factService } from "./services/factService";
-import type { Persona } from "./types/persona";
+import type { Persona, PersonaDependencySummary } from "./types/persona";
 import type { ProfileFact, VerificationStatus, Sensitivity } from "./types/fact";
 import { AppError } from "./types/error";
 
@@ -34,8 +34,10 @@ export default function App() {
 
   async function refreshPersonas() {
     try {
-      const result = await personaService.listPersonas();
+      // Mengambil seluruh persona (termasuk yang diarsipkan untuk manajemen siklus hidup)
+      const result = await personaService.listPersonas(true);
       setPersonas(result);
+      setProfileError("");
     } catch (error) {
       setProfileError(AppError.from(error).message);
     }
@@ -65,11 +67,28 @@ export default function App() {
     }
   }, [activePersona?.id]);
 
-  async function handleCreatePersona(displayName: string) {
+  async function handleCreatePersona(displayName: string, description?: string) {
     setProfileLoading(true);
     setProfileError("");
     try {
-      await personaService.createPersona(displayName);
+      await personaService.createPersona(displayName, description);
+      await refreshPersonas();
+    } catch (error) {
+      setProfileError(AppError.from(error).message);
+    } finally {
+      setProfileLoading(false);
+    }
+  }
+
+  async function handleUpdatePersona(
+    personaId: string,
+    displayName: string,
+    description?: string
+  ) {
+    setProfileLoading(true);
+    setProfileError("");
+    try {
+      await personaService.updatePersona(personaId, displayName, description);
       await refreshPersonas();
     } catch (error) {
       setProfileError(AppError.from(error).message);
@@ -82,6 +101,42 @@ export default function App() {
     setProfileError("");
     try {
       await personaService.setActivePersona(personaId);
+      await refreshPersonas();
+    } catch (error) {
+      setProfileError(AppError.from(error).message);
+    }
+  }
+
+  async function handleArchivePersona(personaId: string) {
+    setProfileError("");
+    try {
+      await personaService.archivePersona(personaId);
+      await refreshPersonas();
+    } catch (error) {
+      setProfileError(AppError.from(error).message);
+    }
+  }
+
+  async function handleRestorePersona(personaId: string) {
+    setProfileError("");
+    try {
+      await personaService.restorePersona(personaId);
+      await refreshPersonas();
+    } catch (error) {
+      setProfileError(AppError.from(error).message);
+    }
+  }
+
+  async function handleGetDependencySummary(
+    personaId: string
+  ): Promise<PersonaDependencySummary> {
+    return personaService.getDependencySummary(personaId);
+  }
+
+  async function handleDeletePersona(personaId: string) {
+    setProfileError("");
+    try {
+      await personaService.deletePersona(personaId);
       await refreshPersonas();
     } catch (error) {
       setProfileError(AppError.from(error).message);
@@ -147,7 +202,7 @@ export default function App() {
       <main className="main-area">
         <Topbar
           title={pageTitles[page]}
-          personas={personas}
+          personas={personas.filter((p) => p.status === "active")}
           activePersona={activePersona}
           onSelectPersona={(id) => void handleActivatePersona(id)}
         />
@@ -174,7 +229,12 @@ export default function App() {
             factError={factError}
             factLoading={factLoading}
             onCreatePersona={handleCreatePersona}
+            onUpdatePersona={handleUpdatePersona}
             onActivatePersona={handleActivatePersona}
+            onArchivePersona={handleArchivePersona}
+            onRestorePersona={handleRestorePersona}
+            onGetDependencySummary={handleGetDependencySummary}
+            onDeletePersona={handleDeletePersona}
             onCreateFact={handleCreateFact}
             onUpdateFactStatus={handleUpdateFactStatus}
             onDeleteFact={handleDeleteFact}

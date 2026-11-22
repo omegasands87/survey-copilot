@@ -1,12 +1,14 @@
 pub mod commands;
 pub mod db;
 pub mod domain;
+pub mod migrations;
 pub mod repository;
 pub mod services;
 
 use commands::{
-    app_status, fact_create, fact_delete, fact_list, fact_set_status, persona_create, persona_list,
-    persona_set_active,
+    app_status, fact_create, fact_delete, fact_list, fact_set_status, persona_archive,
+    persona_create, persona_delete, persona_get, persona_get_dependency_summary, persona_list,
+    persona_restore, persona_set_active, persona_update,
 };
 use db::Database;
 use std::fs;
@@ -26,8 +28,14 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             app_status,
             persona_list,
+            persona_get,
             persona_create,
+            persona_update,
             persona_set_active,
+            persona_archive,
+            persona_restore,
+            persona_get_dependency_summary,
+            persona_delete,
             fact_list,
             fact_create,
             fact_set_status,

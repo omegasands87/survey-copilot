@@ -87,3 +87,46 @@ textarea:focus { border-color: #8bb99d; box-shadow: 0 0 0 3px #eaf4ee; }
 .empty-inline { padding: 20px; border: 1px dashed #cfdad2; border-radius: 10px; color: var(--muted); text-align: center; font-size: 12px; }
 .error-message { color: #b23a36; font-size: 12px; }
 .inline-action { margin-left: 8px; border: 0; padding: 0; background: transparent; color: var(--green-dark); font-size: inherit; font-weight: 700; text-decoration: underline; }
+
+/* Persona Management additions */
+.filter-tabs { display: flex; gap: 8px; margin-top: 18px; margin-bottom: 12px; }
+.filter-tab { border: 1px solid var(--line); border-radius: 8px; background: white; padding: 7px 14px; font-size: 12px; font-weight: 600; color: #5c6a62; }
+.filter-tab:hover { background: #f3f7f4; }
+.filter-tab.active { background: #eaf4ee; border-color: #b7d4c2; color: var(--green-dark); font-weight: 700; }
+
+.persona-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: white; transition: border-color .15s ease; }
+.persona-card.card-active { border-color: #a3d4ba; box-shadow: 0 2px 8px rgba(22, 122, 88, 0.06); }
+.persona-card.card-archived { opacity: 0.78; background: #fafafa; border-style: dashed; }
+.persona-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.persona-desc { color: #5a6b61; font-size: 12px; line-height: 1.5; margin: 4px 0 8px; }
+.persona-meta { display: flex; gap: 14px; font-size: 11px; color: var(--muted); }
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+.badge-active { background: #e2f4ea; color: #0d6e49; border: 1px solid #b2e4c8; }
+.badge-archived { background: #ebeeed; color: #6e7d75; }
+.card-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.danger-button { display: inline-flex; align-items: center; justify-content: center; border: 1px solid #f2c7c5; border-radius: 8px; background: #fff5f5; color: #b23a36; padding: 8px 12px; font-size: 11px; font-weight: 700; }
+.danger-button:hover:not(:disabled) { background: #fde8e8; border-color: #e59f9c; }
+.text-button { border: 0; background: transparent; color: #5c6a62; font-size: 11px; font-weight: 600; padding: 6px 10px; border-radius: 6px; }
+.text-button:hover { background: #f0f4f1; color: var(--ink); }
+
+/* Modal Backdrop & Dialog */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(18, 30, 24, 0.45); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 1000; padding: 20px; }
+.modal-dialog { width: 100%; max-width: 520px; background: white; border-radius: 14px; box-shadow: 0 12px 36px rgba(0,0,0,0.18); overflow: hidden; display: flex; flex-direction: column; animation: modalIn .15s ease-out; }
+@keyframes modalIn { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+.modal-header { padding: 20px 24px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+.modal-header h3 { margin: 0; font-size: 16px; font-weight: 800; }
+.modal-body { padding: 24px; display: grid; gap: 16px; }
+.modal-body label { display: grid; gap: 6px; font-size: 12px; font-weight: 700; color: #3d4a43; }
+.modal-body input, .modal-body textarea { width: 100%; border: 1px solid #dce4de; border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 13px; outline: none; }
+.modal-body textarea { min-height: 80px; resize: vertical; }
+.modal-body input:focus, .modal-body textarea:focus { border-color: #8bb99d; box-shadow: 0 0 0 3px #eaf4ee; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 10px; background: #fafbfa; }
+
+/* Deletion Dependency Callout */
+.danger-callout { background: #fdf5f5; border: 1px solid #f6d2d0; border-radius: 10px; padding: 16px; }
+.danger-callout h4 { margin: 0 0 8px; color: #9c2b28; font-size: 14px; font-weight: 800; }
+.danger-callout p { margin: 0 0 12px; color: #5f2f2e; font-size: 12px; line-height: 1.6; }
+.impact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
+.impact-item { background: white; border: 1px solid #f2dede; border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+.impact-count { font-weight: 800; color: #a8322e; }
+.impact-zero { color: #8a968f; }

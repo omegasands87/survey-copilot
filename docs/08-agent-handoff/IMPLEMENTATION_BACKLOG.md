@@ -23,24 +23,24 @@ This backlog is the execution order for Antigravity. Checkboxes are intentionall
 **Acceptance:** React components do not call arbitrary command strings directly except through typed wrappers; command handlers do not contain business logic or SQL.
 
 ### SC-003 — Replace startup SQL replay with migration runner
-- [ ] Add ordered migration registry/version tracking.
-- [ ] Apply only unapplied migrations inside transactions.
-- [ ] Fail startup safely on migration error and preserve the existing database.
-- [ ] Add migration tests for fresh database, repeated startup, upgrade, and failure recovery.
-- [ ] Add backup/recovery policy before destructive migrations.
+- [x] Add ordered migration registry/version tracking.
+- [x] Apply only unapplied migrations inside transactions.
+- [x] Fail startup safely on migration error and preserve the existing database.
+- [x] Add migration tests for fresh database, repeated startup, upgrade, and failure recovery.
+- [x] Add backup/recovery policy before destructive migrations.
 
-**Acceptance:** Startup is idempotent; each migration runs once; migration version matches the applied schema.
+**Acceptance:** Startup is idempotent; each migration runs once; migration version matches the applied schema. Baseline adoption preserves existing database data without destructive SQL replay.
 
 ## P1 — Complete local respondent data
 
 ### SC-010 — Persona lifecycle
-- [ ] Create, list, rename/edit, activate, archive, restore, and delete personas.
-- [ ] Add confirmation and dependency summary for destructive deletion.
-- [ ] Enforce one active persona at a time in transaction and database constraints.
-- [ ] Prevent archive/delete from leaving an invalid active-persona state.
-- [ ] Add persona CRUD and switching tests.
+- [x] Create, list, rename/edit, activate, archive, restore, and delete personas.
+- [x] Add confirmation and dependency summary for destructive deletion.
+- [x] Enforce one active persona at a time in transaction and database constraints.
+- [x] Prevent archive/delete from leaving an invalid active-persona state.
+- [x] Add persona CRUD and switching tests.
 
-**Acceptance:** Persona lifecycle works after app restart; all operations are scoped; no orphaned records.
+**Acceptance:** Persona lifecycle works after app restart; all operations are scoped; no orphaned records. Automated integration tests cover complete lifecycle and cross-persona data isolation.
 
 ### SC-011 — Fact and source lifecycle
 - [ ] Support typed fact values and normalized value representation.

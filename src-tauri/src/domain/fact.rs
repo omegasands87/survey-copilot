@@ -99,6 +99,24 @@ pub struct ValidatedFactInput {
 }
 
 impl CreateFactInput {
+    pub fn new(
+        persona_id: impl Into<String>,
+        category: impl Into<String>,
+        attribute: impl Into<String>,
+        value: impl Into<String>,
+        source_description: impl Into<String>,
+    ) -> Self {
+        Self {
+            persona_id: persona_id.into(),
+            category: category.into(),
+            attribute: attribute.into(),
+            value: value.into(),
+            source_description: source_description.into(),
+            verification_status: "unverified".into(),
+            sensitivity: "ordinary".into(),
+        }
+    }
+
     pub fn validate(&self) -> Result<ValidatedFactInput, AppError> {
         let persona_id = self.persona_id.trim();
         if persona_id.is_empty() {

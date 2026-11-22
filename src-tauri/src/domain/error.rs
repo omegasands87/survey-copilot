@@ -43,6 +43,14 @@ impl AppError {
         }
     }
 
+    pub fn migration(message: impl Into<String>) -> Self {
+        Self {
+            code: "MIGRATION_ERROR".to_string(),
+            message: message.into(),
+            field: None,
+        }
+    }
+
     pub fn internal(message: impl Into<String>) -> Self {
         Self {
             code: "INTERNAL_ERROR".to_string(),

@@ -10,11 +10,11 @@ This map describes the current starter repository. Verify paths before assuming 
 | `.agent/rules/survey-copilot.md` | Antigravity always-on workspace rules | Present |
 | `.agent/workflows/implement-next.md` | Antigravity incremental implementation workflow | Present |
 | `README.md` | Project overview and local run commands | Present |
-| `package.json` | Frontend scripts and dependencies | Present; lockfile still required |
+| `package.json` | Frontend scripts and dependencies | Present with committed `package-lock.json` |
 | `vite.config.ts` | Vite configuration | Present |
 | `src/` | React application | Starter UI |
-| `src-tauri/` | Tauri/Rust backend | Starter backend |
-| `.github/workflows/windows.yml` | Windows CI build/check/test workflow | Present; verify run status |
+| `src-tauri/` | Tauri/Rust backend | Structured backend with application layers and migration runner |
+| `.github/workflows/windows.yml` | Windows CI build/check/test workflow | Present with deterministic caching and checks |
 
 ## Frontend
 
@@ -40,13 +40,15 @@ The current UI still contains placeholder screens and disabled screenshot/analys
 | `src-tauri/src/domain/` | Core domain entities, validation, error types, and NQI / Survey Memory contracts (`error.rs`, `persona.rs`, `fact.rs`, `survey.rs`) |
 | `src-tauri/src/services/` | Service layer containing business logic and transactions (`persona_service.rs`, `fact_service.rs`) |
 | `src-tauri/src/repository/` | Parameterized SQLite repository layer with strict persona scoping (`persona_repo.rs`, `fact_repo.rs`) |
-| `src-tauri/src/db.rs` | SQLite connection initialization and migration smoke test |
+| `src-tauri/src/migrations/` | Sequential, versioned, transactional migration runner and integrity verification (`mod.rs`) |
+| `src-tauri/tests/` | Automated integration tests for migration runner (`migration_tests.rs`) and persona lifecycle (`persona_lifecycle_tests.rs`) |
+| `src-tauri/src/db.rs` | SQLite connection initialization, pragmas, and migration execution |
 | `src-tauri/migrations/0001_initial.sql` | Initial logical schema expressed as SQL |
 | `src-tauri/tauri.conf.json` | Tauri app, window, CSP, and bundle configuration |
 | `src-tauri/capabilities/default.json` | Minimal Tauri capability allowlist |
 | `src-tauri/Cargo.toml` | Rust dependencies |
 
-Important: the current `db.rs` executes the initial SQL script at startup. This is only a starter mechanism, not a sequential migration framework. See G-001.
+Migration framework is implemented via `src-tauri/src/migrations/` and invoked sequentially by `Database::initialize` with baseline adoption and transactional rollback.
 
 ## Product documentation
 

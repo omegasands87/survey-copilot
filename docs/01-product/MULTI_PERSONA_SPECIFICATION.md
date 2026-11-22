@@ -50,10 +50,10 @@ Historical outcomes are attributed only to the persona actually used in that sur
 
 ## 7. Acceptance criteria
 
-- [ ] User can create and manage multiple personas.
-- [ ] Facts and sources are isolated by persona ID.
+- [x] User can create and manage multiple personas (CRUD, archive, restore, safe deletion).
+- [x] Facts and sources are isolated by persona ID (proven by cross-persona isolation tests).
 - [ ] Survey matching shows match, mismatch, unknown, stale, and conflict.
-- [ ] Active persona is visible before answer generation.
-- [ ] Another persona's facts are never included in the current request.
-- [ ] Each persona has separate sessions, answer history, and observed outcomes.
-- [ ] Persona records represent real people and do not facilitate screener deception.
+- [x] Active persona is visible before answer generation.
+- [x] Another persona's facts are never included in the current request.
+- [ ] Each persona has separate sessions, answer history, and observed outcomes (in-progress with survey memory).
+- [x] Persona records represent real people and do not facilitate screener deception.
