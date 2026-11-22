@@ -7,7 +7,7 @@
 
 A single individual who periodically completes online surveys and wants help interpreting questions, recalling personal facts, and drafting truthful responses without automating interaction with survey platforms.
 
-The application is designed around one local user and one Digital Persona per installation. Shared workspaces, multiple profiles, teams, and account-based collaboration are excluded from v1.0.
+The application is designed around one local operator who may maintain multiple distinct personas representing real respondents whose information the operator is authorized to manage. Multiple personas are in scope; shared team workspaces, synchronized profiles, and account-based collaboration are excluded from v1.0.
 
 ## 2. Core user needs
 
@@ -49,3 +49,14 @@ These assumptions inform usability research but do not change the v1.0 scope wit
 - Users seeking automated survey completion or reward maximization.
 - Users requiring browser extensions, mobile apps, cloud-synced profiles, or multi-user collaboration.
 - Users expecting the application to infer unknown personal information.
+
+
+## 6. Multiple respondent personas
+
+A user may create multiple personas when they correspond to distinct real people and the user has authority and, where appropriate, consent to manage their information. Each persona has isolated facts, sources, verification states, survey attempts, and reward outcomes.
+
+The application must display the active persona before analysis and must not mix facts across personas. A persona is never a fictional identity or a means to bypass a survey's eligibility criteria. The actual respondent must be represented truthfully.
+
+## 7. Survey opportunity and outcome learning
+
+Survey fit is evaluated first by matching explicit eligibility criteria to current confirmed persona facts. Historical outcomes may then inform opportunity prioritization, but must be attributed to the exact persona and attempt. Sparse history must be labeled insufficient. Screening failure, quota exhaustion, technical failure, quality rejection, completion, and reward credit are distinct outcomes.
