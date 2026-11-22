@@ -68,3 +68,22 @@ textarea:focus { border-color: #8bb99d; box-shadow: 0 0 0 3px #eaf4ee; }
 .empty-icon { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 16px; background: #eaf4ee; color: var(--green); font-size: 24px; }
 .empty-state p { max-width: 380px; color: var(--muted); font-size: 13px; line-height: 1.7; }
 @media (max-width: 1050px) { .sidebar { width: 205px; } .content { padding: 40px 32px; } .topbar { padding: 0 32px; } .welcome h2 { font-size: 34px; } }
+
+.persona-select { max-width: 240px; border: 1px solid var(--line); border-radius: 24px; padding: 9px 14px; background: white; color: #45534b; font-size: 12px; font-weight: 600; }
+.persona-select:disabled { opacity: .7; }
+.profile-content { max-width: 900px; }
+.profile-form { padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: white; }
+.profile-form-row { display: flex; gap: 10px; }
+.profile-form-row input { flex: 1; min-width: 0; border: 1px solid #dce4de; border-radius: 9px; padding: 11px 13px; outline: none; font: inherit; font-size: 13px; }
+.profile-form-row input:focus { border-color: #8bb99d; box-shadow: 0 0 0 3px #eaf4ee; }
+.profile-form-row .primary-button { margin-top: 0; }
+.persona-list { display: grid; gap: 10px; margin-top: 18px; }
+.persona-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 10px; background: white; }
+.persona-card strong, .persona-card span { display: block; }
+.persona-card strong { font-size: 13px; }
+.persona-card div span { margin-top: 4px; color: var(--muted); font-size: 11px; }
+.persona-card .secondary-button { padding: 9px 12px; }
+.active-label { color: var(--green); font-size: 11px; font-weight: 700; }
+.empty-inline { padding: 20px; border: 1px dashed #cfdad2; border-radius: 10px; color: var(--muted); text-align: center; font-size: 12px; }
+.error-message { color: #b23a36; font-size: 12px; }
+.inline-action { margin-left: 8px; border: 0; padding: 0; background: transparent; color: var(--green-dark); font-size: inherit; font-weight: 700; text-decoration: underline; }
