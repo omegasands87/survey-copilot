@@ -111,6 +111,63 @@ Default retention stores no screenshot after OCR review; temporary path is nulla
 - created_at TEXT NOT NULL
 - updated_at TEXT NOT NULL
 
+### survey_opportunities
+- id TEXT PRIMARY KEY
+- title TEXT NULL
+- platform_label TEXT NULL
+- topic TEXT NULL
+- description TEXT NULL
+- source_capture_id TEXT NULL REFERENCES screen_captures(id) ON DELETE SET NULL
+- captured_at TEXT NOT NULL
+- created_at TEXT NOT NULL
+- updated_at TEXT NOT NULL
+
+An opportunity is a visible survey offer/description, not an account or survey-platform integration.
+
+### survey_opportunity_criteria
+- id TEXT PRIMARY KEY
+- opportunity_id TEXT NOT NULL REFERENCES survey_opportunities(id) ON DELETE CASCADE
+- criterion_text TEXT NOT NULL
+- normalized_attribute TEXT NULL
+- expected_value_json TEXT NULL
+- criterion_order INTEGER NOT NULL
+
+### survey_fit_results
+- id TEXT PRIMARY KEY
+- opportunity_id TEXT NOT NULL REFERENCES survey_opportunities(id) ON DELETE CASCADE
+- persona_id TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE
+- criterion_id TEXT NOT NULL REFERENCES survey_opportunity_criteria(id) ON DELETE CASCADE
+- match_state TEXT NOT NULL
+- supporting_fact_ids_json TEXT NOT NULL
+- explanation TEXT NOT NULL
+- evaluated_at TEXT NOT NULL
+- UNIQUE(opportunity_id, persona_id, criterion_id)
+
+Match states: match, mismatch, unknown, stale, conflict. The application computes final states deterministically from persona facts; model extraction alone cannot mark a criterion as satisfied.
+
+### survey_attempts
+- id TEXT PRIMARY KEY
+- opportunity_id TEXT NOT NULL REFERENCES survey_opportunities(id) ON DELETE CASCADE
+- persona_id TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE
+- session_id TEXT NULL REFERENCES survey_sessions(id) ON DELETE SET NULL
+- started_at TEXT NOT NULL
+- ended_at TEXT NULL
+- current_outcome TEXT NOT NULL
+- created_at TEXT NOT NULL
+- updated_at TEXT NOT NULL
+
+### survey_outcome_events
+- id TEXT PRIMARY KEY
+- attempt_id TEXT NOT NULL REFERENCES survey_attempts(id) ON DELETE CASCADE
+- outcome_label TEXT NOT NULL
+- evidence_source TEXT NOT NULL
+- evidence_note TEXT NULL
+- confidence TEXT NOT NULL
+- observed_at TEXT NOT NULL
+- created_at TEXT NOT NULL
+
+Outcome labels: qualified, screened_out, quota_full, completed, quality_rejected, technical_failure, abandoned_by_user, pending, unknown. These are survey-fit observations only, not reward or income records.
+
 ### answer_recommendations
 - id TEXT PRIMARY KEY
 - question_id TEXT NOT NULL REFERENCES survey_questions(id) ON DELETE CASCADE
