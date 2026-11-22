@@ -54,4 +54,4 @@ npm run tauri build
 
 ## Status
 
-An initial React + Tauri application shell and local SQLite persona foundation are in the repository. Screenshot/OCR, Gemini API pooling, AI answer analysis, profile facts, and final installer validation are not implemented yet. Do not treat planned capabilities as shipped.
+An initial React + Tauri shell, SQLite persistence, persona creation/selection, and basic profile fact create/list/verify/delete flows are in the repository. Screenshot/OCR, Gemini API pooling, AI answer analysis, fact editing/archive, and final installer validation remain to be implemented and tested. Do not treat planned capabilities as shipped.
