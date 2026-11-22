@@ -1,27 +1,30 @@
 # Technology Stack
 
-**Status:** Proposed; confirm compatibility and versions at implementation time.
+**Target:** Windows 11 x64
 
-| Layer | Proposed choice | Rationale / constraints |
+| Layer | Choice | Notes |
 |---|---|---|
-| Desktop shell | Tauri 2 | Native desktop packaging with a constrained Rust boundary |
-| Native backend | Rust | OS integration, secure commands, SQLite access |
-| Frontend | React + TypeScript | Mature component ecosystem and typed UI |
-| Styling | Tailwind CSS | Consistent utility-based styling |
-| UI primitives | shadcn/ui | Accessible primitives; audit keyboard behavior |
-| Database | SQLite | Local-first, portable, transactional |
-| Validation | Zod + Rust validation | Validate at both UI and native boundaries |
-| UI state | Zustand | Lightweight local state |
-| Async state | TanStack Query | Request lifecycle and caching where appropriate |
-| Search | SQLite FTS5 | Optional local full-text search |
-| Charts | Recharts | Only if usage analytics are added |
-| OCR | Tesseract or evaluated provider | Deferred; quality and privacy evaluation required |
+| Desktop shell | Tauri 2 | Native desktop packaging |
+| Native backend | Rust | Capture, database, secrets, provider dispatch |
+| Frontend | React + TypeScript | UI and workflow state |
+| Styling | Tailwind CSS | Consistent visual system |
+| UI primitives | shadcn/ui or equivalent accessible primitives | Keyboard and contrast review required |
+| Database | SQLite | Local-first with migrations |
+| Validation | Zod + Rust validation | Validate at UI and native boundaries |
+| State | Zustand or equivalent lightweight store | Avoid unnecessary global state |
+| AI provider | Gemini adapter first | Multiple keys via provider pool |
+| Extensibility | Provider adapter interface | Custom compatible endpoints and models |
+| Secrets | Windows Credential Manager | No plaintext API keys |
+| OCR | Windows OCR or Tesseract after evaluation | Select based on accuracy, language coverage, packaging, and license |
+| Screen capture | Windows capture APIs through Rust/Tauri | Explicit user-initiated only |
+| Tests | Vitest/React Testing Library + Rust + integration tests | Include Windows installer smoke tests |
 
 ## Engineering constraints
+
 - Pin dependencies and commit lockfiles.
-- Use supported stable releases at project bootstrap; avoid copying version numbers from stale docs.
-- Keep native commands small and typed.
-- Keep database access in Rust/repository services, not UI components.
-- Keep provider SDK behind a replaceable adapter.
-- Do not add a vector database until measured retrieval needs justify it.
-- Do not add browser automation, autofill, or auto-submit packages.
+- Use maintained stable releases at project bootstrap.
+- Keep provider SDKs behind adapters.
+- Keep database access in Rust/repository services.
+- Do not add a vector database before measured need.
+- Do not add browser automation or form-filling dependencies.
+- Do not add earnings/reward tracking in v1.0.
