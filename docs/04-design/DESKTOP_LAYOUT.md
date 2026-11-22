@@ -1,25 +1,36 @@
 # Desktop Layout
 
-## 1. Window assumptions
-Design for a resizable desktop window. Initial target is Windows 10/11; confirm minimum resolution and DPI behavior during implementation.
+## 1. Window
+
+Resizable Windows desktop window. Support common laptop and desktop resolutions and Windows display scaling.
 
 ## 2. Main shell
-- Left navigation rail/sidebar.
-- Top-level page title and contextual actions.
-- Main content region with responsive max width.
-- Optional detail panel for evidence when screen width permits.
 
-## 3. Dashboard
-Show recent survey sessions, profile completeness as an informational indicator (not a quality score), unresolved fact reviews, and a clear action to start a session.
+- Compact left navigation: Beranda, Profil, Copilot, Riwayat.
+- Settings from a gear icon.
+- Active persona visible in the top bar.
+- Main workspace uses clear hierarchy and minimal panels.
 
-## 4. Digital Persona
-Use searchable categories and editable fact rows/cards. Show verification status, source, last updated, and sensitivity marker. Avoid displaying sensitive values unnecessarily in overview lists.
+## 3. Beranda
 
-## 5. Survey Workspace
-Use a question input/editor and an analysis/recommendation area. On narrow windows, stack vertically. Preserve the question text while showing provider/network errors.
+Show the active persona, a prominent Baca Pertanyaan action, a Tempel Teks fallback, recent sessions, and compact provider availability.
 
-## 6. History
-Filter by session, date, and action. Clearly distinguish AI draft, user-edited text, user-confirmed text, and copied text.
+## 4. Profil
 
-## 7. Settings
-Group provider configuration, privacy/network disclosure, data export/delete, appearance, and diagnostics. Never display a full API key after saving.
+Show persona list and facts grouped by category. Each fact shows value, verification status, source/date, and sensitivity marker. Avoid exposing sensitive values in overview cards.
+
+## 5. Copilot
+
+Question capture/paste and preview appear first. User verifies extracted content before analysis. Recommendation appears beside or below the question depending on available width. Supporting facts and warnings remain visible without requiring navigation to another page.
+
+## 6. Survey fit
+
+Show criteria as a simple list with Cocok, Tidak cocok, Belum diketahui, Perlu diperbarui, or Konflik. Each item explains the reason.
+
+## 7. Riwayat
+
+Filter by persona, session, date, and action. Distinguish AI recommendation, user edit, confirmation, copy, and rejection.
+
+## 8. Settings
+
+Group AI provider pool, privacy, data export/delete, and diagnostics. Basic provider setup is simple; advanced pool configuration is collapsible.
