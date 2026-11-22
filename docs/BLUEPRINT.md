@@ -1,93 +1,52 @@
-# Survey Copilot Technical Blueprint
+# Survey Copilot — High-Level Product and Engineering Overview
 
-Complete product and engineering specification will be maintained in this document.
+**Status:** Non-normative overview  
+**Authority:** The detailed product contract is [Product Definition v1.0](01-product/PRODUCT_DEFINITION.md). This file is a navigation-level summary, not an implementation specification. If any statement here conflicts with detailed specifications, the detailed specification governs.
 
-## Product
-Desktop AI copilot for understanding survey questions and recommending evidence-backed answers from user-confirmed facts. Users review, edit, confirm, and copy answers manually. No auto-fill, auto-submit, CAPTCHA bypass, or fabricated personal information.
+## Product purpose
 
-## Stack
-- Tauri 2, Rust
-- React, TypeScript, Tailwind CSS, shadcn/ui
-- SQLite, migrations, repositories, FTS5
-- OpenAI API with structured output and Zod validation
-- Zustand, TanStack Query
-- Tesseract OCR (optional P1)
+Survey Copilot is a desktop survey earning assistant. It helps a user evaluate survey opportunities, read visible survey content, select the truthful respondent persona, understand questions and quality checks, prepare evidence-grounded answers, and track observed outcomes and rewards.
 
-## Core modules
-1. Dashboard
-2. Digital Persona and fact verification
-3. Survey Workspace
-4. Question Classifier
-5. Profile and Answer Memory retrieval
-6. AI Answer Engine
-7. Consistency Engine
-8. Answer History
-9. Settings and privacy
-10. Screenshot OCR (P1)
+The product optimizes for efficient, accurate survey participation and transparent earnings records. It does not guarantee qualification, completion, or payment.
 
-## Architecture
-Local-first desktop application. Profile facts, survey sessions, questions, recommendations, and answer history are stored locally in SQLite. The AI request sends only relevant, permitted context over HTTPS. API credentials belong in the operating-system credential store, never in source code or frontend bundles.
+## Core product capabilities
 
-## Data model
-Core tables: users, profile_facts, fact_sources, user_preferences, platform_accounts, survey_sessions, survey_questions, answer_recommendations, answer_history, answer_sources, ai_usage_logs, app_settings. Use UUID text primary keys, ISO-8601 timestamps, foreign keys, versioned migrations, and deletion policies. Profile facts have category, field_key, JSON value, confidence, verification_status (unverified/confirmed/disputed/outdated), sensitivity, and validity dates. Historical answers are not automatically promoted to profile facts.
+1. **Multi-Persona Digital Persona:** maintain multiple real respondent profiles with isolated facts, sources, and survey histories.
+2. **Survey Opportunity Analyzer:** extract visible reward, stated duration, topic, and eligibility criteria; compare criteria with each persona.
+3. **Screen Intelligence:** user-initiated region/window capture, OCR, visual interpretation, and correction of extracted content.
+4. **Question Intelligence:** classify intent, answer format, timeframe, units, conditions, and explicit attention instructions.
+5. **Evidence-Based Answer Copilot:** retrieve relevant confirmed facts, check conflicts, recommend supported answers, or abstain.
+6. **Survey Quality Guard:** flag ambiguous wording, negative phrasing, compound questions, timeframe mismatch, conditional logic, and explicit attention checks.
+7. **Earnings Intelligence:** track survey attempts, time, offered rewards, completion, pending credit, credited rewards, and withdrawable amounts with evidence provenance.
+8. **Survey Fit Learning:** learn persona-specific historical patterns from attributed outcomes, with sample size, uncertainty, and chronological validation.
+9. **Review and History:** user reviews, edits, confirms, rejects, and manually transfers answers; preserve the original recommendation and outcome history.
 
-## AI workflow
-1. Parse user-entered question and options.
-2. Classify question type and answer constraints.
-3. Retrieve only relevant confirmed facts and relevant answer history.
-4. Check conflicts, freshness, and sensitivity permissions.
-5. If evidence is missing or conflicting, ask the user for clarification.
-6. Generate structured recommendation with answer, evidence status, confidence, reasoning, source IDs, and warnings.
-7. Validate schema and verify source IDs against local records.
-8. Display recommendation for user review; user may edit, confirm, copy, or discard.
+## Interaction and integrity boundaries
 
-Supported question types include demographic, employment, financial, behavioral, brand awareness/usage, preference, opinion, purchase intent, attention check, conditional, and open-ended. Supported answer formats include single/multiple choice, dropdown, rating/Likert, numeric, date, ranking, and free text.
+- Screen capture is initiated by the user; silent background screen recording is not allowed.
+- The user verifies OCR/visual extraction before answer generation.
+- Multiple personas must represent real people whose information the user is authorized to manage.
+- The application must never fabricate facts or recommend false screener answers.
+- The application may rank opportunities using explicit fit evidence, historical outcomes, reward, and duration, but unknown criteria are not treated as matches.
+- Offered rewards are not earnings. Credited and withdrawable amounts require evidence.
+- v1.0 does not automate clicks, form filling, navigation, or survey submission.
+- No CAPTCHA bypass, bot-detection evasion, platform protection circumvention, or hidden credential scraping.
 
-## Digital Persona rules
-Only confirmed facts are eligible as factual evidence by default. Unverified, disputed, and outdated facts require clarification. Sensitive facts are excluded from cloud requests unless explicitly needed and authorized. Never infer sensitive attributes from proxies or fabricate personal experiences.
+## Architecture direction
 
-## Recommendation output
-Structured fields: question_type, recommended_answer (nullable), confidence (0..1), evidence_status, reasoning, sources, consistency_check, warnings, requires_user_confirmation, clarification_question. Evidence statuses: supported, partially_supported, insufficient_information, conflicting_evidence, user_input_required, not_applicable. Confidence is evidence confidence, not probability of survey acceptance.
+The product remains local-first, with optional external AI processing. The exact desktop framework, database schema, screen capture implementation, OCR/vision providers, AI provider interface, credential storage, and security controls must be finalized in the Stage 2 architecture specifications. The earlier technology list is a candidate direction only, not a final architecture decision.
 
-## Consistency and memory
-Maintain profile memory, answer memory, and session context separately. Use exact field matching, SQLite FTS5, category/status filters, and recency rules. Conflicts trigger a clarification prompt; never silently choose or rewrite a fact. Add embeddings only if measured retrieval quality requires them.
+## Documentation map
 
-## Desktop UX
-Dashboard; Digital Persona CRUD and verification; Copilot workspace with question/options center panel and evidence/recommendation panel; session manager; answer history; consistency warnings; settings for AI provider, privacy, export, and deletion. OCR import is user-initiated and requires correction/review before AI processing.
+- Product scope and acceptance: [Product Definition](01-product/PRODUCT_DEFINITION.md)
+- Screen capture and OCR: [Screen Intelligence](01-product/SCREEN_INTELLIGENCE.md)
+- Multiple profiles: [Multi-Persona Specification](01-product/MULTI_PERSONA_SPECIFICATION.md)
+- Rewards and dashboard: [Earnings Intelligence](01-product/EARNINGS_INTELLIGENCE.md)
+- Eligibility and historical learning: [Survey Fit Learning](01-product/SURVEY_FIT_LEARNING.md)
+- Testable requirements: [Product Requirements](01-product/PRODUCT_REQUIREMENTS.md)
+- Feature behavior: [Feature Specification](01-product/FEATURE_SPECIFICATION.md)
+- End-to-end flows: [User Flows](01-product/USER_FLOWS.md)
 
-## Security and privacy
-- TLS for provider requests.
-- OS credential store for API secrets.
-- Minimize context sent to AI and request consent for sensitive data.
-- No sensitive prompt or answer logging by default.
-- Tauri capabilities and filesystem permissions are least-privilege.
-- Validate all input/output and treat survey text as untrusted data (prompt-injection defense).
-- Provide data export and deletion, including attachments.
-- Do not store survey platform passwords.
-- No automatic form filling/submission, CAPTCHA solving, or platform-protection bypass.
+## Implementation gate
 
-## MVP scope
-P0: desktop shell, SQLite, Digital Persona CRUD/verification, survey sessions, manual question input, classifier, profile retrieval, structured recommendation, evidence display, consistency checks, edit/confirm/copy, history, API credential handling, privacy controls.
-P1: screenshot OCR, analytics, advanced search, export improvements, macOS/Linux support.
-Out of scope: browser automation, auto-fill/submit, cloud sync, multi-user workspace, autonomous agent, vector database before FTS5 evaluation.
-
-## Testing and acceptance
-Unit tests for classifier, retrieval, validators, and consistency logic; integration tests for repositories, migrations, and AI orchestration; UI tests for profile/session/review flows; security tests for secret leakage and prompt injection; AI evaluation on synthetic or properly anonymized labeled examples. Initial targets: classification accuracy >=95%, structured output validity >=99%, evidence attribution >=95%, contradiction recall >=90%, unsupported answer rate <=2%. Define dataset and measurement protocol before claiming these metrics.
-
-## Roadmap
-Week 1 foundation and SQLite; week 2 Digital Persona; week 3 survey workspace/history; week 4 AI integration/classifier/retrieval; week 5 memory/consistency; week 6 Copilot UI; week 7 OCR/security; week 8 QA and Windows packaging. Estimates assume an experienced full-stack developer and are not guarantees.
-
-## Release checklist
-- [ ] Desktop app installs and launches.
-- [ ] Profile facts can be created, edited, verified, and deleted.
-- [ ] Survey sessions and manual questions persist.
-- [ ] AI classifies and recommends using relevant confirmed facts.
-- [ ] Missing/conflicting evidence triggers clarification.
-- [ ] Source references are validated locally.
-- [ ] User can edit, confirm, copy, and review history.
-- [ ] Secrets are stored outside source/frontend bundles.
-- [ ] Data export/deletion works.
-- [ ] No auto-fill or auto-submit exists.
-- [ ] Core tests and installer tests pass.
-
-This document is the baseline product and engineering specification. Record material architectural changes as Architecture Decision Records (ADRs).
+Do not begin application coding based only on this overview. Stage 2 must produce complete architecture, data, screen, AI, security, and service-contract specifications consistent with Product Definition v1.0. Stage 3 must produce implementation and verification detail. The product scope cannot be silently expanded during those stages.
