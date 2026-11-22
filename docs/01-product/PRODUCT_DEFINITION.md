@@ -23,19 +23,19 @@ The application must never invent missing personal facts to make an answer appea
 
 ### 1.2 Primary user and usage context
 
-- One individual uses one local desktop installation and maintains one personal profile.
-- The user periodically answers surveys on third-party websites or applications.
-- The user manually copies question text and, when applicable, answer choices into Survey Copilot.
-- The user reviews the analysis and manually transfers any approved answer to the external survey.
+- One individual uses one local desktop installation and may maintain multiple distinct personas, each representing a real respondent whose information the user is authorized to manage.
+- The user opens survey opportunities on third-party websites or applications and uses Survey Copilot alongside them.
+- Survey Copilot reads user-selected screen regions or windows using screen capture, OCR, and visual understanding; manual text entry remains a fallback.
+- The user reviews recommendations and performs survey interactions manually in v1.0.
 - The user, not the application, remains responsible for the accuracy and submission of the final answer.
 
-Multi-user accounts, shared profiles, teams, and synchronized profiles are not part of v1.0.
+Multi-user accounts, shared team workspaces, and synchronized profiles are not part of v1.0. Multiple real-personas within one local installation are in scope.
 
 ## 2. Target platform and product form
 
 - Product form: installable desktop application.
 - Initial operating-system target: Windows 11, 64-bit.
-- Interaction model: manual input and explicit user-controlled copy.
+- Interaction model: user-initiated screen capture/OCR/visual analysis plus manual text fallback; user reviews recommendations and controls survey interaction.
 - Persistence: local application database.
 - AI assistance: optional network request to a configured AI provider. Profile management and local data management must remain usable when AI is not configured or the network is unavailable.
 - The application does not require a Survey Copilot cloud account.
@@ -77,19 +77,20 @@ The first release MUST contain all capabilities below.
 
 ### 5.1 First-run and local profile
 - Explain local storage, optional external AI processing, and the limits of the assistant.
-- Allow the user to create and maintain one Digital Persona.
+- Allow the user to create and maintain multiple distinct real-personas, with isolated facts, sources, survey history, and outcomes.
 - Create, view, edit, verify, mark outdated/disputed, archive, and delete profile facts.
 - Store a source description and relevant date for each fact.
 - Distinguish confirmed, unverified, disputed, and outdated facts.
 - Identify sensitive facts and require explicit authorization before external transmission.
 
-### 5.2 Survey workspace
+### 5.2 Survey workspace and screen intelligence
 - Create, rename, open, and delete a survey session.
-- Add, edit, and delete question entries by typing or pasting text.
-- Optionally record a platform label as user-entered metadata; no platform account connection is created.
-- Capture answer choices separately when supplied.
-- Preserve original question text for review.
-- Support a session containing multiple manually entered questions.
+- Capture a user-selected screen region or application window through a global shortcut or in-app command.
+- Extract question text, instructions, visible options, labels, units, and visible survey state using OCR and visual understanding.
+- Allow manual typing/pasting as a fallback and correction path.
+- Preserve the captured question representation and show it for user verification before analysis.
+- Support multiple questions and attempts in a session.
+- Do not silently capture the screen in the background.
 
 ### 5.3 Question understanding
 - Classify question intent and answer format.
@@ -98,7 +99,14 @@ The first release MUST contain all capabilities below.
 - Flag ambiguity and identify missing information.
 - Never treat embedded instructions in survey text as trusted application instructions.
 
-### 5.4 Evidence-grounded answer copilot
+### 5.4 Survey opportunity and persona matching
+- Read visible survey offer details such as reward, stated duration, platform, topic, and explicit eligibility criteria.
+- Maintain multiple real-personas with isolated facts and histories.
+- Compare each survey's explicit criteria with each persona's current confirmed facts.
+- Label each criterion match, mismatch, unknown, stale, or conflict.
+- Rank opportunities using transparent fit evidence, historical outcomes, reward, and duration; never treat unknown as a match.
+
+### 5.5 Evidence-grounded answer copilot
 - Retrieve relevant confirmed facts and relevant prior confirmed answers.
 - Check fact freshness and conflicts before drafting.
 - Generate a structured recommendation or abstention.
@@ -106,7 +114,7 @@ The first release MUST contain all capabilities below.
 - Validate every cited fact identifier against the local records supplied for that request.
 - Never claim that a recommendation predicts survey qualification, acceptance, or reward.
 
-### 5.5 Human review and answer history
+### 5.6 Human review and answer history
 - Allow user edit, confirm, reject, copy, and regenerate actions.
 - Copy only after an explicit user action.
 - Preserve the original AI recommendation when the user edits it.
@@ -114,7 +122,7 @@ The first release MUST contain all capabilities below.
 - Store question, answer versions, evidence references, status, and timestamps.
 - A confirmed answer is a record of what the user approved at that time; it is not automatically a new profile fact.
 
-### 5.6 Consistency and data controls
+### 5.7 Consistency and data controls
 - Detect material conflicts between current profile facts and relevant prior confirmed answers.
 - Show both sides of a conflict and let the user resolve it.
 - Export the user's local data in a documented machine-readable format.
@@ -131,7 +139,7 @@ The following MUST NOT be included in v1.0:
 - Survey-platform login, credential storage, or account linking.
 - Automated eligibility optimization, screener manipulation, or reward maximization.
 - Fabrication or strategic alteration of personal identity, demographics, employment, income, purchases, experiences, brand usage, or opinions.
-- OCR, screenshot ingestion, image parsing, and document scanning.
+- Silent/background screen recording, automatic screen surveillance, and capture of unselected windows.
 - Cloud profile storage, cloud synchronization, multi-device sync, or multi-user collaboration.
 - Autonomous background agents or scheduled survey activity.
 - Vector database or embedding-based retrieval.
@@ -143,10 +151,11 @@ These exclusions are release boundaries, not suggestions for implementation shor
 ## 7. Supported input and answer classes
 
 ### 7.1 Input
-- Plain-text question entered or pasted by the user.
-- Optional plain-text answer options entered or pasted by the user.
+- User-selected screen-region or application-window capture.
+- OCR text and visual structure extracted from the capture.
+- Plain-text question and answer options entered or pasted manually as fallback.
 - Optional user-entered session title and platform label.
-- No image, audio, URL scraping, or automatic website capture in v1.0.
+- No automatic website scraping, DOM access, or silent screen recording in v1.0.
 
 ### 7.2 Question intent classes
 The classifier must support at least:
@@ -209,7 +218,28 @@ The system must not produce a definitive factual answer when:
 ### 8.4 Historical answers
 A prior answer may help locate a possible inconsistency or remind the user what they previously said. It must not override a current confirmed profile fact and must not silently become a verified profile fact.
 
-## 9. Privacy and external AI behavior
+## 9. Survey outcomes, earnings, and learning
+
+### 9.1 Outcome lifecycle
+Record survey attempts separately from reward events. Distinguish qualified, screened out, quota full, completed, quality rejected, technical failure, abandoned, pending, credited, withdrawable, reversed, and unknown states. A survey may progress through multiple states over time.
+
+### 9.2 Reward accounting
+- offered reward is an opportunity estimate, not income.
+- completed but unverified reward is not credited income.
+- pending reward remains pending.
+- credited reward requires platform evidence.
+- withdrawable balance requires direct evidence from a visible balance or permitted official integration.
+- retain native currency/points/gift-card units; never silently convert points into cash.
+
+Capture visible reward and outcome evidence automatically where reliable. If a balance or credit is not visible and no permitted integration exists, mark it unknown rather than asking the user to maintain routine manual bookkeeping or inventing a value.
+
+### 9.3 Time and effective earnings
+Track survey attempt time with user-visible controls. Calculate effective hourly earnings only from explicitly defined reward states and measured time; show the calculation scope. Separate offered-value-per-hour estimates from credited-reward-per-hour results.
+
+### 9.4 Survey fit learning
+Separate deterministic eligibility matching from historical outcome learning. Attribute each outcome to the actual persona, platform, category, criteria, and attempt. Distinguish screening failure, quota exhaustion, technical failure, and quality rejection. Show sample size and uncertainty; do not display confident predictive percentages until chronologically held-out calibration supports them. Use learning to prioritize genuinely suitable opportunities, never to alter answers or manufacture eligibility.
+
+## 10. Privacy and external AI behavior
 
 - Local profile and survey records remain on the device by default.
 - AI processing is optional and requires provider configuration.
@@ -247,8 +277,10 @@ Quantitative AI quality thresholds and measurement protocols are defined in the 
 ## 12. MVP acceptance checklist
 
 - [ ] A new user can complete first-run disclosure and reach the dashboard.
+- [ ] A user can create and manage multiple real-personas with isolated facts and histories.
 - [ ] A user can create, update, verify, dispute, mark outdated, archive, and delete a fact.
-- [ ] A user can create a session and enter multiple questions and answer options manually.
+- [ ] A user can capture a screen region/window and verify OCR/visual extraction before analysis.
+- [ ] A user can enter or correct question text and answer options manually.
 - [ ] The analyzer identifies supported question intent and answer format or returns unknown/ambiguous.
 - [ ] The answer engine retrieves only eligible, relevant evidence.
 - [ ] Every factual recommendation references valid local evidence identifiers.
@@ -257,6 +289,9 @@ Quantitative AI quality thresholds and measurement protocols are defined in the 
 - [ ] User edits do not overwrite the original AI recommendation.
 - [ ] Export and deletion are functional and tested.
 - [ ] AI provider failure leaves local records intact and produces a recoverable error.
+- [ ] Survey outcomes and reward events are stored with persona, source, timestamp, and verification state.
+- [ ] Offered, pending, credited, and withdrawable amounts are never conflated.
+- [ ] Survey fit learning separates explicit criteria matching from historical outcomes and exposes uncertainty.
 - [ ] No browser automation, autofill, auto-submit, CAPTCHA bypass, or eligibility manipulation is present.
 
 ## 13. Change control
