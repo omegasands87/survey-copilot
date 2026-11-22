@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 type Page = "home" | "profiles" | "copilot" | "history" | "settings";
@@ -46,7 +46,7 @@ export default function App() {
     void refreshPersonas();
   }, []);
 
-  async function createPersona(event: React.FormEvent<HTMLFormElement>) {
+  async function createPersona(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const name = profileName.trim();
     if (!name) return;
