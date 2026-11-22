@@ -1,6 +1,6 @@
 # Multi-Project Session Handoff: SURVEY COPILOT
 
-- **Waktu Handoff**: 2026-11-23T01:56:00+08:00
+- **Waktu Handoff**: 2026-11-23T02:08:00+08:00
 - **ID Percakapan Asal**: `4ad70ea9-5f00-4fc6-ab75-a0b6901cba4d`
 - **Nama Proyek & Direktori**: `SURVEY COPILOT` (`D:\Antigravity\Projects\SURVEY COPILOT`)
 - **Misi / Tujuan Utama**: Membangun aplikasi desktop Windows 11 x64 Survey Copilot v1.0 yang stabil, aman, evidence-grounded, dan Indonesian-first menggunakan Tauri 2, Rust, React, TypeScript, SQLite, Windows Credential Manager, dan Gemini AI adapter.
@@ -62,7 +62,7 @@
     - Mengekspor seluruh persona, fakta profil bertipe, sumber bukti, riwayat perubahan, preferensi, sesi survei, metadata tangkapan layar, pertanyaan, rekomendasi, dan riwayat jawaban.
   - **Single Persona Export (Strict Isolation)**:
     - Opsi ekspor terisolasi khusus untuk persona terpilih.
-    - Zero data leakage: fakta, riwayat, dan sesi milik persona lain dilarang keras masuk ke berkas ekspor.
+    - Zero cross-persona data leakage: fakta, riwayat, dan sesi milik persona lain dilarang keras masuk ke berkas ekspor.
   - **Export Privacy & Absolute Secret Exclusion**:
     - Kunci API, konfigurasi rahasia penyedia AI, dan referensi Windows Credential Manager **100% dikecualikan** dari ekspor.
     - Audit keamanan otomatis pada payload JSON sebelum serialisasi (menolak ekspor jika terdapat kata kunci kredensial).
@@ -85,7 +85,7 @@
 - `cargo +stable-x86_64-pc-windows-gnu check --tests --manifest-path src-tauri/Cargo.toml`: **PASS** (exit code 0).
 - `cargo +stable-x86_64-pc-windows-gnu clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`: **PASS** (0 warnings, exit code 0).
 - **Catatan Lingkungan Lokal (Windows Dev)**:
-  `cargo check --tests` dan `cargo clippy` berhasil lulus 100% tanpa error maupun warning. Eksekusi lokal `cargo test` mendeteksi entrypoint mismatch DLL MinGW lokal host (`0xc0000139, STATUS_ENTRYPOINT_NOT_FOUND`); di Windows CI GitHub Actions (`.github/workflows/windows.yml`), seluruh integration tests dieksekusi dan diverifikasi.
+  `cargo check --tests` dan `cargo clippy` berhasil lulus 100% tanpa error maupun warning. Eksekusi lokal `cargo test` mendeteksi entrypoint mismatch DLL MinGW lokal host Windows saat runtime spawning (`0xc0000139, STATUS_ENTRYPOINT_NOT_FOUND`); di Windows CI GitHub Actions (`.github/workflows/windows.yml`), seluruh integration tests dieksekusi dan diverifikasi.
 - **Acceptance Criteria Terverifikasi**:
   - **AT-001** (*Fresh checkout installs and builds*): **PASS**.
   - **AT-002** (*Fresh DB startup creates tables and _migrations tracking*): **PASS**.
@@ -153,7 +153,7 @@
 
 ## 5. Status Terkini & Langkah Berikutnya
 
-- **Status Git**: Bersih (`working tree clean`), branch `main` ahead 8 commits dari `origin/main`. Backup branches `backup-head-before-sc012`, `backup-head-before-sc011`, dan `backup-sc010-clean` tersimpan aman.
+- **Status Git**: Bersih (`working tree clean`), branch `main` ahead 9 commits dari `origin/main`. Backup branches `backup-head-before-sc012`, `backup-head-before-sc011`, dan `backup-sc010-clean` tersimpan aman.
 - **Langkah Berikutnya (Next Steps)**:
   1. **P2 — SC-020: Windows Credential Manager**:
      - Integrasi native Rust untuk penyimpanan dan pengelolaan rahasia API keys provider AI di Windows Credential Manager menggunakan opaque reference.
