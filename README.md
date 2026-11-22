@@ -3,48 +3,37 @@
 Desktop AI copilot for understanding survey questions and recommending accurate, evidence-backed answers from user-confirmed profile information.
 
 - **Product:** AI Copilot
-- **Platform:** Desktop (Tauri 2)
+- **Platform:** Windows 11 desktop (v1.0 target)
 - **Interaction:** Manual assistance — review, edit, confirm, and copy
-- **Architecture:** Local-first with optional AI cloud integration
+- **Architecture direction:** Local-first with optional external AI processing
 
-## Product principles
+## Product contract
 
-- Recommendations are grounded in user-confirmed facts.
-- The assistant discloses uncertainty and asks for clarification when evidence is missing.
-- Users retain control over every answer.
+Survey Copilot helps one person understand manually supplied survey questions and prepare truthful answers from information they have explicitly provided or confirmed.
+
+- Recommendations must be grounded in traceable user-provided evidence.
+- Missing, stale, or conflicting evidence must lead to clarification or abstention.
+- Users retain control over every answer and manually transfer it to the external survey.
 - Profile and answer history are local by default.
-- No automatic form filling/submission, CAPTCHA bypass, or fabricated personal information.
+- Sensitive facts are excluded from external AI requests unless explicitly authorized for that request.
+- No browser automation, autofill, auto-submit, CAPTCHA bypass, eligibility manipulation, or fabricated personal information.
 
 ## Documentation
 
-Start with the [documentation index](docs/00-INDEX.md). The documentation set covers:
+Start with the [documentation index](docs/00-INDEX.md).
 
-- Product requirements, feature scope, personas, and user flows.
-- System architecture, database schema, AI architecture, security, and technology stack.
-- AI prompt contract, question classification, answer generation, memory, consistency, and evaluation.
-- UI/UX specification, design system, and desktop layout.
-- Development roadmap, implementation plan, coding standards, testing, and release planning.
-- Installation, configuration, draft privacy notice, troubleshooting, and architecture decision records.
+**The authoritative product baseline is [Product Definition v1.0](docs/01-product/PRODUCT_DEFINITION.md).** Product requirements, feature specifications, and user flows derive from that document. Technical and implementation documents must conform to the product contract and may not silently expand its scope.
 
-The original [technical blueprint](docs/BLUEPRINT.md) remains the high-level overview.
+The documentation set also includes architecture, AI-engine, UI/UX, development, testing, operations, and architecture-decision documents.
 
-## Planned stack
+## Planned technical direction
 
-Tauri 2, Rust, React, TypeScript, Tailwind CSS, shadcn/ui, SQLite, an AI provider adapter, Zod, Zustand, TanStack Query, optional SQLite FTS5, and deferred OCR.
+Tauri 2, Rust, React, TypeScript, Tailwind CSS, shadcn/ui, SQLite, an AI provider adapter, Zod, Zustand, TanStack Query, and optional SQLite FTS5. These are technical direction documents, not a statement that implementation has started or that every architecture decision is final.
 
 ## Development status
 
-This repository currently contains planning and engineering documentation. The desktop application source code has not yet been added. Documents marked **Proposed** or **Draft** describe intended behavior, not shipped functionality. The privacy notice is not a legally reviewed policy.
+This repository currently contains product and engineering documentation. The desktop application source code has not yet been added. Documents marked Proposed or Draft describe intended behavior, not shipped functionality. The privacy notice is not a legally reviewed policy.
 
-## Initial implementation sequence
+## Build governance
 
-1. Initialize Tauri 2 + React + TypeScript.
-2. Set up linting, formatting, tests, and CI.
-3. Implement SQLite migrations and repositories.
-4. Build Digital Persona CRUD and verification.
-5. Build Survey Workspace and answer history.
-6. Integrate the AI provider adapter and structured Answer Engine.
-7. Add evidence display, consistency checks, and user review.
-8. Add privacy controls, security hardening, and release packaging.
-
-See the [development roadmap](docs/05-development/DEVELOPMENT_ROADMAP.md) and [implementation plan](docs/05-development/IMPLEMENTATION_PLAN.md).
+The project will not enter implementation until the product baseline is approved and the subsequent architecture and implementation specifications are complete, internally consistent, and reviewed. Changes after baseline approval require documented impact analysis and explicit approval.
