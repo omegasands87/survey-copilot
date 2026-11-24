@@ -227,7 +227,9 @@ impl OcrService {
 
         let recorded_question = SurveyService::create_question(&transaction, create_input)?;
         transaction.commit().map_err(|e| {
-            AppError::database(format!("Gagal menyimpan konfirmasi OCR dan pertanyaan: {e}"))
+            AppError::database(format!(
+                "Gagal menyimpan konfirmasi OCR dan pertanyaan: {e}"
+            ))
         })?;
 
         Ok(recorded_question)
