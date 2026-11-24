@@ -14,10 +14,16 @@ const MAX_IMPORTED_SOURCES: usize = 8_000;
 pub struct ProfileImportService;
 
 impl ProfileImportService {
-    fn value_to_input_string(data_type: DataType, value: &serde_json::Value) -> Result<String, AppError> {
+    fn value_to_input_string(
+        data_type: DataType,
+        value: &serde_json::Value,
+    ) -> Result<String, AppError> {
         match data_type {
             DataType::String | DataType::Date => value.as_str().map(str::to_string).ok_or_else(|| {
-                AppError::validation("facts.value", "Nilai teks/tanggal dalam berkas profil tidak sesuai dengan tipe datanya.")
+                AppError::validation(
+                    "facts.value",
+                    "Nilai teks/tanggal dalam berkas profil tidak sesuai dengan tipe datanya.",
+                )
             }),
             DataType::Number => value.as_number().map(|number| number.to_string()).ok_or_else(|| {
                 AppError::validation("facts.value", "Nilai angka dalam berkas profil bukan angka yang valid.")
@@ -57,8 +63,8 @@ impl ProfileImportService {
         }
     }
 
-    /// Import is deliberately limited to a single-persona export. Sessions, answers,
-    /// screenshots, provider settings, and credentials are never imported by this path.
+    /// Import dibatasi pada ekspor satu persona. Sesi, jawaban, screenshot, provider,
+    /// dan credential tidak pernah diimpor melalui jalur ini.
     pub fn import_single_persona_json(
         database: &Database,
         json_content: &str,
@@ -68,10 +74,7 @@ impl ProfileImportService {
             return Err(AppError::validation("file", "Berkas JSON profil kosong."));
         }
         if json_content.len() > MAX_PROFILE_IMPORT_BYTES {
-            return Err(AppError::validation(
-                "file",
-                "Ukuran berkas profil melebihi batas 5 MB.",
-            ));
+            return Err(AppError::validation("file", "Ukuran berkas profil melebihi batas 5 MB."));
         }
 
         let payload: ExportPayload = serde_json::from_str(json_content).map_err(|error| {
@@ -161,10 +164,7 @@ impl ProfileImportService {
                 ));
             }
             Self::validate_source(source)?;
-            sources_by_fact
-                .entry(source.fact_id.clone())
-                .or_default()
-                .push(source);
+            sources_by_fact.entry(source.fact_id.clone()).or_default().push(source);
         }
 
         let mut connection = database
@@ -199,7 +199,7 @@ impl ProfileImportService {
                 .unwrap_or(&[]);
             let first_source = fact_sources.first().copied();
 
-            // Missing source provenance is never upgraded to a confirmed fact.
+            // Jika file tidak membawa sumber asli, fakta diimpor sebagai belum terverifikasi.
             let fallback_description =
                 "Sumber asli tidak tersedia pada file ekspor; pengguna perlu memverifikasi kembali.".to_string();
             let (source_type, source_title, source_description, reference_uri, observed_at,
@@ -224,7 +224,7 @@ impl ProfileImportService {
                     )
                 };
 
-            let mut input = CreateFactInput {
+            let input = CreateFactInput {
                 persona_id: new_persona_id.clone(),
                 category: exported_fact.category.clone(),
                 fact_key: Some(exported_fact.fact_key.clone()),
@@ -244,10 +244,8 @@ impl ProfileImportService {
                 sensitivity: Some(exported_fact.sensitivity.clone()),
             };
 
-            // Keep the import path on the same validation contract as manual fact entry.
-            let mut validated = input.validate()?;
-            validated.persona_id = new_persona_id.clone();
-
+            // Gunakan kontrak validasi yang sama dengan input fakta manual.
+            let validated = input.validate()?;
             let new_fact_id = Uuid::new_v4().to_string();
             let first_source_id = Uuid::new_v4().to_string();
             let history_id = Uuid::new_v4().to_string();
@@ -263,11 +261,11 @@ impl ProfileImportService {
             .map_err(AppError::from)?;
             imported_sources += 1;
 
-            if exported_fact.archived_at.is_some() {
+            if let Some(archived_at) = exported_fact.archived_at.as_deref() {
                 transaction
                     .execute(
                         "UPDATE profile_facts SET archived_at = ?1 WHERE id = ?2 AND persona_id = ?3",
-                        rusqlite::params![exported_fact.archived_at, new_fact_id, new_persona_id],
+                        rusqlite::params![archived_at, new_fact_id, new_persona_id],
                     )
                     .map_err(AppError::from)?;
             }
@@ -294,8 +292,6 @@ impl ProfileImportService {
             }
 
             imported_facts += 1;
-            // Explicitly drop per-item raw values before processing the next fact.
-            input.value.clear();
         }
 
         transaction.commit().map_err(|error| {
