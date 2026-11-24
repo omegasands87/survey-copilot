@@ -799,10 +799,60 @@ export function ProfilesView({
             </div>
           )}
 
-          {/* Formulir Penambahan Fakta Baru (Typed Facts) */}
+          <section className="profile-template-panel" aria-labelledby="profile-template-title">
+            <div className="profile-template-heading">
+              <div>
+                <span className="eyebrow">MULAI DARI TEMPLATE KOSONG</span>
+                <h4 id="profile-template-title">Field profil yang umum dibutuhkan</h4>
+                <p>Pilih field untuk menyiapkan formulir. Nilai tidak diisi otomatis—masukkan fakta yang benar tentang responden.</p>
+              </div>
+              <span className="profile-template-empty-tag">TANPA NILAI DEMO</span>
+            </div>
+            <div className="profile-template-grid">
+              {PROFILE_FIELD_TEMPLATES.map((template) => (
+                <article className="profile-template-card" key={template.id}>
+                  <div>
+                    <strong>{template.title}</strong>
+                    <p>{template.description}</p>
+                  </div>
+                  <div className="profile-template-fields">
+                    {template.fields.map((field) => (
+                      <button
+                        type="button"
+                        key={field.attribute}
+                        onClick={() => {
+                          setFactCategory(template.category);
+                          setFactAttribute(field.attribute);
+                          setFactKey("");
+                          setFactDataType(field.dataType);
+                          setFactValue("");
+                          setFactUnit(field.unit ?? "");
+                          setNewFactStatus("unverified");
+                          setFactSensitivity("ordinary");
+                          setFactSourceType("manual_entry");
+                          setFactSourceTitle("Input Manual");
+                          setFactSourceDesc("Dimasukkan langsung oleh pengguna");
+                        }}
+                      >
+                        + {field.attribute}
+                      </button>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          {/* Formulir Penambahan Fakta Baru (Typed Facts) */
           <form className="profile-form" onSubmit={handleCreateFact} style={{ marginTop: 16 }}>
-            <h4 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800 }}>Tambah Fakta Baru</h4>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div className="fact-form-intro">
+              <div>
+                <h4>Tambah satu fakta responden</h4>
+                <p>Isi nilai yang diketahui. Data baru disimpan sebagai belum terverifikasi sampai Anda mengonfirmasinya.</p>
+              </div>
+              <span className="profile-import-count">Persona aktif: {activePersona.displayName}</span>
+            </div>
+            <div className="fact-form-grid fact-form-grid-3">
               <label style={{ fontSize: 12 }}>
                 Kategori
                 <select
@@ -812,7 +862,7 @@ export function ProfilesView({
                 >
                   <option value="Demografi">Demografi</option>
                   <option value="Pekerjaan">Pekerjaan</option>
-                  <option value="Finansial">Finansial</option>
+                  <option value="Konsumsi">Konsumsi</option>
                   <option value="Rumah Tangga">Rumah Tangga</option>
                   <option value="Transportasi">Transportasi</option>
                   <option value="Teknologi">Teknologi</option>
@@ -825,9 +875,10 @@ export function ProfilesView({
               <label style={{ fontSize: 12 }}>
                 Nama Fakta / Atribut
                 <input
+                  id="fact-attribute-input"
                   value={factAttribute}
                   onChange={(e) => setFactAttribute(e.target.value)}
-                  placeholder="Contoh: Penghasilan Bulanan, Usia, dll"
+                  placeholder="Contoh: Usia, domisili, status pekerjaan"
                   maxLength={100}
                   required
                   style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 6, border: "1px solid #dce4de" }}
@@ -842,7 +893,7 @@ export function ProfilesView({
                   style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 6, border: "1px solid #dce4de" }}
                 >
                   <option value="string">Teks (String)</option>
-                  <option value="number">Angka / Finansial (Number)</option>
+                  <option value="number">Angka (Number)</option>
                   <option value="boolean">Ya / Tidak (Boolean)</option>
                   <option value="date">Tanggal (Date: YYYY-MM-DD)</option>
                   <option value="json">Struktur JSON</option>
@@ -850,7 +901,7 @@ export function ProfilesView({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10, marginTop: 10 }}>
+            <div className="fact-form-grid fact-form-grid-value">
               <label style={{ fontSize: 12 }}>
                 Nilai Fakta
                 {factDataType === "boolean" ? (
@@ -874,6 +925,7 @@ export function ProfilesView({
                   />
                 ) : (
                   <input
+                    id="fact-value-input"
                     value={factValue}
                     onChange={(e) => setFactValue(e.target.value)}
                     placeholder={
@@ -894,14 +946,14 @@ export function ProfilesView({
                 <input
                   value={factUnit}
                   onChange={(e) => setFactUnit(e.target.value)}
-                  placeholder="Contoh: IDR, tahun, bulan, unit"
+                  placeholder="Contoh: tahun, orang, kali, unit"
                   maxLength={30}
                   style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 6, border: "1px solid #dce4de" }}
                 />
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 10 }}>
+            <div className="fact-form-grid fact-form-grid-3">
               <label style={{ fontSize: 12 }}>
                 Status Verifikasi
                 <select
@@ -945,7 +997,7 @@ export function ProfilesView({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10, marginTop: 10 }}>
+            <div className="fact-form-grid fact-form-grid-source">
               <label style={{ fontSize: 12 }}>
                 Judul Sumber Bukti
                 <input
@@ -969,7 +1021,7 @@ export function ProfilesView({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+            <div className="fact-form-grid fact-form-grid-2">
               <label style={{ fontSize: 12 }}>
                 Berlaku Mulai (Opsional)
                 <input
