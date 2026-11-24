@@ -44,7 +44,7 @@ test("browser preview requires an explicit preview=1 query parameter", () => {
 
 test("preview visibly marks demo-only behavior and lack of desktop connectivity", () => {
   assert.match(previewSource, /UI PREVIEW/);
-  assert.match(previewSource, /tidak ada koneksi ke backend desktop/);
+  assert.match(previewSource, /tanpa backend desktop/);
   assert.match(previewSource, /jangan masukkan data pribadi\/kredensial/);
   assert.match(previewSource, /perubahan hilang saat refresh/);
 });
