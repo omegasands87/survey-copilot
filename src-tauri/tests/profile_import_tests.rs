@@ -1,4 +1,3 @@
-use rusqlite::Connection;
 use std::path::Path;
 use survey_copilot_lib::db::Database;
 use survey_copilot_lib::repository::PersonaRepository;
