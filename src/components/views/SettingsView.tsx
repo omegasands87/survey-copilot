@@ -2121,6 +2121,14 @@ export function SettingsView({
                 <ul className="wipe-counts-list">
                   <li>Total Persona: <strong>{wipeSummary.personas}</strong></li>
                   <li>Fakta Profil: <strong>{wipeSummary.facts}</strong></li>
+                  <li>Kredensial OS: <strong>{wipeSummary.credentials}</strong></li>
+                  <li>Ekstraksi OCR: <strong>{wipeSummary.ocrExtractions}</strong></li>
+                  <li>Survey recognition: <strong>{wipeSummary.recognitions}</strong></li>
+                  <li>Branch transition NQI: <strong>{wipeSummary.branchTransitions}</strong></li>
+                  <li>Prediksi pertanyaan NQI: <strong>{wipeSummary.questionPredictions}</strong></li>
+                  <li>Log diagnostik: <strong>{wipeSummary.diagnosticLogs}</strong></li>
+                  <li>Sumber rekomendasi: <strong>{wipeSummary.recommendationSources}</strong></li>
+                  <li>Riwayat health provider: <strong>{wipeSummary.providerHealth}</strong></li>
                   <li>Sumber Bukti: <strong>{wipeSummary.sources}</strong></li>
                   <li>Riwayat Perubahan: <strong>{wipeSummary.history}</strong></li>
                   <li>Preferensi: <strong>{wipeSummary.preferences}</strong></li>
@@ -2181,18 +2189,42 @@ export function SettingsView({
             )}
 
             {wipeReport && (
-              <div className="alert alert-success wipe-report-box" role="alert">
-                <h4>✓ Seluruh Data Berhasil Dihapus</h4>
-                <p>Status Pembersihan Basis Data & Disk:</p>
+              <div
+                className={`alert ${wipeReport.failedTempFilesCount > 0 ? "alert-error" : "alert-success"} wipe-report-box`}
+                role="alert"
+              >
+                <h4>
+                  {wipeReport.failedTempFilesCount > 0
+                    ? "Database dan credential telah dihapus; pembersihan file perlu diperiksa"
+                    : "✓ Seluruh Data Terdaftar Berhasil Dihapus"}
+                </h4>
+                <p>Status Pembersihan Basis Data, Credential OS & Disk:</p>
                 <ul>
                   <li>Persona terhapus: {wipeReport.deletedPersonasCount}</li>
                   <li>Fakta profil terhapus: {wipeReport.deletedFactsCount}</li>
                   <li>Sumber bukti terhapus: {wipeReport.deletedSourcesCount}</li>
                   <li>Sesi & pertanyaan terhapus: {wipeReport.deletedSessionsCount + wipeReport.deletedQuestionsCount}</li>
-                  <li>File sementara & screenshot dibersihkan: {wipeReport.deletedTempFilesCount}</li>
+                  <li>Credential OS terhapus: {wipeReport.deletedCredentialsCount}</li>
+                  <li>OCR extraction terhapus: {wipeReport.deletedOcrExtractionsCount}</li>
+                  <li>Survey recognition terhapus: {wipeReport.deletedRecognitionsCount}</li>
+                  <li>NQI transition/prediction terhapus: {wipeReport.deletedBranchTransitionsCount + wipeReport.deletedQuestionPredictionsCount}</li>
+                  <li>Diagnostic log terhapus: {wipeReport.deletedDiagnosticLogsCount}</li>
+                  <li>Sumber rekomendasi terhapus: {wipeReport.deletedRecommendationSourcesCount}</li>
+                  <li>Riwayat health provider terhapus: {wipeReport.deletedProviderHealthCount}</li>
+                  <li>File sementara dibersihkan: {wipeReport.deletedTempFilesCount}; gagal dihapus: {wipeReport.failedTempFilesCount}</li>
                   <li>Checkpoint WAL SQLite: {wipeReport.walCheckpointStatus}</li>
                   <li>Status VACUUM SQLite: {wipeReport.vacuumStatus}</li>
                 </ul>
+                {wipeReport.cleanupWarnings.length > 0 && (
+                  <div className="unaffected-items-note">
+                    <strong>Peringatan pembersihan:</strong>
+                    <ul>
+                      {wipeReport.cleanupWarnings.map((warning, idx) => (
+                        <li key={idx}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <div className="unaffected-items-note">
                   <strong>Catatan Transparansi:</strong>
                   <ul>

@@ -1,6 +1,7 @@
 use crate::domain::endpoint_validator::EndpointValidator;
 use crate::domain::provider::{NormalizedError, NormalizedErrorCategory};
 use std::collections::HashMap;
+use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -28,7 +29,8 @@ impl HttpResponse {
 }
 
 /// Abstract HTTP transport for AI provider requests.
-/// Enforces SSRF validation and redirect isolation.
+/// Validates URL, resolves and pins DNS to public addresses, disables proxy bypasses,
+/// and blocks redirects that cross the approved origin.
 pub trait HttpTransport: Send + Sync {
     fn post_json(
         &self,
@@ -46,20 +48,70 @@ pub trait HttpTransport: Send + Sync {
     ) -> Result<HttpResponse, NormalizedError>;
 }
 
-/// Production HTTP Transport using reqwest with SSRF and redirect protection.
-pub struct DefaultHttpTransport {
-    client: reqwest::Client,
-}
+/// Production HTTP transport. A client is built per request so the validated DNS
+/// answers can be pinned and cannot be replaced by a second lookup at connect time.
+pub struct DefaultHttpTransport;
 
 impl DefaultHttpTransport {
     pub fn new() -> Self {
-        // Enforce AT-038: Custom redirect policy that prevents credential forwarding across hosts
+        Self
+    }
+
+    fn invalid_endpoint(message: impl Into<String>) -> NormalizedError {
+        NormalizedError::new(NormalizedErrorCategory::InvalidRequest, message)
+    }
+
+    fn build_client_for_url(url: &str) -> Result<(String, reqwest::Client), NormalizedError> {
+        let validated_url =
+            EndpointValidator::validate_url(url).map_err(|e| Self::invalid_endpoint(e.message))?;
+        let parsed = url::Url::parse(&validated_url)
+            .map_err(|_| Self::invalid_endpoint("URL endpoint tidak valid."))?;
+        let port = parsed
+            .port_or_known_default()
+            .ok_or_else(|| Self::invalid_endpoint("Port endpoint tidak valid."))?;
+
+        let (resolution_host, literal_ip) = match parsed.host() {
+            Some(url::Host::Domain(domain)) => (domain.to_string(), None),
+            Some(url::Host::Ipv4(ip)) => (ip.to_string(), Some(std::net::IpAddr::V4(ip))),
+            Some(url::Host::Ipv6(ip)) => (ip.to_string(), Some(std::net::IpAddr::V6(ip))),
+            None => return Err(Self::invalid_endpoint("Host endpoint tidak valid.")),
+        };
+        let allow_loopback =
+            parsed.scheme() == "http" && EndpointValidator::is_local_host(&resolution_host);
+
+        let addresses: Vec<SocketAddr> = if let Some(ip) = literal_ip {
+            vec![SocketAddr::new(ip, 0)]
+        } else {
+            (resolution_host.as_str(), port)
+                .to_socket_addrs()
+                .map_err(|_| Self::invalid_endpoint("DNS endpoint tidak dapat di-resolve."))?
+                .map(|address| SocketAddr::new(address.ip(), 0))
+                .collect()
+        };
+
+        if addresses.is_empty() {
+            return Err(Self::invalid_endpoint(
+                "DNS endpoint tidak mengembalikan alamat tujuan.",
+            ));
+        }
+
+        if addresses
+            .iter()
+            .any(|address| !EndpointValidator::is_allowed_ip(address.ip(), allow_loopback))
+        {
+            return Err(Self::invalid_endpoint(
+                "DNS endpoint mengarah ke alamat private, reserved, loopback, atau link-local; permintaan diblokir.",
+            ));
+        }
+
         let client = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
+            .no_proxy()
+            .resolve_to_addrs(&resolution_host, &addresses)
             .build()
-            .unwrap_or_else(|_| reqwest::Client::new());
+            .map_err(|_| Self::invalid_endpoint("HTTP transport gagal diinisialisasi."))?;
 
-        Self { client }
+        Ok((validated_url, client))
     }
 
     async fn execute_with_redirect_check(
@@ -67,10 +119,8 @@ impl DefaultHttpTransport {
         original_url: &str,
         request_builder: reqwest::RequestBuilder,
     ) -> Result<HttpResponse, NormalizedError> {
-        // 1. SSRF validation on the initial URL
-        let validated_url = EndpointValidator::validate_url(original_url).map_err(|e| {
-            NormalizedError::new(NormalizedErrorCategory::InvalidRequest, e.message)
-        })?;
+        let validated_url = EndpointValidator::validate_url(original_url)
+            .map_err(|e| Self::invalid_endpoint(e.message))?;
 
         let response = request_builder.send().await.map_err(|e| {
             if e.is_timeout() {
@@ -93,14 +143,13 @@ impl DefaultHttpTransport {
 
         let status = response.status().as_u16();
 
-        // 2. Handle redirect status codes (301, 302, 307, 308) - AT-038
         if (300..400).contains(&status) {
             if let Some(location) = response.headers().get(reqwest::header::LOCATION) {
                 if let Ok(loc_str) = location.to_str() {
                     if !EndpointValidator::is_safe_redirect(&validated_url, loc_str) {
                         return Err(NormalizedError::new(
                             NormalizedErrorCategory::InvalidRequest,
-                            "Pengalihan (redirect) ke host berbeda dicegah untuk melindungi kredensial API.",
+                            "Pengalihan (redirect) ke origin berbeda dicegah untuk melindungi kredensial API.",
                         ));
                     }
                 }
@@ -108,9 +157,9 @@ impl DefaultHttpTransport {
         }
 
         let mut headers = HashMap::new();
-        for (k, v) in response.headers() {
-            if let Ok(val_str) = v.to_str() {
-                headers.insert(k.as_str().to_lowercase(), val_str.to_string());
+        for (key, value) in response.headers() {
+            if let Ok(value) = value.to_str() {
+                headers.insert(key.as_str().to_lowercase(), value.to_string());
             }
         }
 
@@ -143,21 +192,17 @@ impl HttpTransport for DefaultHttpTransport {
         body_json: &serde_json::Value,
         timeout_ms: u64,
     ) -> Result<HttpResponse, NormalizedError> {
-        let validated_url = EndpointValidator::validate_url(url).map_err(|e| {
-            NormalizedError::new(NormalizedErrorCategory::InvalidRequest, e.message)
-        })?;
-
-        let mut req = self
-            .client
+        let (validated_url, client) = Self::build_client_for_url(url)?;
+        let mut request = client
             .post(&validated_url)
             .timeout(Duration::from_millis(timeout_ms))
             .json(body_json);
 
-        for (k, v) in headers {
-            req = req.header(*k, *v);
+        for (key, value) in headers {
+            request = request.header(*key, *value);
         }
 
-        tauri::async_runtime::block_on(self.execute_with_redirect_check(&validated_url, req))
+        tauri::async_runtime::block_on(self.execute_with_redirect_check(&validated_url, request))
     }
 
     fn get(
@@ -166,20 +211,16 @@ impl HttpTransport for DefaultHttpTransport {
         headers: &[(&str, &str)],
         timeout_ms: u64,
     ) -> Result<HttpResponse, NormalizedError> {
-        let validated_url = EndpointValidator::validate_url(url).map_err(|e| {
-            NormalizedError::new(NormalizedErrorCategory::InvalidRequest, e.message)
-        })?;
-
-        let mut req = self
-            .client
+        let (validated_url, client) = Self::build_client_for_url(url)?;
+        let mut request = client
             .get(&validated_url)
             .timeout(Duration::from_millis(timeout_ms));
 
-        for (k, v) in headers {
-            req = req.header(*k, *v);
+        for (key, value) in headers {
+            request = request.header(*key, *value);
         }
 
-        tauri::async_runtime::block_on(self.execute_with_redirect_check(&validated_url, req))
+        tauri::async_runtime::block_on(self.execute_with_redirect_check(&validated_url, request))
     }
 }
 
@@ -198,8 +239,8 @@ impl MockHttpTransport {
     }
 
     pub fn enqueue_response(&self, response: HttpResponse) {
-        let mut resps = self.responses.lock().unwrap();
-        resps.push(response);
+        let mut responses = self.responses.lock().unwrap();
+        responses.push(response);
     }
 
     pub fn get_recorded_requests(&self) -> Vec<RecordedMockRequest> {
@@ -215,14 +256,13 @@ impl HttpTransport for MockHttpTransport {
         body_json: &serde_json::Value,
         _timeout_ms: u64,
     ) -> Result<HttpResponse, NormalizedError> {
-        // Enforce SSRF validation even in mock transport
         EndpointValidator::validate_url(url).map_err(|e| {
             NormalizedError::new(NormalizedErrorCategory::InvalidRequest, e.message)
         })?;
 
         let header_vec = headers
             .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .map(|(key, value)| (key.to_string(), value.to_string()))
             .collect();
 
         self.recorded_requests.lock().unwrap().push((
@@ -231,14 +271,14 @@ impl HttpTransport for MockHttpTransport {
             Some(body_json.clone()),
         ));
 
-        let mut resps = self.responses.lock().unwrap();
-        if resps.is_empty() {
+        let mut responses = self.responses.lock().unwrap();
+        if responses.is_empty() {
             Err(NormalizedError::new(
                 NormalizedErrorCategory::NetworkError,
                 "Mock response queue empty",
             ))
         } else {
-            Ok(resps.remove(0))
+            Ok(responses.remove(0))
         }
     }
 
@@ -248,14 +288,13 @@ impl HttpTransport for MockHttpTransport {
         headers: &[(&str, &str)],
         _timeout_ms: u64,
     ) -> Result<HttpResponse, NormalizedError> {
-        // Enforce SSRF validation even in mock transport
         EndpointValidator::validate_url(url).map_err(|e| {
             NormalizedError::new(NormalizedErrorCategory::InvalidRequest, e.message)
         })?;
 
         let header_vec = headers
             .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .map(|(key, value)| (key.to_string(), value.to_string()))
             .collect();
 
         self.recorded_requests
@@ -263,14 +302,14 @@ impl HttpTransport for MockHttpTransport {
             .unwrap()
             .push((url.to_string(), header_vec, None));
 
-        let mut resps = self.responses.lock().unwrap();
-        if resps.is_empty() {
+        let mut responses = self.responses.lock().unwrap();
+        if responses.is_empty() {
             Err(NormalizedError::new(
                 NormalizedErrorCategory::NetworkError,
                 "Mock response queue empty",
             ))
         } else {
-            Ok(resps.remove(0))
+            Ok(responses.remove(0))
         }
     }
 }

@@ -85,10 +85,10 @@ pub fn run() {
                 Arc::new(infrastructure::capture::WindowsScreenCaptureEngine::new());
             app.manage(CaptureEngineState(capture_engine));
 
+            // FixtureOcrEngine is reserved for tests; production must never return synthetic survey text.
             let primary_ocr = Arc::new(infrastructure::ocr::WindowsMediaOcrEngine::new());
-            let fallback_ocr = Arc::new(infrastructure::ocr::FixtureOcrEngine::new());
             let composite_ocr: Arc<dyn infrastructure::ocr::OcrEngine> = Arc::new(
-                infrastructure::ocr::CompositeOcrEngine::new(primary_ocr, Some(fallback_ocr)),
+                infrastructure::ocr::CompositeOcrEngine::new(primary_ocr, None),
             );
             app.manage(OcrEngineState(composite_ocr));
 

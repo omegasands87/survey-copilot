@@ -11,7 +11,9 @@ use survey_copilot_lib::domain::ocr::{
 };
 use survey_copilot_lib::domain::survey::{AnswerFormat, Provenance, QuestionType};
 use survey_copilot_lib::infrastructure::capture::encode_rgba_to_png;
+use survey_copilot_lib::infrastructure::ocr::composite::CompositeOcrEngine;
 use survey_copilot_lib::infrastructure::ocr::fixture::FixtureOcrEngine;
+use survey_copilot_lib::infrastructure::ocr::OcrEngine;
 use survey_copilot_lib::migrations::MigrationRunner;
 use survey_copilot_lib::services::layout_reconstructor::LayoutReconstructorService;
 use survey_copilot_lib::services::ocr_service::OcrService;
@@ -449,6 +451,61 @@ fn test_ocr_clipped_and_low_confidence_detection_at_052() {
         reconstructed.overall_confidence < 0.70,
         "Keyakinan agregat harus dipenalti"
     );
+}
+
+#[test]
+fn test_composite_ocr_without_fixture_fallback_never_returns_synthetic_text() {
+    let unavailable_primary = FixtureOcrEngine::new();
+    unavailable_primary.set_available(false);
+    let engine = CompositeOcrEngine::new(Arc::new(unavailable_primary), None);
+
+    assert!(!engine.is_available());
+    let error = engine
+        .recognize_file(std::path::Path::new("missing-capture.png"))
+        .expect_err("unavailable production OCR must fail rather than fabricate text");
+    assert!(error.message.contains("OCR") || error.message.contains("engine"));
+}
+
+#[test]
+fn test_ocr_zero_confidence_is_reported_as_unavailable_not_low_confidence() {
+    let line = OcrLine {
+        text: "Pertanyaan hasil OCR".to_string(),
+        bounding_box: BoundingBox::new(10.0, 10.0, 220.0, 20.0),
+        words: vec![OcrWord {
+            text: "Pertanyaan".to_string(),
+            bounding_box: BoundingBox::new(10.0, 10.0, 100.0, 20.0),
+            confidence: 0.0,
+        }],
+        confidence: 0.0,
+    };
+    let raw = OcrRawResult {
+        raw_text: "Pertanyaan hasil OCR".to_string(),
+        text_angle: 0.0,
+        lines: vec![line],
+        engine: "windows_media_ocr".to_string(),
+        image_width: 800,
+        image_height: 600,
+    };
+    let reconstructed = LayoutReconstructorService::reconstruct(
+        &raw,
+        None,
+        None,
+        None,
+        CaptureMode::Region,
+        None,
+        None,
+    )
+    .expect("layout reconstruction should succeed");
+
+    assert_eq!(reconstructed.overall_confidence, 0.0);
+    assert!(!reconstructed
+        .uncertain_regions
+        .iter()
+        .any(|region| region.reason == UncertaintyReason::LowConfidence));
+    assert!(reconstructed
+        .warnings
+        .iter()
+        .any(|warning| warning.contains("tidak menyediakan skor keyakinan")));
 }
 
 // ==========================================

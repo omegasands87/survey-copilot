@@ -11,12 +11,21 @@ use std::sync::{Arc, RwLock};
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryCredentialStore {
     storage: Arc<RwLock<HashMap<String, String>>>,
+    fail_delete: Arc<RwLock<bool>>,
 }
 
 impl InMemoryCredentialStore {
     pub fn new() -> Self {
         Self {
             storage: Arc::new(RwLock::new(HashMap::new())),
+            fail_delete: Arc::new(RwLock::new(false)),
+        }
+    }
+
+    /// Deterministic fault injection for deletion lifecycle tests only.
+    pub fn set_delete_failure(&self, fail: bool) {
+        if let Ok(mut state) = self.fail_delete.write() {
+            *state = fail;
         }
     }
 }
@@ -40,6 +49,15 @@ impl CredentialStore for InMemoryCredentialStore {
     }
 
     fn delete_secret(&self, target_name: &str) -> Result<(), AppError> {
+        let should_fail = *self.fail_delete.read().map_err(|_| {
+            AppError::internal("Gagal memperoleh status fault injection credential.")
+        })?;
+        if should_fail {
+            return Err(AppError::credential_error(
+                "Simulated credential-store deletion failure.",
+            ));
+        }
+
         let mut map = self.storage.write().map_err(|_| {
             AppError::internal("Gagal memperoleh lock penyimpanan kredensial in-memory.")
         })?;
