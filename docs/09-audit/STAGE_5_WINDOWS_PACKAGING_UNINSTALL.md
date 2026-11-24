@@ -30,11 +30,11 @@ The job runs on Windows x64 and:
 6. Requires exactly one x64 `*-setup.exe` package.
 7. Validates the package filename against the configured version, package size, NSIS/current-user configuration, and Authenticode state.
 8. Generates a SHA-256 manifest and build manifest.
-9. Uploads the installer and manifests as a private CI artifact with a 30-day retention period.
+9. Uploads the installer and manifests as a CI artifact with a 30-day retention period.
 
 Artifact name: `Survey-Copilot-NSIS-<commit-sha>`
 
-The workflow intentionally does **not** create a GitHub Release, tag a release, or publish a public download.
+The workflow intentionally does **not** create a GitHub Release or tag a release. **The repository is public**, and GitHub documents that anyone with repository read access can list/get workflow artifacts; therefore treat this CI artifact as accessible to repository readers, not as a private distribution channel. The artifact must contain only the unsigned installer and non-sensitive verification manifests—never user data, databases, screenshots, API keys, or other secrets.
 
 ## 3. Integrity and publisher identity
 
