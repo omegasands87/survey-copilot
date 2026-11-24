@@ -993,3 +993,52 @@ body {
 /* Stage 3 desktop shell now retains the settings link at every breakpoint;
    the earlier preview-only mobile shortcut is intentionally hidden. */
 .preview-mobile-settings-nav { display: none !important; }
+
+/* Capture → automatic local OCR → human review */
+.capture-local-ocr-notice {
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+  border: 1px solid #41654a;
+  border-radius: 11px;
+  color: #c6dfce;
+  background: linear-gradient(135deg, #193324, #14281c);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.capture-local-ocr-notice strong {
+  color: #a9ebbf !important;
+  font-size: 12px;
+}
+.capture-local-ocr-notice span { color: #b7cdbd; }
+.capture-ocr-progress {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border: 1px solid #385440;
+  border-radius: 10px;
+  color: #dcebe1;
+  background: #182a1e;
+}
+.capture-ocr-progress > div { display: grid; gap: 4px; }
+.capture-ocr-progress strong { color: #e6f5eb !important; font-size: 11px; }
+.capture-ocr-progress span:not(.capture-ocr-spinner) {
+  color: #9db5a4;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.capture-ocr-spinner {
+  display: block;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 21px;
+  border: 2px solid #365d42;
+  border-top-color: #8ae4a8;
+  border-radius: 50%;
+  animation: capture-ocr-spin .8s linear infinite;
+}
+@keyframes capture-ocr-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .capture-ocr-spinner { animation: none; border-top-color: #8ae4a8; }
+}
