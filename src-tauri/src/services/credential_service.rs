@@ -379,17 +379,44 @@ impl CredentialService {
             )));
         }
 
-        // Jangan hapus metadata jika OS gagal menghapus secret; caller harus dapat retry.
+        // Retain the prior value so metadata failure can be compensated without orphaning state.
+        let previous_secret = match store.get_secret(&existing.credential_ref) {
+            Ok(secret) => Some(secret),
+            Err(error) if error.code == "CREDENTIAL_NOT_FOUND" => None,
+            Err(error) => return Err(error),
+        };
+
+        // If OS deletion fails, metadata must remain so the operation can be retried.
         store.delete_secret(&existing.credential_ref)?;
 
-        let deleted_from_database =
-            CredentialRepository::delete_by_id(&conn, id).map_err(AppError::from)?;
-        if !deleted_from_database {
-            return Err(AppError::internal(format!(
-                "Secret credential '{}' telah dihapus dari OS, tetapi metadata SQLite tidak ditemukan saat finalisasi.",
-                existing.label
-            )));
-        }
+        let deleted_from_database = match CredentialRepository::delete_by_id(&conn, id) {
+            Ok(true) => true,
+            Ok(false) => {
+                if let Some(secret) = previous_secret.as_deref() {
+                    if let Err(restore_error) = store.set_secret(&existing.credential_ref, secret) {
+                        return Err(AppError::internal(format!(
+                            "Metadata credential tidak ditemukan setelah secret dihapus dan pemulihan secret gagal: {}",
+                            restore_error.message
+                        )));
+                    }
+                }
+                return Err(AppError::not_found(format!(
+                    "Metadata credential '{}' tidak ditemukan saat finalisasi penghapusan.",
+                    existing.label
+                )));
+            }
+            Err(database_error) => {
+                if let Some(secret) = previous_secret.as_deref() {
+                    if let Err(restore_error) = store.set_secret(&existing.credential_ref, secret) {
+                        return Err(AppError::internal(format!(
+                            "Penghapusan metadata credential gagal ({database_error}) dan pemulihan secret OS juga gagal: {}",
+                            restore_error.message
+                        )));
+                    }
+                }
+                return Err(AppError::from(database_error));
+            }
+        };
 
         let message = format!(
             "Kredensial '{}' berhasil dihapus dari Windows Credential Manager dan basis data lokal.",
