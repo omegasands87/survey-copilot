@@ -2,14 +2,22 @@ use rusqlite::Connection;
 use uuid::Uuid;
 
 use crate::db::Database;
+use crate::domain::answer_engine::{AnswerHistoryItem, ReviewAction, ReviewStatus};
+use crate::domain::classifier::{ClassifyQuestionInput, QuestionClassificationResult};
 use crate::domain::error::AppError;
+use crate::domain::evidence::{EvidencePackage, EvidenceRetrievalInput};
 use crate::domain::survey::{
-    AnswerFormat, ConfirmAnswerInput, ConfirmationStatus, CreateQuestionInput, CreateSessionInput,
-    Provenance, QuestionStatus, QuestionType, SaveQuestionDraftInput, SessionStatus,
-    SurveyQuestion, SurveySession, SurveySessionDetail, SurveySessionSummary, UpdateQuestionInput,
-    UpdateSessionInput,
+    compute_question_fingerprint, extract_domain_from_url, AnswerFormat, ConfirmAnswerInput,
+    ConfirmationStatus, CreateQuestionInput, CreateSessionInput, NextQuestionIntelligenceResult,
+    PredictNextQuestionInput, Provenance, QuestionStatus, QuestionType, RecognizeSurveyInput,
+    SaveQuestionDraftInput, SessionStatus, SurveyBranchTransition, SurveyMemorySessionDetail,
+    SurveyQuestion, SurveyQuestionPredictionRecord, SurveyRecognitionEvaluation, SurveySession,
+    SurveySessionDetail, SurveySessionSummary, UpdateQuestionInput, UpdateSessionInput,
 };
-use crate::repository::{PersonaRepository, SurveyRepository};
+use crate::repository::{AnswerRepository, PersonaRepository, SurveyRepository};
+use crate::services::{
+    EvidenceEngineService, NextQuestionService, QuestionClassifierService, SurveyRecognitionService,
+};
 
 pub struct SurveyService;
 
@@ -35,6 +43,7 @@ impl SurveyService {
         Self::validate_persona_exists(conn, &input.persona_id)?;
 
         let now = chrono::Utc::now().to_rfc3339();
+        let domain = input.source_url.as_deref().and_then(extract_domain_from_url);
         let session = SurveySession {
             id: Uuid::new_v4().to_string(),
             persona_id: input.persona_id,
@@ -47,6 +56,7 @@ impl SurveyService {
                 .source_url
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty()),
+            source_domain: domain,
             external_survey_id: input
                 .external_survey_id
                 .map(|s| s.trim().to_string())
@@ -58,6 +68,8 @@ impl SurveyService {
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty()),
             fingerprint: None,
+            version: 1,
+            recognized_from_id: None,
             notes: input
                 .notes
                 .map(|s| s.trim().to_string())
@@ -119,6 +131,7 @@ impl SurveyService {
             .source_url
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty());
+        session.source_domain = session.source_url.as_deref().and_then(extract_domain_from_url);
         session.external_survey_id = input
             .external_survey_id
             .map(|s| s.trim().to_string())
@@ -244,7 +257,7 @@ impl SurveyService {
         // Tentukan nomor urutan pertanyaan
         let order = match input.question_order {
             Some(o) if o > 0 => o,
-            _ => SurveyRepository::get_next_question_order(conn, &session.id)?,
+            _ => SurveyRepository::get_next_question_order(conn, &input.persona_id, &session.id)?,
         };
 
         let cleaned_options: Vec<String> = input
@@ -255,12 +268,31 @@ impl SurveyService {
             .filter(|opt| !opt.is_empty())
             .collect();
 
+        let classification = QuestionClassifierService::classify_raw(
+            original_text,
+            input.instructions.as_deref(),
+            Some(&cleaned_options),
+        );
+
+        let q_type = match input.question_type {
+            Some(t) if t != QuestionType::Unknown => t,
+            _ => classification.question_type,
+        };
+
+        let a_format = match input.answer_format {
+            Some(f) if f != AnswerFormat::Unknown => f,
+            _ => classification.answer_format,
+        };
+
+        let structure_val = serde_json::to_value(&classification).ok();
+
         let now = chrono::Utc::now().to_rfc3339();
+        let q_fp = compute_question_fingerprint(original_text, q_type, &cleaned_options);
         let question = SurveyQuestion {
             id: Uuid::new_v4().to_string(),
             session_id: session.id,
             persona_id: input.persona_id,
-            capture_id: None,
+            capture_id: input.capture_id,
             question_order: order,
             question_text_original: original_text.to_string(),
             question_text_corrected: None,
@@ -269,10 +301,10 @@ impl SurveyService {
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty()),
             options: cleaned_options,
-            structure_json: None,
-            extraction_status: "manual".to_string(),
-            question_type: input.question_type.unwrap_or(QuestionType::Unknown),
-            answer_format: input.answer_format.unwrap_or(AnswerFormat::Unknown),
+            structure_json: structure_val,
+            extraction_status: "classified".to_string(),
+            question_type: q_type,
+            answer_format: a_format,
             provenance: input.provenance.unwrap_or(Provenance::UserEntered),
             observation_type: QuestionStatus::Detected,
             confirmation_status: ConfirmationStatus::Draft,
@@ -281,11 +313,24 @@ impl SurveyService {
             confirmed_at: None,
             preceding_question_id: input.preceding_question_id,
             branch_logic: input.branch_logic,
+            question_fingerprint: Some(q_fp),
             created_at: now.clone(),
             updated_at: now,
         };
 
-        SurveyRepository::create_question(conn, &question)
+        let created = SurveyRepository::create_question(conn, &question)?;
+        let _ = SurveyRecognitionService::refresh_session_fingerprint(
+            conn,
+            &created.persona_id,
+            &created.session_id,
+        );
+        let _ = crate::services::NextQuestionService::on_question_detected(
+            conn,
+            &created.persona_id,
+            &created.session_id,
+            &created,
+        );
+        Ok(created)
     }
 
     /// Mengambil satu pertanyaan survei berdasarkan ID
@@ -321,6 +366,10 @@ impl SurveyService {
         Self::validate_persona_exists(conn, &input.persona_id)?;
         let mut question = Self::get_question(conn, &input.persona_id, &input.question_id)?;
 
+        let has_text_change = input.question_text_original.is_some()
+            || input.instructions.is_some()
+            || input.options.is_some();
+
         if let Some(orig) = input.question_text_original {
             let trimmed = orig.trim();
             if trimmed.is_empty() {
@@ -349,6 +398,22 @@ impl SurveyService {
                 .collect();
         }
 
+        if has_text_change {
+            let reclassified = QuestionClassifierService::classify_raw(
+                &question.question_text_original,
+                question.instructions.as_deref(),
+                Some(&question.options),
+            );
+            question.structure_json = serde_json::to_value(&reclassified).ok();
+            question.extraction_status = "classified".to_string();
+            if input.question_type.is_none() {
+                question.question_type = reclassified.question_type;
+            }
+            if input.answer_format.is_none() {
+                question.answer_format = reclassified.answer_format;
+            }
+        }
+
         if let Some(qtype) = input.question_type {
             question.question_type = qtype;
         }
@@ -373,9 +438,21 @@ impl SurveyService {
             question.branch_logic = input.branch_logic;
         }
 
+        let q_fp = compute_question_fingerprint(
+            &question.question_text_original,
+            question.question_type,
+            &question.options,
+        );
+        question.question_fingerprint = Some(q_fp);
         question.updated_at = chrono::Utc::now().to_rfc3339();
 
-        SurveyRepository::update_question(conn, &question)
+        let updated = SurveyRepository::update_question(conn, &question)?;
+        let _ = SurveyRecognitionService::refresh_session_fingerprint(
+            conn,
+            &updated.persona_id,
+            &updated.session_id,
+        );
+        Ok(updated)
     }
 
     /// Menyimpan draf jawaban pengguna secara langsung dan aman (auto-save)
@@ -412,6 +489,7 @@ impl SurveyService {
             ));
         }
 
+        let question = Self::get_question(conn, &input.persona_id, &input.question_id)?;
         let now = chrono::Utc::now().to_rfc3339();
         SurveyRepository::confirm_question_answer(
             conn,
@@ -420,7 +498,35 @@ impl SurveyService {
             trimmed_answer,
             &now,
             &now,
-        )
+        )?;
+
+        // Sinkronisasi transisi percabangan sesi dengan jawaban aktual terkonfirmasi
+        let _ = crate::services::NextQuestionService::sync_session_transitions(
+            conn,
+            &input.persona_id,
+            &question.session_id,
+        );
+
+        // Catat riwayat audit konfirmasi langsung (SC-034 audit trail)
+        let history_item = AnswerHistoryItem {
+            id: Uuid::new_v4().to_string(),
+            persona_id: input.persona_id,
+            question_id: input.question_id,
+            recommendation_id: None,
+            action: ReviewAction::Confirmed,
+            draft_answer: None,
+            actual_answer: trimmed_answer.to_string(),
+            review_status: ReviewStatus::Confirmed.as_str().to_string(),
+            provider_id: None,
+            model_id: None,
+            prompt_version: None,
+            evidence_sources_json: "[]".to_string(),
+            reason: None,
+            created_at: now,
+        };
+        let _ = AnswerRepository::save_history(conn, &history_item);
+
+        Ok(())
     }
 
     /// Menghapus pertanyaan survei
@@ -430,7 +536,7 @@ impl SurveyService {
         question_id: &str,
     ) -> Result<(), AppError> {
         Self::validate_persona_exists(conn, persona_id)?;
-        let _ = Self::get_question(conn, persona_id, question_id)?;
+        let q = Self::get_question(conn, persona_id, question_id)?;
 
         let deleted = SurveyRepository::delete_question(conn, persona_id, question_id)?;
         if !deleted {
@@ -439,7 +545,68 @@ impl SurveyService {
             ));
         }
 
+        let _ = SurveyRecognitionService::refresh_session_fingerprint(
+            conn,
+            persona_id,
+            &q.session_id,
+        );
+
         Ok(())
+    }
+
+    /// Menjalankan klasifikasi deterministik dan ekstraksi batasan pertanyaan (SC-031)
+    pub fn classify_question(
+        conn: &Connection,
+        input: ClassifyQuestionInput,
+    ) -> Result<QuestionClassificationResult, AppError> {
+        if let Some(ref persona_id) = input.persona_id {
+            Self::validate_persona_exists(conn, persona_id)?;
+        }
+
+        if let (Some(ref s_id), Some(ref p_id)) = (&input.session_id, &input.persona_id) {
+            let _ = Self::get_session(conn, p_id, s_id)?;
+        }
+
+        let classification = QuestionClassifierService::classify(&input);
+
+        // Jika question_id dan persona_id diberikan, validasi kepemilikan dan perbarui basis data
+        if let (Some(ref q_id), Some(ref p_id)) = (&input.question_id, &input.persona_id) {
+            match SurveyRepository::get_question(conn, p_id, q_id)? {
+                Some(mut q) => {
+                    q.structure_json = serde_json::to_value(&classification).ok();
+                    q.question_type = classification.question_type;
+                    q.answer_format = classification.answer_format;
+                    q.extraction_status = "classified".to_string();
+                    q.updated_at = chrono::Utc::now().to_rfc3339();
+                    SurveyRepository::update_question(conn, &q)?;
+                }
+                None => {
+                    return Err(AppError::not_found(
+                        "Pertanyaan tidak ditemukan atau bukan milik persona yang aktif",
+                    ));
+                }
+            }
+        }
+
+        Ok(classification)
+    }
+
+    /// Menjalankan pencarian bukti dan evaluasi konsistensi untuk pertanyaan survei (SC-032)
+    pub fn evaluate_evidence(
+        conn: &Connection,
+        input: EvidenceRetrievalInput,
+    ) -> Result<EvidencePackage, AppError> {
+        Self::validate_persona_exists(conn, &input.persona_id)?;
+
+        if let Some(ref s_id) = input.session_id {
+            let _ = Self::get_session(conn, &input.persona_id, s_id)?;
+        }
+
+        if let Some(ref q_id) = input.question_id {
+            let _ = Self::get_question(conn, &input.persona_id, q_id)?;
+        }
+
+        EvidenceEngineService::evaluate_evidence(conn, &input)
     }
 
     // ==========================================
@@ -618,6 +785,109 @@ impl SurveyService {
             .lock()
             .map_err(|_| AppError::database("Basis data sedang tidak tersedia."))?;
         Self::delete_question(&conn, persona_id, question_id)
+    }
+
+    pub fn db_classify_question(
+        db: &Database,
+        input: ClassifyQuestionInput,
+    ) -> Result<QuestionClassificationResult, AppError> {
+        let conn = db
+            .connection
+            .lock()
+            .map_err(|_| AppError::database("Basis data sedang tidak tersedia."))?;
+        Self::classify_question(&conn, input)
+    }
+
+    pub fn db_evaluate_evidence(
+        db: &Database,
+        input: EvidenceRetrievalInput,
+    ) -> Result<EvidencePackage, AppError> {
+        let conn = db
+            .connection
+            .lock()
+            .map_err(|_| AppError::database("Basis data sedang tidak tersedia."))?;
+        Self::evaluate_evidence(&conn, input)
+    }
+
+    // ==========================================
+    // SC-053: SURVEY MEMORY & RECOGNITION
+    // ==========================================
+
+    /// Mengevaluasi pengenalan survei aktif terhadap memori historis (AT-064 & AT-066)
+    pub fn recognize_survey(
+        conn: &Connection,
+        input: &RecognizeSurveyInput,
+    ) -> Result<SurveyRecognitionEvaluation, AppError> {
+        Self::validate_persona_exists(conn, &input.persona_id)?;
+        SurveyRecognitionService::evaluate_recognition(conn, input)
+    }
+
+    /// Mengambil detail Survey Memory dengan pemisahan tegas antara jawaban konfirmasi dan draf AI (AT-064)
+    pub fn get_memory_session_detail(
+        conn: &Connection,
+        persona_id: &str,
+        session_id: &str,
+    ) -> Result<SurveyMemorySessionDetail, AppError> {
+        Self::validate_persona_exists(conn, persona_id)?;
+        SurveyRecognitionService::get_memory_session_detail(conn, persona_id, session_id)
+    }
+
+    pub fn db_recognize_survey(
+        db: &Database,
+        input: RecognizeSurveyInput,
+    ) -> Result<SurveyRecognitionEvaluation, AppError> {
+        let conn = db
+            .connection
+            .lock()
+            .map_err(|_| AppError::database("Basis data sedang tidak tersedia."))?;
+        Self::recognize_survey(&conn, &input)
+    }
+
+    pub fn db_get_memory_session_detail(
+        db: &Database,
+        persona_id: &str,
+        session_id: &str,
+    ) -> Result<SurveyMemorySessionDetail, AppError> {
+        let conn = db
+            .connection
+            .lock()
+            .map_err(|_| AppError::database("Basis data sedang tidak tersedia."))?;
+        Self::get_memory_session_detail(&conn, persona_id, session_id)
+    }
+
+    pub fn db_predict_next_questions(
+        db: &Database,
+        input: PredictNextQuestionInput,
+    ) -> Result<NextQuestionIntelligenceResult, AppError> {
+        let conn = db
+            .connection
+            .lock()
+            .map_err(|_| AppError::database("Basis data sedang tidak tersedia."))?;
+        NextQuestionService::predict_next_questions(&conn, &input)
+    }
+
+    pub fn db_get_session_predictions(
+        db: &Database,
+        persona_id: &str,
+        session_id: &str,
+    ) -> Result<Vec<SurveyQuestionPredictionRecord>, AppError> {
+        let conn = db
+            .connection
+            .lock()
+            .map_err(|_| AppError::database("Basis data sedang tidak tersedia."))?;
+        NextQuestionService::get_session_predictions(&conn, persona_id, session_id)
+    }
+
+    pub fn db_get_session_branch_transitions(
+        db: &Database,
+        persona_id: &str,
+        session_id: &str,
+    ) -> Result<Vec<SurveyBranchTransition>, AppError> {
+        let conn = db
+            .connection
+            .lock()
+            .map_err(|_| AppError::database("Basis data sedang tidak tersedia."))?;
+        NextQuestionService::get_session_branch_transitions(&conn, persona_id, session_id)
     }
 
     // ==========================================

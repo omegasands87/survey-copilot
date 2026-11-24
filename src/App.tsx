@@ -41,13 +41,31 @@ export default function App() {
   const [factError, setFactError] = useState("");
   const [factLoading, setFactLoading] = useState(false);
 
+  const [isOnline, setIsOnline] = useState<boolean>(
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   async function refreshPersonas() {
+    setProfileLoading(true);
     try {
       const result = await personaService.listPersonas(true);
       setPersonas(result);
       setProfileError("");
     } catch (error) {
       setProfileError(AppError.from(error).message);
+    } finally {
+      setProfileLoading(false);
     }
   }
 
@@ -58,6 +76,7 @@ export default function App() {
   const activePersona = personas.find((persona) => persona.isActive);
 
   async function refreshFacts(personaId: string) {
+    setFactLoading(true);
     try {
       const [factList, conflictList] = await Promise.all([
         factService.listFacts(personaId),
@@ -68,6 +87,8 @@ export default function App() {
       setFactError("");
     } catch (error) {
       setFactError(AppError.from(error).message);
+    } finally {
+      setFactLoading(false);
     }
   }
 
@@ -257,13 +278,22 @@ export default function App() {
     <div className="app-shell">
       <Sidebar activePage={page} onSelectPage={setPage} />
 
-      <main className="main-area">
+      <main className="main-area" role="main">
         <Topbar
           title={pageTitles[page]}
           personas={personas.filter((p) => p.status === "active")}
           activePersona={activePersona}
           onSelectPersona={(id) => void handleActivatePersona(id)}
         />
+
+        {!isOnline && (
+          <div className="offline-banner" role="status" aria-live="polite">
+            <span aria-hidden="true">📡</span>
+            <span>
+              <strong>Mode Offline:</strong> Koneksi internet tidak terhubung. Fitur lokal (profil responden, riwayat sesi, evaluasi kesesuaian) tetap berfungsi normal. Permintaan AI eksternal memerlukan koneksi aktif.
+            </span>
+          </div>
+        )}
 
         {page === "home" && (
           <HomeView activePersona={activePersona} onNavigate={setPage} />
@@ -272,6 +302,7 @@ export default function App() {
         {page === "copilot" && (
           <CopilotView
             activePersona={activePersona}
+            onNavigate={setPage}
           />
         )}
 
@@ -285,6 +316,8 @@ export default function App() {
             profileLoading={profileLoading}
             factError={factError}
             factLoading={factLoading}
+            onRefreshPersonas={refreshPersonas}
+            onRefreshFacts={() => activePersona ? refreshFacts(activePersona.id) : Promise.resolve()}
             onCreatePersona={handleCreatePersona}
             onUpdatePersona={handleUpdatePersona}
             onActivatePersona={handleActivatePersona}

@@ -148,6 +148,10 @@ impl DeletionRepository {
         let before = Self::count_all_records(connection)?;
 
         // Execute deletions in cascading and safe order inside the active connection/transaction
+        let _ = connection.execute("DELETE FROM survey_question_predictions", []);
+        let _ = connection.execute("DELETE FROM survey_branch_transitions", []);
+        let _ = connection.execute("DELETE FROM survey_recognitions", []);
+        let _ = connection.execute("DELETE FROM ocr_extractions", []);
         connection.execute("DELETE FROM recommendation_sources", [])?;
         connection.execute("DELETE FROM answer_history", [])?;
         connection.execute("DELETE FROM answer_recommendations", [])?;
@@ -167,6 +171,7 @@ impl DeletionRepository {
         connection.execute("DELETE FROM provider_health", [])?;
         connection.execute("DELETE FROM provider_configs", [])?;
         connection.execute("DELETE FROM app_settings", [])?;
+        connection.execute("DELETE FROM app_diagnostic_logs", [])?;
         connection.execute("DELETE FROM personas", [])?;
 
         // Reset provider pool settings to default

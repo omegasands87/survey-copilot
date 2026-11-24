@@ -205,7 +205,7 @@ impl FactRepository {
                     previous_status, new_status, change_reason, source_id, changed_at
              FROM fact_history
              WHERE fact_id = ?1 AND persona_id = ?2
-             ORDER BY changed_at DESC",
+             ORDER BY changed_at DESC, rowid DESC",
         )?;
 
         let history_rows = hist_stmt.query_map([fact_id, &persona_id], |row| {
@@ -665,5 +665,202 @@ impl FactRepository {
             .collect();
 
         Ok(eligible)
+    }
+
+    /// Mengambil seluruh detail fakta beserta sumber dan riwayatnya untuk persona tertentu.
+    /// Wajib mengisolasi data secara ketat menggunakan WHERE persona_id = ?1.
+    pub fn list_facts_with_sources_by_persona(
+        connection: &Connection,
+        persona_id: &str,
+        include_archived: bool,
+        now_iso: &str,
+    ) -> Result<Vec<ProfileFactDetail>, rusqlite::Error> {
+        let include_archived_int = if include_archived { 1 } else { 0 };
+
+        let mut fact_stmt = connection.prepare(
+            "SELECT f.id, f.persona_id, f.category, COALESCE(f.fact_key, lower(replace(f.attribute, ' ', '_'))),
+                    f.attribute, COALESCE(f.data_type, 'string'), f.value_json,
+                    COALESCE(f.normalized_value, ''), f.unit, f.verification_status, f.sensitivity,
+                    f.source_date, f.valid_from, f.valid_until, f.notes,
+                    f.created_at, f.updated_at, f.archived_at
+             FROM profile_facts f
+             WHERE f.persona_id = ?1 AND (?2 = 1 OR f.archived_at IS NULL)
+             ORDER BY f.category COLLATE NOCASE, f.attribute COLLATE NOCASE",
+        )?;
+
+        let fact_rows =
+            fact_stmt.query_map(rusqlite::params![persona_id, include_archived_int], |row| {
+                let id: String = row.get(0)?;
+                let persona_id: String = row.get(1)?;
+                let category: String = row.get(2)?;
+                let fact_key: String = row.get(3)?;
+                let attribute: String = row.get(4)?;
+                let data_type: String = row.get(5)?;
+                let value_json: String = row.get(6)?;
+                let normalized_value: String = row.get(7)?;
+                let unit: Option<String> = row.get(8)?;
+                let verification_status: String = row.get(9)?;
+                let sensitivity: String = row.get(10)?;
+                let source_date: Option<String> = row.get(11)?;
+                let valid_from: Option<String> = row.get(12)?;
+                let valid_until: Option<String> = row.get(13)?;
+                let notes: Option<String> = row.get(14)?;
+                let created_at: String = row.get(15)?;
+                let updated_at: String = row.get(16)?;
+                let archived_at: Option<String> = row.get(17)?;
+
+                let value = serde_json::from_str(&value_json)
+                    .unwrap_or(serde_json::Value::String(value_json));
+                let is_valid =
+                    check_validity_period(valid_from.as_deref(), valid_until.as_deref(), now_iso);
+
+                Ok((
+                    id,
+                    persona_id,
+                    category,
+                    fact_key,
+                    attribute,
+                    data_type,
+                    value,
+                    normalized_value,
+                    unit,
+                    verification_status,
+                    sensitivity,
+                    source_date,
+                    valid_from,
+                    valid_until,
+                    notes,
+                    is_valid,
+                    created_at,
+                    updated_at,
+                    archived_at,
+                ))
+            })?;
+
+        let raw_facts = fact_rows.collect::<Result<Vec<_>, _>>()?;
+
+        // Ambil semua sumber untuk persona ini
+        let mut source_stmt = connection.prepare(
+            "SELECT id, persona_id, fact_id, source_type, COALESCE(title, description),
+                    description, reference_uri, observed_at, valid_from, valid_until,
+                    notes, created_at
+             FROM fact_sources
+             WHERE persona_id = ?1
+             ORDER BY created_at ASC",
+        )?;
+
+        let source_rows = source_stmt.query_map([persona_id], |row| {
+            Ok(FactSource {
+                id: row.get(0)?,
+                persona_id: row.get(1)?,
+                fact_id: row.get(2)?,
+                source_type: row.get(3)?,
+                title: row.get(4)?,
+                description: row.get(5)?,
+                reference_uri: row.get(6)?,
+                observed_at: row.get(7)?,
+                valid_from: row.get(8)?,
+                valid_until: row.get(9)?,
+                notes: row.get(10)?,
+                created_at: row.get(11)?,
+            })
+        })?;
+
+        let mut sources_by_fact: std::collections::HashMap<String, Vec<FactSource>> =
+            std::collections::HashMap::new();
+        for src_res in source_rows {
+            let src = src_res?;
+            sources_by_fact
+                .entry(src.fact_id.clone())
+                .or_default()
+                .push(src);
+        }
+
+        // Ambil semua riwayat untuk persona ini
+        let mut history_stmt = connection.prepare(
+            "SELECT id, persona_id, fact_id, previous_value_json, new_value_json,
+                    previous_status, new_status, change_reason, source_id, changed_at
+             FROM fact_history
+             WHERE persona_id = ?1
+             ORDER BY changed_at DESC, rowid DESC",
+        )?;
+
+        let history_rows = history_stmt.query_map([persona_id], |row| {
+            Ok(FactHistoryEntry {
+                id: row.get(0)?,
+                persona_id: row.get(1)?,
+                fact_id: row.get(2)?,
+                previous_value_json: row.get(3)?,
+                new_value_json: row.get(4)?,
+                previous_status: row.get(5)?,
+                new_status: row.get(6)?,
+                change_reason: row.get(7)?,
+                source_id: row.get(8)?,
+                changed_at: row.get(9)?,
+            })
+        })?;
+
+        let mut history_by_fact: std::collections::HashMap<String, Vec<FactHistoryEntry>> =
+            std::collections::HashMap::new();
+        for hist_res in history_rows {
+            let hist = hist_res?;
+            history_by_fact
+                .entry(hist.fact_id.clone())
+                .or_default()
+                .push(hist);
+        }
+
+        let mut result = Vec::with_capacity(raw_facts.len());
+        for (
+            id,
+            persona_id,
+            category,
+            fact_key,
+            attribute,
+            data_type,
+            value,
+            normalized_value,
+            unit,
+            verification_status,
+            sensitivity,
+            source_date,
+            valid_from,
+            valid_until,
+            notes,
+            is_valid,
+            created_at,
+            updated_at,
+            archived_at,
+        ) in raw_facts
+        {
+            let sources = sources_by_fact.remove(&id).unwrap_or_default();
+            let history = history_by_fact.remove(&id).unwrap_or_default();
+
+            result.push(ProfileFactDetail {
+                id,
+                persona_id,
+                category,
+                fact_key,
+                attribute,
+                data_type,
+                value,
+                normalized_value,
+                unit,
+                verification_status,
+                sensitivity,
+                source_date,
+                valid_from,
+                valid_until,
+                notes,
+                is_valid,
+                created_at,
+                updated_at,
+                archived_at,
+                sources,
+                history,
+            });
+        }
+
+        Ok(result)
     }
 }

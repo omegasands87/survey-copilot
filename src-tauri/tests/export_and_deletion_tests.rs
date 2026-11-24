@@ -134,9 +134,9 @@ fn test_at_070_export_all_local_data_excludes_secrets() {
         ).expect("insert rec");
 
         conn.execute(
-            "INSERT INTO answer_history (id, question_id, recommendation_id, answer_text, action, created_at)
-             VALUES ('ans-1', 'q-1', 'rec-1', '28 tahun', 'confirmed', '2024-01-01T00:00:00Z')",
-            [],
+            "INSERT INTO answer_history (id, persona_id, question_id, recommendation_id, action, actual_answer, created_at)
+             VALUES ('ans-1', ?1, 'q-1', 'rec-1', 'confirmed', '28 tahun', '2024-01-01T00:00:00Z')",
+            [&p1.id],
         ).expect("insert answer");
     }
 

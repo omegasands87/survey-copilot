@@ -3214,6 +3214,7 @@ name = "survey-copilot"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "png",
  "reqwest",
  "rusqlite",
  "serde",

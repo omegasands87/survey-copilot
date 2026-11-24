@@ -98,6 +98,7 @@ mod tests {
         let migration_count: i64 = connection
             .query_row("SELECT count(*) FROM _migrations", [], |row| row.get(0))
             .expect("query _migrations should succeed");
-        assert_eq!(migration_count, 1);
+        let total_migrations = crate::migrations::get_registered_migrations().len() as i64;
+        assert_eq!(migration_count, total_migrations);
     }
 }

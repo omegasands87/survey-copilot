@@ -82,6 +82,22 @@ impl AppError {
             field: None,
         }
     }
+
+    pub fn security(message: impl Into<String>) -> Self {
+        Self {
+            code: "SECURITY_ERROR".to_string(),
+            message: message.into(),
+            field: None,
+        }
+    }
+
+    pub fn service_unavailable(message: impl Into<String>) -> Self {
+        Self {
+            code: "SERVICE_UNAVAILABLE".to_string(),
+            message: message.into(),
+            field: None,
+        }
+    }
 }
 
 impl fmt::Display for AppError {

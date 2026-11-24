@@ -26,9 +26,17 @@ import { dataManagementService } from "../../services/dataManagementService";
 import { CredentialService } from "../../services/credentialService";
 import { ProviderService } from "../../services/providerService";
 import { ProviderPoolService } from "../../services/providerPoolService";
+import { PrivacyService } from "../../services/privacyService";
+import type {
+  DiagnosticsLogEntry,
+  PrivacySettings,
+  RetentionCleanupResult,
+  RetentionStatus,
+  SystemDiagnosticsInfo,
+} from "../../types/privacy";
 import { AppError } from "../../types/error";
 
-type SettingsTab = "credentials" | "export" | "retention" | "danger";
+type SettingsTab = "credentials" | "privacy" | "export" | "retention" | "danger";
 
 interface SettingsViewProps {
   personas: Persona[];
@@ -143,16 +151,54 @@ export function SettingsView({
   const [isSavingPoolSettings, setIsSavingPoolSettings] = useState(false);
   const [providerHealthList, setProviderHealthList] = useState<ProviderHealthInfo[]>([]);
 
+  // SC-060: Privacy, Retention & Diagnostics States
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings | null>(null);
+  const [isPrivacyLoading, setIsPrivacyLoading] = useState(false);
+  const [privacyErrorMessage, setPrivacyErrorMessage] = useState<string | null>(null);
+  const [privacySuccessMessage, setPrivacySuccessMessage] = useState<string | null>(null);
+  const [systemDiag, setSystemDiag] = useState<SystemDiagnosticsInfo | null>(null);
+  const [retentionStatus, setRetentionStatus] = useState<RetentionStatus | null>(null);
+  const [diagLogs, setDiagLogs] = useState<DiagnosticsLogEntry[]>([]);
+  const [logFilterLevel, setLogFilterLevel] = useState<string>("ALL");
+  const [logFilterCategory, setLogFilterCategory] = useState<string>("ALL");
+  const [isCleaningTemp, setIsCleaningTemp] = useState(false);
+  const [cleanResult, setCleanResult] = useState<RetentionCleanupResult | null>(null);
+  const [isClearingLogs, setIsClearingLogs] = useState(false);
+  const [isSavingPrivacy, setIsSavingPrivacy] = useState(false);
+
+  // Privacy Form States
+  const [privAutoRedact, setPrivAutoRedact] = useState(true);
+  const [privRequireSensitiveConsent, setPrivRequireSensitiveConsent] = useState(true);
+  const [privRequireVisionConsent, setPrivRequireVisionConsent] = useState(true);
+  const [privRetentionPolicy, setPrivRetentionPolicy] = useState<string>("immediate_delete");
+  const [privAutoCleanupOnExit, setPrivAutoCleanupOnExit] = useState(true);
+  const [privLogLevel, setPrivLogLevel] = useState<string>("INFO");
+
   useEffect(() => {
     if (activeTab === "credentials") {
       void loadCredentials();
       void loadProviderConfigs();
       void loadRecommendedModels(newPConfigProviderType);
       void loadPoolData();
+    } else if (activeTab === "privacy") {
+      void loadPrivacyData();
     } else if (activeTab === "retention" && !retentionInfo) {
       void loadRetentionInfo();
     }
   }, [activeTab]);
+
+  // Keyboard navigation: Escape closes active modals
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        if (editingProviderConfig) setEditingProviderConfig(null);
+        else if (editingCred) setEditingCred(null);
+        else if (deletingCred) setDeletingCred(null);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [editingProviderConfig, editingCred, deletingCred]);
 
   async function loadPoolData() {
     try {
@@ -192,6 +238,100 @@ export function SettingsView({
       setProviderErrorMessage(AppError.from(err).message);
     } finally {
       setIsSavingPoolSettings(false);
+    }
+  }
+
+  // SC-060: Privacy & Diagnostics Handlers
+  async function loadPrivacyData(level = logFilterLevel, category = logFilterCategory) {
+    setIsPrivacyLoading(true);
+    setPrivacyErrorMessage(null);
+    try {
+      const [settings, diag, retStatus, logs] = await Promise.all([
+        PrivacyService.getSettings(),
+        PrivacyService.getSystemDiagnostics(),
+        PrivacyService.getRetentionStatus(),
+        PrivacyService.getDiagnosticLogs(
+          100,
+          level === "ALL" ? undefined : level,
+          category === "ALL" ? undefined : category
+        ),
+      ]);
+      setPrivacySettings(settings);
+      setPrivAutoRedact(settings.autoRedactLogs);
+      setPrivRequireSensitiveConsent(settings.requireSensitiveConsentPrompt);
+      setPrivRequireVisionConsent(settings.requireVisionConsentPrompt);
+      setPrivRetentionPolicy(settings.screenshotRetentionPolicy);
+      setPrivAutoCleanupOnExit(settings.autoCleanupTempOnExit);
+      setPrivLogLevel(settings.logLevel);
+
+      setSystemDiag(diag);
+      setRetentionStatus(retStatus);
+      setDiagLogs(logs);
+    } catch (err) {
+      setPrivacyErrorMessage(AppError.from(err).message);
+    } finally {
+      setIsPrivacyLoading(false);
+    }
+  }
+
+  async function handleSavePrivacySettings(e: React.FormEvent) {
+    e.preventDefault();
+    setIsSavingPrivacy(true);
+    setPrivacyErrorMessage(null);
+    setPrivacySuccessMessage(null);
+    try {
+      const updated = await PrivacyService.updateSettings({
+        autoRedactLogs: privAutoRedact,
+        requireSensitiveConsentPrompt: privRequireSensitiveConsent,
+        requireVisionConsentPrompt: privRequireVisionConsent,
+        screenshotRetentionPolicy: privRetentionPolicy,
+        autoCleanupTempOnExit: privAutoCleanupOnExit,
+        logLevel: privLogLevel,
+      });
+      setPrivacySettings(updated);
+      setPrivacySuccessMessage("Pengaturan privasi dan retensi berhasil disimpan.");
+      await loadPrivacyData();
+      setTimeout(() => setPrivacySuccessMessage(null), 4000);
+    } catch (err) {
+      setPrivacyErrorMessage(AppError.from(err).message);
+    } finally {
+      setIsSavingPrivacy(false);
+    }
+  }
+
+  async function handleCleanupTempFiles() {
+    setIsCleaningTemp(true);
+    setPrivacyErrorMessage(null);
+    try {
+      const res = await PrivacyService.cleanupTempFiles({ maxAgeSeconds: 0 });
+      setCleanResult(res);
+      setPrivacySuccessMessage(res.message);
+      const [ret, diag] = await Promise.all([
+        PrivacyService.getRetentionStatus(),
+        PrivacyService.getSystemDiagnostics(),
+      ]);
+      setRetentionStatus(ret);
+      setSystemDiag(diag);
+      setTimeout(() => setPrivacySuccessMessage(null), 4000);
+    } catch (err) {
+      setPrivacyErrorMessage(AppError.from(err).message);
+    } finally {
+      setIsCleaningTemp(false);
+    }
+  }
+
+  async function handleClearDiagnosticLogs() {
+    setIsClearingLogs(true);
+    setPrivacyErrorMessage(null);
+    try {
+      const count = await PrivacyService.clearDiagnosticLogs();
+      setDiagLogs([]);
+      setPrivacySuccessMessage(`Berhasil mengosongkan ${count} entri log diagnostik.`);
+      setTimeout(() => setPrivacySuccessMessage(null), 4000);
+    } catch (err) {
+      setPrivacyErrorMessage(AppError.from(err).message);
+    } finally {
+      setIsClearingLogs(false);
     }
   }
 
@@ -619,6 +759,12 @@ export function SettingsView({
           onClick={() => setActiveTab("credentials")}
         >
           🔑 Kredensial & Provider AI
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "privacy" ? "active" : ""}`}
+          onClick={() => setActiveTab("privacy")}
+        >
+          🛡 Privasi & Diagnostik (SC-060)
         </button>
         <button
           className={`tab-btn ${activeTab === "export" ? "active" : ""}`}
@@ -1210,10 +1356,10 @@ export function SettingsView({
       {/* MODAL EDIT KONFIGURASI PROVIDER (SC-021) */}
       {editingProviderConfig && (
         <div className="modal-backdrop">
-          <div className="modal-dialog">
+          <div className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-edit-provider-title">
             <div className="modal-header">
-              <h3>Ubah Konfigurasi: {editingProviderConfig.displayName}</h3>
-              <button className="text-button" onClick={() => setEditingProviderConfig(null)}>✕</button>
+              <h3 id="modal-edit-provider-title">Ubah Konfigurasi: {editingProviderConfig.displayName}</h3>
+              <button className="text-button" aria-label="Tutup dialog ubah konfigurasi provider" onClick={() => setEditingProviderConfig(null)}>✕</button>
             </div>
             <form onSubmit={handleSaveUpdateProvider}>
               <div className="modal-body">
@@ -1305,10 +1451,10 @@ export function SettingsView({
       {/* MODAL GANTI KUNCI / UPDATE */}
       {editingCred && (
         <div className="modal-backdrop">
-          <div className="modal-dialog">
+          <div className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-update-cred-title">
             <div className="modal-header">
-              <h3>Perbarui Kredensial: {editingCred.label}</h3>
-              <button className="text-button" onClick={() => setEditingCred(null)}>✕</button>
+              <h3 id="modal-update-cred-title">Perbarui Kredensial: {editingCred.label}</h3>
+              <button className="text-button" aria-label="Tutup dialog perbarui kredensial" onClick={() => setEditingCred(null)}>✕</button>
             </div>
             <form onSubmit={handleSaveUpdate}>
               <div className="modal-body">
@@ -1360,10 +1506,10 @@ export function SettingsView({
       {/* MODAL KONFIRMASI HAPUS KREDENSIAL BERSAMA */}
       {deletingCred && (
         <div className="modal-backdrop">
-          <div className="modal-dialog">
+          <div className="modal-dialog" role="alertdialog" aria-modal="true" aria-labelledby="modal-del-cred-title">
             <div className="modal-header">
-              <h3 style={{ color: "#9c2b28" }}>⚠ Kredensial Masih Digunakan Bersama</h3>
-              <button className="text-button" onClick={() => setDeletingCred(null)}>✕</button>
+              <h3 id="modal-del-cred-title" style={{ color: "#9c2b28" }}>⚠ Kredensial Masih Digunakan Bersama</h3>
+              <button className="text-button" aria-label="Tutup dialog peringatan kredensial bersama" onClick={() => setDeletingCred(null)}>✕</button>
             </div>
             <div className="modal-body">
               <p>
@@ -1405,6 +1551,349 @@ export function SettingsView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* TAB PRIVASI & DIAGNOSTIK (SC-060) */}
+      {activeTab === "privacy" && (
+        <section className="settings-tab-content" aria-labelledby="privacy-heading">
+          {privacyErrorMessage && (
+            <div className="alert alert-danger" role="alert" style={{ marginBottom: "16px" }}>
+              {privacyErrorMessage}
+            </div>
+          )}
+
+          {privacySuccessMessage && (
+            <div className="alert alert-success" role="alert" style={{ marginBottom: "16px" }}>
+              {privacySuccessMessage}
+            </div>
+          )}
+
+          {/* KARTU 1: PENGATURAN PRIVASI & PERSETUJUAN */}
+          <div className="card" style={{ marginBottom: "20px" }}>
+            <h3 id="privacy-heading">🛡 Kebijakan Privasi & Persetujuan Eksplisit (SC-060)</h3>
+            <p className="description-text">
+              Atur batas privasi transmisi data keluar ke model AI, kebijakan persetujuan eksplisit per-permintaan, dan retensi tangkapan layar.
+            </p>
+            {privacySettings && (
+              <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "12px" }}>
+                Terakhir diperbarui: {new Date(privacySettings.updatedAt).toLocaleString("id-ID")}
+              </div>
+            )}
+
+            <form onSubmit={(e) => void handleSavePrivacySettings(e)} style={{ display: "grid", gap: "16px" }}>
+              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "14px 16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <strong style={{ fontSize: "13px", color: "#0f172a" }}>🔒 Redaksi Otomatis Log & Diagnostik</strong>
+                    <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                      Seluruh kunci API, Bearer token, password, NIK KTP 16 digit, alamat email, dan nomor telepon otomatis disensor sebelum dicatat.
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "11px", fontWeight: "700", background: "#dcfce7", color: "#15803d", padding: "4px 10px", borderRadius: "20px" }}>
+                    ✓ Aktif & Terlindungi
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div className="form-group">
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "600", fontSize: "13px" }}>
+                    <input
+                      type="checkbox"
+                      checked={privRequireSensitiveConsent}
+                      onChange={(e) => setPrivRequireSensitiveConsent(e.target.checked)}
+                    />
+                    Wajibkan Izin Fakta Profil Sensitif
+                  </label>
+                  <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#64748b" }}>
+                    Model AI tidak akan menerima data berlabel sensitif (pendapatan, agama, identitas) tanpa izin per-permintaan.
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "600", fontSize: "13px" }}>
+                    <input
+                      type="checkbox"
+                      checked={privRequireVisionConsent}
+                      onChange={(e) => setPrivRequireVisionConsent(e.target.checked)}
+                    />
+                    Wajibkan Izin External Vision
+                  </label>
+                  <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#64748b" }}>
+                    Gambar tangkapan layar dilarang dikirimkan ke model visual eksternal tanpa persetujuan eksplisit per-permintaan.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div className="form-group">
+                  <label style={{ fontWeight: "600", fontSize: "13px", color: "#334155" }}>
+                    Kebijakan Retensi Screenshot Sementara:
+                  </label>
+                  <select
+                    value={privRetentionPolicy}
+                    onChange={(e) => setPrivRetentionPolicy(e.target.value)}
+                    className="select-input"
+                    style={{ marginTop: "4px" }}
+                  >
+                    <option value="immediate_delete">Hapus Segera Setelah OCR Selesai (Rekomendasi Privasi)</option>
+                    <option value="retain_1_hour">Simpan Maksimal 1 Jam</option>
+                    <option value="retain_24_hours">Simpan Maksimal 24 Jam</option>
+                    <option value="retain_manual_only">Pertahankan Hingga Pembersihan Manual</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label style={{ fontWeight: "600", fontSize: "13px", color: "#334155" }}>
+                    Level Logging Diagnostik:
+                  </label>
+                  <select
+                    value={privLogLevel}
+                    onChange={(e) => setPrivLogLevel(e.target.value)}
+                    className="select-input"
+                    style={{ marginTop: "4px" }}
+                  >
+                    <option value="INFO">INFO (Normal)</option>
+                    <option value="WARN">WARN (Peringatan & Error)</option>
+                    <option value="ERROR">ERROR (Hanya Error)</option>
+                    <option value="DEBUG">DEBUG (Diagnostik Mendalam)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "600", fontSize: "13px" }}>
+                  <input
+                    type="checkbox"
+                    checked={privAutoCleanupOnExit}
+                    onChange={(e) => setPrivAutoCleanupOnExit(e.target.checked)}
+                  />
+                  Bersihkan Seluruh Berkas Sementara saat Aplikasi Ditutup (Auto-cleanup on Exit)
+                </label>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isSavingPrivacy}
+                  style={{ background: "#0f6642", borderColor: "#0f6642" }}
+                >
+                  {isSavingPrivacy ? "Menyimpan..." : "💾 Simpan Pengaturan Privasi"}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* KARTU 2: PEMBERSIHAN BERKAS SEMENTARA */}
+          <div className="card" style={{ marginBottom: "20px" }}>
+            <h3>🧹 Penyimpanan Sementara & Pembersihan Screenshot</h3>
+            <p className="description-text">
+              Kelola penggunaan disk untuk gambar tangkapan layar sementara di folder <code>temp_captures</code>.
+            </p>
+
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "14px 16px", marginBottom: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "13px" }}>
+                <div>
+                  <span style={{ color: "#64748b" }}>Direktori Cache Sementara:</span>
+                  <div style={{ fontWeight: "600", wordBreak: "break-all", marginTop: "2px" }}>
+                    <code>{retentionStatus?.tempDirectoryPath || "app_data/temp_captures"}</code>
+                  </div>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>Berkas Screenshot Tersimpan:</span>
+                  <div style={{ fontWeight: "700", fontSize: "15px", color: "#0f172a", marginTop: "2px" }}>
+                    {retentionStatus?.tempFileCount || 0} berkas ({((retentionStatus?.tempTotalBytes || 0) / 1024).toFixed(1)} KB)
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => void handleCleanupTempFiles()}
+                disabled={isCleaningTemp}
+              >
+                {isCleaningTemp ? "Membersihkan..." : "🧹 Bersihkan Berkas Sementara Sekarang"}
+              </button>
+              {cleanResult && (
+                <span style={{ fontSize: "12px", color: "#059669", fontWeight: "600" }}>
+                  ✓ {cleanResult.message}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* KARTU 3: DIAGNOSTIK SISTEM & KESEHATAN APLIKASI */}
+          <div className="card" style={{ marginBottom: "20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <h3 style={{ margin: 0 }}>📊 Diagnostik Sistem & Basis Data</h3>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => void loadPrivacyData()}
+                disabled={isPrivacyLoading}
+                style={{ fontSize: "12px", padding: "4px 12px" }}
+              >
+                {isPrivacyLoading ? "Memuat..." : "🔄 Segarkan Diagnostik"}
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
+              <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "12px" }}>
+                <div style={{ fontSize: "11px", color: "#64748b" }}>Versi Aplikasi & Platform</div>
+                <strong style={{ fontSize: "14px", color: "#0f172a" }}>v{systemDiag?.appVersion || "0.1.0"}</strong>
+                <div style={{ fontSize: "11px", color: "#94a3b8" }}>OS: {systemDiag?.osPlatform || "windows"}</div>
+              </div>
+
+              <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "12px" }}>
+                <div style={{ fontSize: "11px", color: "#64748b" }}>SQLite & Skema Migrasi</div>
+                <strong style={{ fontSize: "14px", color: "#0f172a" }}>v{systemDiag?.sqliteVersion || "3.x"}</strong>
+                <div style={{ fontSize: "11px", color: "#059669" }}>Migrasi: v{systemDiag?.dbSchemaVersion || 13}</div>
+              </div>
+
+              <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "12px" }}>
+                <div style={{ fontSize: "11px", color: "#64748b" }}>Ukuran Basis Data & WAL</div>
+                <strong style={{ fontSize: "14px", color: "#0f172a" }}>
+                  {((systemDiag?.totalDbSizeBytes || 0) / 1024).toFixed(1)} KB
+                </strong>
+                <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                  WAL: {((systemDiag?.walSizeBytes || 0) / 1024).toFixed(1)} KB
+                </div>
+              </div>
+
+              <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "12px" }}>
+                <div style={{ fontSize: "11px", color: "#64748b" }}>Penyimpanan Kredensial</div>
+                <strong style={{ fontSize: "13px", color: "#0f172a" }}>
+                  {systemDiag?.credentialStoreType || "Windows Credential Manager"}
+                </strong>
+                <div style={{ fontSize: "11px", color: "#059669" }}>✓ Native OS Vault</div>
+              </div>
+            </div>
+          </div>
+
+          {/* KARTU 4: PENAMPIL LOG DIAGNOSTIK TEREDAKSI */}
+          <div className="card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <div>
+                <h3 style={{ margin: 0 }}>📝 Penampil Log Diagnostik Aman (Redacted Logs)</h3>
+                <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>
+                  Seluruh log disimpan secara lokal dan telah melalui penyensoran otomatis mutlak (anti-leak PII & Secret).
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => void handleClearDiagnosticLogs()}
+                disabled={isClearingLogs || diagLogs.length === 0}
+                style={{ fontSize: "12px", padding: "4px 12px" }}
+              >
+                {isClearingLogs ? "Mengosongkan..." : "🗑 Kosongkan Log"}
+              </button>
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
+              <select
+                value={logFilterLevel}
+                onChange={(e) => {
+                  setLogFilterLevel(e.target.value);
+                  void loadPrivacyData(e.target.value, logFilterCategory);
+                }}
+                className="select-input"
+                style={{ maxWidth: "160px", fontSize: "12px" }}
+              >
+                <option value="ALL">Semua Level</option>
+                <option value="INFO">INFO</option>
+                <option value="WARN">WARN</option>
+                <option value="ERROR">ERROR</option>
+                <option value="DEBUG">DEBUG</option>
+              </select>
+
+              <select
+                value={logFilterCategory}
+                onChange={(e) => {
+                  setLogFilterCategory(e.target.value);
+                  void loadPrivacyData(logFilterLevel, e.target.value);
+                }}
+                className="select-input"
+                style={{ maxWidth: "200px", fontSize: "12px" }}
+              >
+                <option value="ALL">Semua Kategori</option>
+                <option value="AI_PROVIDER">AI_PROVIDER</option>
+                <option value="SCREEN_CAPTURE">SCREEN_CAPTURE</option>
+                <option value="DATA_RETENTION">DATA_RETENTION</option>
+                <option value="SECURITY">SECURITY</option>
+                <option value="SYSTEM">SYSTEM</option>
+              </select>
+            </div>
+
+            {diagLogs.length === 0 ? (
+              <p style={{ fontSize: "12px", color: "#94a3b8", fontStyle: "italic", margin: 0 }}>
+                Belum ada rekaman log diagnostik pada filter ini.
+              </p>
+            ) : (
+              <div style={{ maxHeight: "300px", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "6px" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                  <thead>
+                    <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", textAlign: "left" }}>
+                      <th style={{ padding: "8px 12px", width: "160px" }}>Waktu (UTC)</th>
+                      <th style={{ padding: "8px 12px", width: "80px" }}>Level</th>
+                      <th style={{ padding: "8px 12px", width: "130px" }}>Kategori</th>
+                      <th style={{ padding: "8px 12px" }}>Pesan Log (Teredaksi)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {diagLogs.map((log) => (
+                      <tr key={log.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "6px 12px", color: "#64748b", fontSize: "11px" }}>
+                          {new Date(log.timestamp).toLocaleString("id-ID")}
+                        </td>
+                        <td style={{ padding: "6px 12px" }}>
+                          <span
+                            style={{
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              fontSize: "10px",
+                              fontWeight: "700",
+                              background:
+                                log.level === "ERROR"
+                                  ? "#fee2e2"
+                                  : log.level === "WARN"
+                                  ? "#fef3c7"
+                                  : "#e0f2fe",
+                              color:
+                                log.level === "ERROR"
+                                  ? "#991b1b"
+                                  : log.level === "WARN"
+                                  ? "#92400e"
+                                  : "#0369a1",
+                            }}
+                          >
+                            {log.level}
+                          </span>
+                        </td>
+                        <td style={{ padding: "6px 12px", fontWeight: "600", color: "#334155" }}>
+                          {log.category}
+                        </td>
+                        <td style={{ padding: "6px 12px", color: "#0f172a" }}>
+                          {log.message}
+                          {log.metadataJson && (
+                            <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "2px", fontFamily: "monospace" }}>
+                              {log.metadataJson}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </section>
       )}
 
       {/* TAB 2: EKSPOR DATA (SC-012) */}

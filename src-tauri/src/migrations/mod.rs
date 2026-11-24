@@ -447,6 +447,46 @@ pub fn get_registered_migrations() -> Vec<Migration> {
             "0005_survey_sessions_and_questions",
             include_str!("../../migrations/0005_survey_sessions_and_questions.sql"),
         ),
+        Migration::new(
+            6,
+            "0006_answer_recommendations_fields",
+            include_str!("../../migrations/0006_answer_recommendations_fields.sql"),
+        ),
+        Migration::new(
+            7,
+            "0007_review_actions_and_history",
+            include_str!("../../migrations/0007_review_actions_and_history.sql"),
+        ),
+        Migration::new(
+            8,
+            "0008_ocr_extractions",
+            include_str!("../../migrations/0008_ocr_extractions.sql"),
+        ),
+        Migration::new(
+            9,
+            "0009_survey_opportunities_and_criteria",
+            include_str!("../../migrations/0009_survey_opportunities_and_criteria.sql"),
+        ),
+        Migration::new(
+            10,
+            "0010_survey_attempts_indexes",
+            include_str!("../../migrations/0010_survey_attempts_indexes.sql"),
+        ),
+        Migration::new(
+            11,
+            "0011_survey_memory_and_recognition",
+            include_str!("../../migrations/0011_survey_memory_and_recognition.sql"),
+        ),
+        Migration::new(
+            12,
+            "0012_next_question_intelligence_and_branch_prediction",
+            include_str!("../../migrations/0012_next_question_intelligence_and_branch_prediction.sql"),
+        ),
+        Migration::new(
+            13,
+            "0013_privacy_settings_and_diagnostics",
+            include_str!("../../migrations/0013_privacy_settings_and_diagnostics.sql"),
+        ),
     ]
 }
 
@@ -686,40 +726,31 @@ mod tests {
         let mut conn = Connection::open_in_memory().expect("in-memory db should open");
 
         // Simulate an existing database created before SC-003:
-        // has `personas` and `schema_migrations`, but NO `_migrations` table
+        // has full initial schema and `schema_migrations`, but NO `_migrations` table
+        conn.execute_batch(include_str!("../../migrations/0001_initial.sql"))
+            .unwrap();
         conn.execute_batch(
-            "CREATE TABLE personas (
-                id TEXT PRIMARY KEY,
-                display_name TEXT NOT NULL,
-                is_active INTEGER NOT NULL DEFAULT 1,
-                status TEXT NOT NULL DEFAULT 'active',
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
-            );
-            CREATE TABLE schema_migrations (
-                version INTEGER PRIMARY KEY,
-                applied_at TEXT NOT NULL
-            );
-            INSERT INTO schema_migrations (version, applied_at)
-            VALUES (1, '2026-11-20T12:00:00Z');
+            "UPDATE schema_migrations SET applied_at = '2026-11-20T12:00:00Z' WHERE version = 1;
             INSERT INTO personas (id, display_name, is_active, status, created_at, updated_at)
             VALUES ('p-existing', 'Budi Santoso', 1, 'active', '2026-11-20T12:00:00Z', '2026-11-20T12:00:00Z');",
         )
         .unwrap();
 
         let runner = MigrationRunner::with_app_migrations();
+        let expected_applied = (runner.migrations().len() - 1) as usize;
+        let expected_total = runner.migrations().len() as i64;
         let report = runner
             .run(&mut conn)
             .expect("baseline adoption should succeed");
 
-        assert_eq!(report.applied_count, 0);
+        assert_eq!(report.applied_count, expected_applied);
         assert_eq!(report.skipped_count, 1);
 
         // Verify _migrations table was created
         let count: i64 = conn
             .query_row("SELECT count(*) FROM _migrations", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(count, 1);
+        assert_eq!(count, expected_total);
 
         let (ver, name, applied_at): (i64, String, String) = conn
             .query_row(
@@ -762,6 +793,7 @@ mod tests {
         .unwrap();
 
         let runner = MigrationRunner::with_app_migrations();
+        let max_ver = runner.max_version();
         let result = runner.run(&mut conn);
         match result {
             Err(MigrationError::UnknownFutureVersion {
@@ -769,7 +801,7 @@ mod tests {
                 max_known_version,
             }) => {
                 assert_eq!(recorded_version, 99);
-                assert_eq!(max_known_version, 1);
+                assert_eq!(max_known_version, max_ver);
             }
             other => panic!("Expected UnknownFutureVersion error, got: {other:?}"),
         }

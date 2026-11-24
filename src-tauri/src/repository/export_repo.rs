@@ -453,13 +453,13 @@ impl ExportRepository {
     ) -> Result<Vec<ExportAnswerHistory>, rusqlite::Error> {
         let mut result = Vec::new();
         let query = if persona_id.is_some() {
-            "SELECT ah.id, ah.question_id, ah.recommendation_id, ah.answer_text, ah.action, ah.created_at
+            "SELECT ah.id, ah.question_id, ah.recommendation_id, ah.actual_answer, ah.action, ah.created_at
              FROM answer_history ah
              JOIN survey_questions sq ON ah.question_id = sq.id
              JOIN survey_sessions ss ON sq.session_id = ss.id
              WHERE ss.persona_id = ?1 ORDER BY ah.created_at ASC"
         } else {
-            "SELECT id, question_id, recommendation_id, answer_text, action, created_at
+            "SELECT id, question_id, recommendation_id, actual_answer, action, created_at
              FROM answer_history ORDER BY created_at ASC"
         };
 

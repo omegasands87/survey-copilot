@@ -64,13 +64,15 @@ impl DeletionService {
 
         // Jika direktori aplikasi diberikan, bersihkan subdirektori temporary / captures jika ada
         if let Some(data_dir) = app_data_dir {
-            let captures_dir = data_dir.join("captures");
-            if captures_dir.exists() && captures_dir.is_dir() {
-                if let Ok(entries) = std::fs::read_dir(&captures_dir) {
-                    for entry in entries.flatten() {
-                        let path = entry.path();
-                        if path.is_file() && std::fs::remove_file(path).is_ok() {
-                            deleted_files_count += 1;
+            for sub in &["captures", "temp_captures"] {
+                let dir = data_dir.join(sub);
+                if dir.exists() && dir.is_dir() {
+                    if let Ok(entries) = std::fs::read_dir(&dir) {
+                        for entry in entries.flatten() {
+                            let path = entry.path();
+                            if path.is_file() && std::fs::remove_file(path).is_ok() {
+                                deleted_files_count += 1;
+                            }
                         }
                     }
                 }

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import type { Persona, PersonaDependencySummary } from "../../types/persona";
 import type {
   ConflictWarning,
@@ -22,6 +22,8 @@ interface ProfilesViewProps {
   profileLoading: boolean;
   factError: string;
   factLoading: boolean;
+  onRefreshPersonas?: () => Promise<void>;
+  onRefreshFacts?: () => Promise<void>;
   onCreatePersona: (displayName: string, description?: string) => Promise<void>;
   onUpdatePersona: (personaId: string, displayName: string, description?: string) => Promise<void>;
   onActivatePersona: (personaId: string) => Promise<void>;
@@ -57,6 +59,8 @@ export function ProfilesView({
   profileLoading,
   factError,
   factLoading,
+  onRefreshPersonas,
+  onRefreshFacts,
   onCreatePersona,
   onUpdatePersona,
   onActivatePersona,
@@ -72,6 +76,13 @@ export function ProfilesView({
   onAddFactSource,
   onDeleteFact,
 }: ProfilesViewProps) {
+  // Success state notification
+  const [successMessage, setSuccessMessage] = useState("");
+  function showSuccess(msg: string) {
+    setSuccessMessage(msg);
+    setTimeout(() => setSuccessMessage(""), 4000);
+  }
+
   // New persona form
   const [profileName, setProfileName] = useState("");
   const [profileDescription, setProfileDescription] = useState("");
@@ -92,6 +103,48 @@ export function ProfilesView({
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
+  // Conflict modal
+  const [showConflictModal, setShowConflictModal] = useState(false);
+
+  // Fact edit & detail modal
+  const [editingFact, setEditingFact] = useState<ProfileFact | null>(null);
+  const [editFactValue, setEditFactValue] = useState("");
+  const [editFactUnit, setEditFactUnit] = useState("");
+  const [editFactValidUntil, setEditFactValidUntil] = useState("");
+  const [editFactReason, setEditFactReason] = useState("");
+  const [editFactSubmitting, setEditFactSubmitting] = useState(false);
+
+  const [selectedFactDetail, setSelectedFactDetail] = useState<ProfileFactDetail | null>(null);
+  const [addingSourceFactId, setAddingSourceFactId] = useState<string | null>(null);
+  const [newSourceType, setNewSourceType] = useState<SourceType>("manual_entry");
+  const [newSourceTitle, setNewSourceTitle] = useState("");
+  const [newSourceDesc, setNewSourceDesc] = useState("");
+  const [newSourceRef, setNewSourceRef] = useState("");
+  const [newSourceSubmitting, setNewSourceSubmitting] = useState(false);
+
+  // Keyboard navigation & accessibility: Escape key closes active modal
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        if (editingPersona) setEditingPersona(null);
+        else if (deletingPersona) setDeletingPersona(null);
+        else if (editingFact) setEditingFact(null);
+        else if (addingSourceFactId) setAddingSourceFactId(null);
+        else if (selectedFactDetail) setSelectedFactDetail(null);
+        else if (showConflictModal) setShowConflictModal(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    editingPersona,
+    deletingPersona,
+    editingFact,
+    addingSourceFactId,
+    selectedFactDetail,
+    showConflictModal,
+  ]);
+
   // Fact creation form
   const [factCategory, setFactCategory] = useState("Demografi");
   const [factAttribute, setFactAttribute] = useState("");
@@ -108,28 +161,6 @@ export function ProfilesView({
   const [newFactStatus, setNewFactStatus] = useState<VerificationStatus>("unverified");
   const [factSensitivity, setFactSensitivity] = useState<Sensitivity>("ordinary");
 
-  // Fact detail modal state
-  const [selectedFactDetail, setSelectedFactDetail] = useState<ProfileFactDetail | null>(null);
-
-  // Add source to existing fact modal state
-  const [addingSourceFactId, setAddingSourceFactId] = useState<string | null>(null);
-  const [newSourceType, setNewSourceType] = useState<SourceType>("uploaded_document");
-  const [newSourceTitle, setNewSourceTitle] = useState("");
-  const [newSourceDesc, setNewSourceDesc] = useState("");
-  const [newSourceRef, setNewSourceRef] = useState("");
-  const [newSourceSubmitting, setNewSourceSubmitting] = useState(false);
-
-  // Edit fact modal state
-  const [editingFact, setEditingFact] = useState<ProfileFact | null>(null);
-  const [editFactValue, setEditFactValue] = useState("");
-  const [editFactUnit, setEditFactUnit] = useState("");
-  const [editFactReason, setEditFactReason] = useState("");
-  const [editFactValidUntil, setEditFactValidUntil] = useState("");
-  const [editFactSubmitting, setEditFactSubmitting] = useState(false);
-
-  // Conflict view modal
-  const [showConflictModal, setShowConflictModal] = useState(false);
-
   // Handlers for Persona
   async function handleCreatePersona(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -138,6 +169,7 @@ export function ProfilesView({
     await onCreatePersona(name, profileDescription.trim() || undefined);
     setProfileName("");
     setProfileDescription("");
+    showSuccess(`Profil responden "${name}" berhasil dibuat.`);
   }
 
   function openEditModal(persona: Persona) {
@@ -155,6 +187,7 @@ export function ProfilesView({
     try {
       await onUpdatePersona(editingPersona.id, name, editDescription.trim() || undefined);
       setEditingPersona(null);
+      showSuccess(`Profil responden "${name}" berhasil diperbarui.`);
     } finally {
       setEditSubmitting(false);
     }
@@ -177,8 +210,10 @@ export function ProfilesView({
     if (!deletingPersona) return;
     setDeleteSubmitting(true);
     try {
+      const name = deletingPersona.displayName;
       await onDeletePersona(deletingPersona.id);
       setDeletingPersona(null);
+      showSuccess(`Profil responden "${name}" beserta seluruh data berhasil dihapus.`);
     } finally {
       setDeleteSubmitting(false);
     }
@@ -280,7 +315,7 @@ export function ProfilesView({
   const archivedCount = personas.filter((p) => p.status === "archived").length;
 
   return (
-    <section className="content profile-content">
+    <section className="content profile-content" role="region" aria-label="Kelola Profil Responden">
       <div className="section-heading">
         <div>
           <span className="eyebrow">DIGITAL PERSONA</span>
@@ -288,6 +323,44 @@ export function ProfilesView({
         </div>
         <span className="coming-soon">Data disimpan lokal & terisolasi di perangkat ini</span>
       </div>
+
+      {/* Notifikasi Global Profil */}
+      {successMessage && (
+        <div className="notice" role="status" aria-live="polite" style={{ background: "#eef8f2", color: "#156236", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span aria-hidden="true">✓</span>
+            <p style={{ margin: 0 }}>{successMessage}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccessMessage("")}
+            aria-label="Tutup notifikasi sukses"
+            style={{ background: "transparent", border: 0, cursor: "pointer", color: "#156236", fontWeight: "bold" }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {profileError && (
+        <div className="notice" role="alert" style={{ background: "#fdf2f2", color: "#a12020", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span aria-hidden="true">⚠️</span>
+            <p style={{ margin: 0 }}>{profileError}</p>
+          </div>
+          {onRefreshPersonas && (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => void onRefreshPersonas()}
+              aria-label="Coba muat ulang daftar profil"
+              style={{ padding: "4px 10px", fontSize: "11px" }}
+            >
+              🔄 Coba Lagi
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Tambah Profil Baru */}
       <form className="profile-form" onSubmit={handleCreatePersona}>
@@ -302,11 +375,13 @@ export function ProfilesView({
             maxLength={80}
             placeholder="Nama lengkap responden asli (contoh: Budi Santoso)"
             required
+            aria-required="true"
           />
           <button
             className="primary-button"
             type="submit"
             disabled={!profileName.trim() || profileLoading}
+            aria-label="Simpan profil responden baru"
           >
             {profileLoading ? "Menyimpan..." : "Tambah profil"}
           </button>
@@ -317,6 +392,7 @@ export function ProfilesView({
             onChange={(event) => setProfileDescription(event.target.value)}
             maxLength={500}
             placeholder="Deskripsi singkat atau catatan responden (opsional)"
+            aria-label="Deskripsi singkat profil (opsional)"
             style={{
               width: "100%",
               border: "1px solid #dce4de",
@@ -328,7 +404,6 @@ export function ProfilesView({
           />
         </div>
       </form>
-      {profileError && <p className="error-message" style={{ marginTop: 8 }}>{profileError}</p>}
 
       {/* Filter Tabs Persona */}
       <div className="filter-tabs">
@@ -399,6 +474,7 @@ export function ProfilesView({
                       className="secondary-button"
                       onClick={() => void onActivatePersona(persona.id)}
                       title="Gunakan profil ini sebagai responden aktif untuk rekomendasi survei"
+                      aria-label={`Jadikan profil ${persona.displayName} sebagai responden aktif`}
                     >
                       Jadikan Aktif
                     </button>
@@ -409,8 +485,9 @@ export function ProfilesView({
                       className="text-button"
                       onClick={() => openEditModal(persona)}
                       title="Ubah nama dan deskripsi profil"
+                      aria-label={`Ubah nama dan deskripsi profil ${persona.displayName}`}
                     >
-                      Edit
+                      Ubah
                     </button>
                   )}
 
@@ -419,6 +496,7 @@ export function ProfilesView({
                       className="text-button"
                       onClick={() => void onRestorePersona(persona.id)}
                       title="Pulihkan profil ke daftar aktif"
+                      aria-label={`Pulihkan profil ${persona.displayName} ke daftar aktif`}
                     >
                       Pulihkan
                     </button>
@@ -427,6 +505,7 @@ export function ProfilesView({
                       className="text-button"
                       onClick={() => void onArchivePersona(persona.id)}
                       title="Arsipkan profil ini"
+                      aria-label={`Arsipkan profil ${persona.displayName}`}
                     >
                       Arsipkan
                     </button>
@@ -436,6 +515,7 @@ export function ProfilesView({
                     className="danger-button"
                     onClick={() => void openDeleteModal(persona)}
                     title="Hapus profil ini beserta seluruh datanya secara permanen"
+                    aria-label={`Hapus profil ${persona.displayName} secara permanen`}
                   >
                     Hapus
                   </button>
@@ -681,12 +761,30 @@ export function ProfilesView({
             </button>
           </form>
 
-          {factError && <p className="error-message" style={{ marginTop: 8 }}>{factError}</p>}
+          {factError && (
+            <div className="notice" role="alert" style={{ background: "#fdf2f2", color: "#a12020", marginTop: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span aria-hidden="true">⚠️</span>
+                <p style={{ margin: 0 }}>{factError}</p>
+              </div>
+              {onRefreshFacts && (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => void onRefreshFacts()}
+                  aria-label="Coba muat ulang fakta profil"
+                  style={{ padding: "4px 10px", fontSize: "11px" }}
+                >
+                  🔄 Coba Lagi
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Daftar Kartu Fakta */}
           <div style={{ marginTop: 20, display: "grid", gap: 12 }}>
             {facts.length === 0 ? (
-              <div className="empty-inline">
+              <div className="empty-inline" role="status">
                 Belum ada fakta profil tersimpan untuk {activePersona.displayName}. Gunakan formulir di atas untuk mencatat fakta nyata responden.
               </div>
             ) : (
@@ -808,8 +906,9 @@ export function ProfilesView({
                         className="secondary-button"
                         style={{ fontSize: 11, padding: "5px 10px" }}
                         onClick={() => openEditFact(fact)}
+                        aria-label={`Ubah nilai fakta ${fact.attribute}`}
                       >
-                        Edit Nilai
+                        Ubah Nilai
                       </button>
 
                       <button
@@ -817,6 +916,7 @@ export function ProfilesView({
                         className="secondary-button"
                         style={{ fontSize: 11, padding: "5px 10px" }}
                         onClick={() => openFactDetail(fact.id)}
+                        aria-label={`Detail dan riwayat sumber bukti fakta ${fact.attribute} (${fact.sourcesCount} sumber)`}
                       >
                         Detail & Riwayat ({fact.sourcesCount})
                       </button>
@@ -826,8 +926,9 @@ export function ProfilesView({
                         className="text-button"
                         style={{ color: "#8a5814" }}
                         onClick={() => void onUpdateFactStatus(fact.id, "outdated")}
+                        aria-label={`Tandai fakta ${fact.attribute} sebagai kadaluarsa atau usang`}
                       >
-                        Tandai Outdated
+                        Tandai Usang (Outdated)
                       </button>
 
                       <button
@@ -835,6 +936,7 @@ export function ProfilesView({
                         className="danger-button"
                         style={{ marginLeft: "auto", padding: "5px 10px" }}
                         onClick={() => void onDeleteFact(fact.id)}
+                        aria-label={`Hapus fakta ${fact.attribute}`}
                       >
                         Hapus
                       </button>
@@ -850,12 +952,13 @@ export function ProfilesView({
       {/* Modal Edit Persona */}
       {editingPersona && (
         <div className="modal-backdrop">
-          <div className="modal-dialog">
+          <div className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-edit-persona-title">
             <div className="modal-header">
-              <h3>Edit Profil Responden</h3>
+              <h3 id="modal-edit-persona-title">Edit Profil Responden</h3>
               <button
                 type="button"
                 className="text-button"
+                aria-label="Tutup dialog edit profil"
                 onClick={() => setEditingPersona(null)}
               >
                 ✕
@@ -908,12 +1011,13 @@ export function ProfilesView({
       {/* Modal Konfirmasi Hapus Persona */}
       {deletingPersona && (
         <div className="modal-backdrop">
-          <div className="modal-dialog">
+          <div className="modal-dialog" role="alertdialog" aria-modal="true" aria-labelledby="modal-delete-persona-title">
             <div className="modal-header">
-              <h3 style={{ color: "#b23a36" }}>Hapus Profil Responden</h3>
+              <h3 id="modal-delete-persona-title" style={{ color: "#b23a36" }}>Hapus Profil Responden</h3>
               <button
                 type="button"
                 className="text-button"
+                aria-label="Tutup dialog konfirmasi hapus"
                 onClick={() => setDeletingPersona(null)}
               >
                 ✕
@@ -1005,10 +1109,15 @@ export function ProfilesView({
       {/* Modal Edit Fakta (SC-011) */}
       {editingFact && (
         <div className="modal-backdrop">
-          <div className="modal-dialog">
+          <div className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-edit-fact-title">
             <div className="modal-header">
-              <h3>Edit Fakta: {editingFact.attribute}</h3>
-              <button type="button" className="text-button" onClick={() => setEditingFact(null)}>
+              <h3 id="modal-edit-fact-title">Edit Fakta: {editingFact.attribute}</h3>
+              <button
+                type="button"
+                className="text-button"
+                aria-label="Tutup dialog edit fakta"
+                onClick={() => setEditingFact(null)}
+              >
                 ✕
               </button>
             </div>
@@ -1074,15 +1183,20 @@ export function ProfilesView({
       {/* Modal Detail Fakta, Sumber Bukti, dan Riwayat (SC-011) */}
       {selectedFactDetail && (
         <div className="modal-backdrop">
-          <div className="modal-dialog" style={{ maxWidth: 650 }}>
+          <div className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-detail-fact-title" style={{ maxWidth: 650 }}>
             <div className="modal-header">
               <div>
-                <h3 style={{ margin: 0 }}>Detail Fakta: {selectedFactDetail.attribute}</h3>
+                <h3 id="modal-detail-fact-title" style={{ margin: 0 }}>Detail Fakta: {selectedFactDetail.attribute}</h3>
                 <span style={{ fontSize: 11, color: "var(--muted)" }}>
                   Kategori: {selectedFactDetail.category} | Key: {selectedFactDetail.factKey}
                 </span>
               </div>
-              <button type="button" className="text-button" onClick={() => setSelectedFactDetail(null)}>
+              <button
+                type="button"
+                className="text-button"
+                aria-label="Tutup dialog detail fakta"
+                onClick={() => setSelectedFactDetail(null)}
+              >
                 ✕
               </button>
             </div>
@@ -1187,10 +1301,15 @@ export function ProfilesView({
       {/* Modal Tambah Sumber Bukti Tambahan */}
       {addingSourceFactId && (
         <div className="modal-backdrop">
-          <div className="modal-dialog">
+          <div className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-add-source-title">
             <div className="modal-header">
-              <h3>Tambah Sumber Bukti</h3>
-              <button type="button" className="text-button" onClick={() => setAddingSourceFactId(null)}>
+              <h3 id="modal-add-source-title">Tambah Sumber Bukti</h3>
+              <button
+                type="button"
+                className="text-button"
+                aria-label="Tutup dialog tambah sumber"
+                onClick={() => setAddingSourceFactId(null)}
+              >
                 ✕
               </button>
             </div>
@@ -1263,10 +1382,15 @@ export function ProfilesView({
       {/* Modal Tinjau & Selesaikan Konflik Fakta */}
       {showConflictModal && (
         <div className="modal-backdrop">
-          <div className="modal-dialog" style={{ maxWidth: 640 }}>
+          <div className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-conflict-title" style={{ maxWidth: 640 }}>
             <div className="modal-header">
-              <h3 style={{ color: "#8a5308" }}>Resolusi Konflik Data</h3>
-              <button type="button" className="text-button" onClick={() => setShowConflictModal(false)}>
+              <h3 id="modal-conflict-title" style={{ color: "#8a5308" }}>Resolusi Konflik Data</h3>
+              <button
+                type="button"
+                className="text-button"
+                aria-label="Tutup dialog resolusi konflik"
+                onClick={() => setShowConflictModal(false)}
+              >
                 ✕
               </button>
             </div>

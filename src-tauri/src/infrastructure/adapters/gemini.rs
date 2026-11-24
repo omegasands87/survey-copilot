@@ -87,12 +87,19 @@ impl GeminiAdapter {
         // Try parsing Google error envelope
         let parsed_json: Option<serde_json::Value> = serde_json::from_str(body).ok();
 
-        let (api_message, api_status) = if let Some(ref val) = parsed_json {
+        let (api_message, _api_status, detail_reason) = if let Some(ref val) = parsed_json {
             let msg = val["error"]["message"].as_str().unwrap_or("").to_string();
             let stat = val["error"]["status"].as_str().unwrap_or("").to_string();
-            (msg, stat)
+            let reason = val["error"]["details"]
+                .as_array()
+                .and_then(|arr| {
+                    arr.iter()
+                        .find_map(|d| d["reason"].as_str().map(|s| s.to_string()))
+                })
+                .unwrap_or_default();
+            (msg, stat, reason)
         } else {
-            (body.to_string(), String::new())
+            (body.to_string(), String::new(), String::new())
         };
 
         let retry_after_ms = headers
@@ -101,7 +108,21 @@ impl GeminiAdapter {
 
         let (category, message) = match status {
             429 => {
-                if api_status == "RESOURCE_EXHAUSTED" || api_message.to_lowercase().contains("quota") {
+                let is_rate_limit = detail_reason == "RATE_LIMIT_EXCEEDED"
+                    || api_message.to_lowercase().contains("rate limit")
+                    || api_message.to_lowercase().contains("rate_limit");
+
+                let is_quota_exhausted = detail_reason == "QUOTA_EXCEEDED"
+                    || api_message.to_lowercase().contains("quota exceeded")
+                    || api_message.to_lowercase().contains("per day")
+                    || api_message.to_lowercase().contains("billing");
+
+                if is_rate_limit && !is_quota_exhausted {
+                    (
+                        NormalizedErrorCategory::RateLimited,
+                        format!("Permintaan dibatasi lajunya (rate limit) oleh Gemini: {api_message}"),
+                    )
+                } else if is_quota_exhausted || api_message.to_lowercase().contains("quota") {
                     (
                         NormalizedErrorCategory::QuotaExhausted,
                         format!("Batas kuota Gemini telah habis: {api_message}"),

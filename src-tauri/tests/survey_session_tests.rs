@@ -16,10 +16,21 @@ fn setup_test_db() -> Connection {
 }
 
 fn create_test_persona(conn: &Connection, name: &str) -> String {
+    create_test_persona_with_active(conn, name, true)
+}
+
+fn create_test_persona_with_active(conn: &Connection, name: &str, is_active: bool) -> String {
     let id = uuid::Uuid::new_v4().to_string();
     let now = chrono::Utc::now().to_rfc3339();
-    PersonaRepository::create(conn, &id, name, Some("Profil responden uji"), true, &now)
-        .expect("create persona must succeed");
+    PersonaRepository::create(
+        conn,
+        &id,
+        name,
+        Some("Profil responden uji"),
+        is_active,
+        &now,
+    )
+    .expect("create persona must succeed");
     id
 }
 
@@ -155,8 +166,8 @@ fn test_session_crud_lifecycle() {
 #[test]
 fn test_strict_persona_isolation() {
     let conn = setup_test_db();
-    let persona_a = create_test_persona(&conn, "Persona A (Siti)");
-    let persona_b = create_test_persona(&conn, "Persona B (Agus)");
+    let persona_a = create_test_persona_with_active(&conn, "Persona A (Siti)", true);
+    let persona_b = create_test_persona_with_active(&conn, "Persona B (Agus)", false);
 
     // Create session for Persona A
     let session_a = SurveyService::create_session(
@@ -196,6 +207,7 @@ fn test_strict_persona_isolation() {
         CreateQuestionInput {
             persona_id: persona_a.clone(),
             session_id: session_a.id.clone(),
+            capture_id: None,
             question_text_original: "Berapa penghasilan bulanan Anda?".to_string(),
             instructions: Some("Pilih satu".to_string()),
             options: Some(vec!["< 5jt".to_string(), "5-10jt".to_string()]),
@@ -251,6 +263,7 @@ fn test_strict_persona_isolation() {
         CreateQuestionInput {
             persona_id: persona_b.clone(),
             session_id: session_a.id.clone(),
+            capture_id: None,
             question_text_original: "Pertanyaan Ilegal".to_string(),
             instructions: None,
             options: None,
@@ -295,6 +308,7 @@ fn test_question_persistence_and_ordering() {
         CreateQuestionInput {
             persona_id: persona_id.clone(),
             session_id: session.id.clone(),
+            capture_id: None,
             question_text_original: "Apakah Anda mengonsumsi teh kemasan dalam 7 hari terakhir?"
                 .to_string(),
             instructions: Some("Pilih Ya atau Tidak".to_string()),
@@ -318,6 +332,7 @@ fn test_question_persistence_and_ordering() {
         CreateQuestionInput {
             persona_id: persona_id.clone(),
             session_id: session.id.clone(),
+            capture_id: None,
             question_text_original: "Merek teh mana saja yang pernah Anda beli?".to_string(),
             instructions: Some("Pilih semua yang sesuai".to_string()),
             options: Some(vec![
@@ -345,6 +360,7 @@ fn test_question_persistence_and_ordering() {
         CreateQuestionInput {
             persona_id: persona_id.clone(),
             session_id: session.id.clone(),
+            capture_id: None,
             question_text_original: "Berapa botol rata-rata per minggu?".to_string(),
             instructions: None,
             options: None,
@@ -395,6 +411,7 @@ fn test_draft_persistence_and_actual_answer_separation() {
         CreateQuestionInput {
             persona_id: persona_id.clone(),
             session_id: session.id.clone(),
+            capture_id: None,
             question_text_original: "Sebutkan deterjen favorit keluarga Anda:".to_string(),
             instructions: None,
             options: Some(vec![
@@ -486,6 +503,7 @@ fn test_provider_failure_preserves_question_and_draft() {
         CreateQuestionInput {
             persona_id: persona_id.clone(),
             session_id: session.id.clone(),
+            capture_id: None,
             question_text_original: "Berapa persen alokasi tabungan untuk instrumen reksa dana?"
                 .to_string(),
             instructions: Some("Isi dalam persen 0-100".to_string()),
@@ -557,6 +575,7 @@ fn test_session_cascade_deletion() {
         CreateQuestionInput {
             persona_id: persona_id.clone(),
             session_id: session.id.clone(),
+            capture_id: None,
             question_text_original: "Pertanyaan 1".to_string(),
             instructions: None,
             options: None,

@@ -355,6 +355,13 @@ impl FactService {
         let source_id = Uuid::new_v4().to_string();
         let now = chrono_timestamp();
 
+        // Validasi isolasi persona: pastikan fakta ada dan milik persona ini
+        let _ = FactRepository::get_detail(&connection, persona_id, fact_id, &now)
+            .map_err(AppError::from)?
+            .ok_or_else(|| {
+                AppError::not_found("Fakta profil tidak ditemukan untuk persona ini.")
+            })?;
+
         FactRepository::add_source(
             &connection,
             &source_id,

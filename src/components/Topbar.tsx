@@ -14,25 +14,31 @@ export function Topbar({
   onSelectPersona,
 }: TopbarProps) {
   return (
-    <header className="topbar">
+    <header className="topbar" role="banner">
       <div>
         <span className="eyebrow">SURVEY COPILOT</span>
         <h1>{title}</h1>
       </div>
-      <select
-        className="persona-select"
-        aria-label="Profil responden aktif"
-        value={activePersona?.id ?? ""}
-        disabled={personas.length === 0}
-        onChange={(event) => onSelectPersona(event.target.value)}
-      >
-        {personas.length === 0 && <option value="">Buat profil dahulu</option>}
-        {personas.map((persona) => (
-          <option key={persona.id} value={persona.id}>
-            {persona.displayName}
-          </option>
-        ))}
-      </select>
+      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <label htmlFor="topbar-persona-select" className="sr-only">
+          Pilih profil responden aktif:
+        </label>
+        <select
+          id="topbar-persona-select"
+          className="persona-select"
+          aria-label="Pilih profil responden aktif"
+          value={activePersona?.id ?? ""}
+          disabled={personas.length === 0}
+          onChange={(event) => onSelectPersona(event.target.value)}
+        >
+          {personas.length === 0 && <option value="">(Belum ada profil aktif)</option>}
+          {personas.map((persona) => (
+            <option key={persona.id} value={persona.id}>
+              👤 {persona.displayName}
+            </option>
+          ))}
+        </select>
+      </div>
     </header>
   );
 }

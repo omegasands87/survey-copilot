@@ -127,28 +127,18 @@ fn test_checksum_mismatch_detected() {
 #[test]
 fn test_existing_database_baseline_adoption() {
     let mut conn = Connection::open_in_memory().unwrap();
+    conn.execute_batch(include_str!("../migrations/0001_initial.sql"))
+        .unwrap();
     conn.execute_batch(
-        "CREATE TABLE personas (
-            id TEXT PRIMARY KEY,
-            display_name TEXT NOT NULL,
-            is_active INTEGER NOT NULL DEFAULT 1,
-            status TEXT NOT NULL DEFAULT 'active',
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
-        );
-        CREATE TABLE schema_migrations (
-            version INTEGER PRIMARY KEY,
-            applied_at TEXT NOT NULL
-        );
-        INSERT INTO schema_migrations (version, applied_at)
-        VALUES (1, '2026-11-20T12:00:00Z');
-        INSERT INTO personas (id, display_name, is_active, status, created_at, updated_at)
+        "INSERT INTO personas (id, display_name, is_active, status, created_at, updated_at)
         VALUES ('p-exist', 'Existing Person', 1, 'active', '2026-11-20T12:00:00Z', '2026-11-20T12:00:00Z');",
-    ).unwrap();
+    )
+    .unwrap();
 
     let runner = MigrationRunner::with_app_migrations();
+    let total_migrations = runner.migrations().len();
     let report = runner.run(&mut conn).expect("baseline adoption");
-    assert_eq!(report.applied_count, 0);
+    assert_eq!(report.applied_count, total_migrations - 1);
     assert_eq!(report.skipped_count, 1);
 
     let p_name: String = conn
@@ -184,7 +174,7 @@ fn test_unknown_future_version_error() {
             max_known_version,
         }) => {
             assert_eq!(recorded_version, 99);
-            assert_eq!(max_known_version, 1);
+            assert_eq!(max_known_version, runner.max_version());
         }
         other => panic!("Expected UnknownFutureVersion error, got: {other:?}"),
     }
