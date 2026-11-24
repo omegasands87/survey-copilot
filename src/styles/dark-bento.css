@@ -989,3 +989,7 @@ body {
   .profile-template-grid { grid-template-columns: minmax(0, 1fr); }
   .profile-template-fields button { flex: 1 1 calc(50% - 6px); text-align: left; }
 }
+
+/* Stage 3 desktop shell now retains the settings link at every breakpoint;
+   the earlier preview-only mobile shortcut is intentionally hidden. */
+.preview-mobile-settings-nav { display: none !important; }
