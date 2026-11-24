@@ -11,7 +11,7 @@ The NSIS configuration sets:
 - Installer hooks: `windows/nsis-hooks.nsh`
 - Installer language: English
 
-The NSIS post-install hook adds **Uninstall Survey Copilot** next to the app shortcut in the Start Menu. The pre-uninstall hook removes that extra shortcut. The hooks do not remove AppData, LocalAppData, or Windows Credential Manager entries themselves.
+The NSIS post-install hook adds **Uninstall Survey Copilot** next to the app shortcut in the Start Menu. The post-uninstall hook removes that extra shortcut only after the uninstaller has completed; if the user cancels uninstall because the app is still running, the shortcut remains available. The hooks do not remove AppData, LocalAppData, or Windows Credential Manager entries themselves.
 
 ## 2. Reproducible package workflow
 
