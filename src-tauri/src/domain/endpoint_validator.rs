@@ -1,5 +1,5 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use url::Url;
+use url::{Host, Url};
 
 use crate::domain::error::AppError;
 
@@ -45,7 +45,14 @@ impl EndpointValidator {
             ));
         }
 
-        let host = parsed.host_str().unwrap_or_default().trim_end_matches('.').to_ascii_lowercase();
+        let host = match parsed.host() {
+            Some(Host::Domain(domain)) => domain.trim_end_matches('.').to_ascii_lowercase(),
+            Some(Host::Ipv4(ip)) => ip.to_string(),
+            Some(Host::Ipv6(ip)) => ip.to_string(),
+            None => {
+                return Err(AppError::validation("baseUrl", "Host URL endpoint tidak valid."));
+            }
+        };
         if Self::is_blocked_metadata_host(&host) {
             return Err(AppError::validation(
                 "baseUrl",
