@@ -168,12 +168,9 @@ fn rejects_full_application_export_without_creating_persona() {
     payload["exportScope"] = serde_json::json!("full_application");
     payload["summary"]["exportScope"] = serde_json::json!("full_application");
 
-    let error = ProfileImportService::import_single_persona_json(
-        &database,
-        &payload.to_string(),
-        None,
-    )
-    .expect_err("full application exports must not be accepted");
+    let error =
+        ProfileImportService::import_single_persona_json(&database, &payload.to_string(), None)
+            .expect_err("full application exports must not be accepted");
 
     assert_eq!(error.code, "VALIDATION_ERROR");
     let connection = database.connection.lock().unwrap();
@@ -191,12 +188,9 @@ fn rolls_back_persona_when_a_fact_value_fails_validation() {
     payload["data"]["facts"][0]["dataType"] = serde_json::json!("number");
     payload["data"]["facts"][0]["value"] = serde_json::json!("not-a-number");
 
-    let error = ProfileImportService::import_single_persona_json(
-        &database,
-        &payload.to_string(),
-        None,
-    )
-    .expect_err("invalid fact value should cancel the whole import");
+    let error =
+        ProfileImportService::import_single_persona_json(&database, &payload.to_string(), None)
+            .expect_err("invalid fact value should cancel the whole import");
 
     assert_eq!(error.code, "VALIDATION_ERROR");
     let connection = database.connection.lock().unwrap();
