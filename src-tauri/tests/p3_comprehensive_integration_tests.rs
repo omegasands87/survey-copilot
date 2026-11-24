@@ -224,6 +224,7 @@ fn test_p3_e2e_full_workflow_from_session_to_review_and_history() {
                 consent: Some(SensitivityConsent {
                     allow_sensitive: false,
                     allow_highly_sensitive: false,
+                    allow_external_vision: false,
                 }),
                 max_evidence_items: Some(5),
             },
@@ -256,6 +257,7 @@ fn test_p3_e2e_full_workflow_from_session_to_review_and_history() {
                 consent: Some(SensitivityConsent {
                     allow_sensitive: true,
                     allow_highly_sensitive: false,
+                    allow_external_vision: false,
                 }),
                 max_evidence_items: Some(5),
             },

@@ -678,6 +678,7 @@ fn test_sensitivity_consent_filtering() {
         consent: Some(SensitivityConsent {
             allow_sensitive: false,
             allow_highly_sensitive: false,
+            allow_external_vision: false,
         }),
         max_evidence_items: Some(10),
     };
@@ -710,6 +711,7 @@ fn test_sensitivity_consent_filtering() {
         consent: Some(SensitivityConsent {
             allow_sensitive: true,
             allow_highly_sensitive: false,
+            allow_external_vision: false,
         }),
         max_evidence_items: Some(10),
     };

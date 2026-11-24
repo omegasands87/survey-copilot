@@ -511,6 +511,7 @@ fn test_privacy_and_sensitivity_consent_enforcement() {
         consent: Some(SensitivityConsent {
             allow_sensitive: false,
             allow_highly_sensitive: false,
+            allow_external_vision: false,
         }),
         provider_config_id: None,
         prompt_version: None,
@@ -540,6 +541,7 @@ fn test_privacy_and_sensitivity_consent_enforcement() {
         consent: Some(SensitivityConsent {
             allow_sensitive: true,
             allow_highly_sensitive: false,
+            allow_external_vision: false,
         }),
         provider_config_id: None,
         prompt_version: None,
