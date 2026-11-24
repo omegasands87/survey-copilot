@@ -487,14 +487,25 @@ fn test_ocr_zero_confidence_is_reported_as_unavailable_not_low_confidence() {
         image_height: 600,
     };
     let reconstructed = LayoutReconstructorService::reconstruct(
-        &raw, None, None, None, CaptureMode::Region, None, None,
-    ).expect("layout reconstruction should succeed");
+        &raw,
+        None,
+        None,
+        None,
+        CaptureMode::Region,
+        None,
+        None,
+    )
+    .expect("layout reconstruction should succeed");
 
     assert_eq!(reconstructed.overall_confidence, 0.0);
-    assert!(!reconstructed.uncertain_regions.iter().any(
-        |region| region.reason == UncertaintyReason::LowConfidence
-    ));
-    assert!(reconstructed.warnings.iter().any(|warning| warning.contains("tidak menyediakan skor keyakinan")));
+    assert!(!reconstructed
+        .uncertain_regions
+        .iter()
+        .any(|region| region.reason == UncertaintyReason::LowConfidence));
+    assert!(reconstructed
+        .warnings
+        .iter()
+        .any(|warning| warning.contains("tidak menyediakan skor keyakinan")));
 }
 
 // ==========================================
