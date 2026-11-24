@@ -217,6 +217,20 @@ impl CredentialService {
             return Err(AppError::validation("id", "ID kredensial wajib diisi."));
         }
 
+        let new_label = match input.label.as_ref() {
+            Some(label) => {
+                let trimmed = label.trim();
+                if trimmed.is_empty() || trimmed.len() > 100 {
+                    return Err(AppError::validation(
+                        "label",
+                        "Label kredensial harus antara 1 hingga 100 karakter.",
+                    ));
+                }
+                Some(trimmed.to_string())
+            }
+            None => None,
+        };
+
         let conn = database
             .connection
             .lock()
@@ -228,8 +242,9 @@ impl CredentialService {
                 AppError::not_found(format!("Kredensial dengan ID '{id}' tidak ditemukan."))
             })?;
 
-        // Jika secret baru disediakan, simpan ke store terlebih dahulu
-        if let Some(ref new_secret) = input.secret {
+        // Validasi dan simpan secret setelah seluruh input divalidasi.
+        let secret_change = input.secret.is_some();
+        let previous_secret = if let Some(ref new_secret) = input.secret {
             let trimmed_secret = new_secret.trim();
             if trimmed_secret.len() < 8 {
                 return Err(AppError::validation(
@@ -237,32 +252,63 @@ impl CredentialService {
                     "Kunci API rahasia baru minimal 8 karakter.",
                 ));
             }
-            store.set_secret(&existing.credential_ref, trimmed_secret)?;
-        }
 
-        let now = Utc::now().to_rfc3339();
-        let new_label = match input.label {
-            Some(ref l) => {
-                let trimmed = l.trim();
-                if trimmed.is_empty() || trimmed.len() > 100 {
-                    return Err(AppError::validation(
-                        "label",
-                        "Label kredensial harus antara 1 hingga 100 karakter.",
-                    ));
-                }
-                Some(trimmed)
-            }
-            None => None,
+            let previous = match store.get_secret(&existing.credential_ref) {
+                Ok(secret) => Some(secret),
+                Err(err) if err.code == "CREDENTIAL_NOT_FOUND" => None,
+                Err(err) => return Err(err),
+            };
+            store.set_secret(&existing.credential_ref, trimmed_secret)?;
+            previous
+        } else {
+            None
         };
 
-        CredentialRepository::update(
-            &conn,
-            id,
-            new_label,
-            Some(CredentialStatus::Configured.as_str()),
-            &now,
-        )
-        .map_err(AppError::from)?;
+        let now = Utc::now().to_rfc3339();
+        let status = if secret_change {
+            Some(CredentialStatus::Configured.as_str())
+        } else {
+            None
+        };
+
+        let db_update = CredentialRepository::update(&conn, id, new_label.as_deref(), status, &now);
+
+        let updated_ok = match db_update {
+            Ok(updated) => updated,
+            Err(db_error) => {
+                if secret_change {
+                    let rollback = match previous_secret.as_deref() {
+                        Some(old_secret) => store.set_secret(&existing.credential_ref, old_secret),
+                        None => store.delete_secret(&existing.credential_ref),
+                    };
+                    if let Err(rollback_error) = rollback {
+                        return Err(AppError::internal(format!(
+                            "Pembaruan metadata credential gagal dan rollback secret juga gagal. Periksa credential '{}': {}",
+                            existing.label, rollback_error.message
+                        )));
+                    }
+                }
+                return Err(AppError::from(db_error));
+            }
+        };
+
+        if !updated_ok {
+            if secret_change {
+                let rollback = match previous_secret.as_deref() {
+                    Some(old_secret) => store.set_secret(&existing.credential_ref, old_secret),
+                    None => store.delete_secret(&existing.credential_ref),
+                };
+                if let Err(rollback_error) = rollback {
+                    return Err(AppError::internal(format!(
+                        "Metadata credential tidak ditemukan saat update dan rollback secret gagal: {}",
+                        rollback_error.message
+                    )));
+                }
+            }
+            return Err(AppError::not_found(format!(
+                "Kredensial dengan ID '{id}' tidak ditemukan saat diperbarui."
+            )));
+        }
 
         let updated = CredentialRepository::find_by_id(&conn, id)
             .map_err(AppError::from)?
@@ -272,7 +318,7 @@ impl CredentialService {
             &conn,
             &updated.credential_ref,
         )
-        .unwrap_or(0);
+        .map_err(AppError::from)?;
 
         Ok(CredentialSummary {
             id: updated.id,
@@ -318,7 +364,7 @@ impl CredentialService {
             &conn,
             &existing.credential_ref,
         )
-        .unwrap_or(0);
+        .map_err(AppError::from)?;
 
         if usage_count > 0 && !force {
             return Err(AppError::conflict(format!(
@@ -327,29 +373,54 @@ impl CredentialService {
             )));
         }
 
-        // Hapus secret dari Windows Credential Manager
-        let store_del_res = store.delete_secret(&existing.credential_ref);
-        let deleted_from_store = store_del_res.is_ok();
-
-        // Hapus rekaman metadata dari SQLite
-        let deleted_from_database =
-            CredentialRepository::delete_by_id(&conn, id).map_err(AppError::from)?;
-
-        let message = if deleted_from_store && deleted_from_database {
-            format!("Kredensial '{}' berhasil dihapus secara bersih dari Windows Credential Manager dan basis data lokal.", existing.label)
-        } else if deleted_from_database {
-            format!("Metadata kredensial '{}' dihapus dari basis data lokal (secret di Windows Credential Manager sebelumnya telah terhapus atau tidak ditemukan).", existing.label)
-        } else {
-            format!(
-                "Peringatan: Gagal menghapus kredensial '{}' secara tuntas.",
-                existing.label
-            )
+        // Retain the prior value so metadata failure can be compensated without orphaning state.
+        let previous_secret = match store.get_secret(&existing.credential_ref) {
+            Ok(secret) => Some(secret),
+            Err(error) if error.code == "CREDENTIAL_NOT_FOUND" => None,
+            Err(error) => return Err(error),
         };
+
+        // If OS deletion fails, metadata must remain so the operation can be retried.
+        store.delete_secret(&existing.credential_ref)?;
+
+        let deleted_from_database = match CredentialRepository::delete_by_id(&conn, id) {
+            Ok(true) => true,
+            Ok(false) => {
+                if let Some(secret) = previous_secret.as_deref() {
+                    if let Err(restore_error) = store.set_secret(&existing.credential_ref, secret) {
+                        return Err(AppError::internal(format!(
+                            "Metadata credential tidak ditemukan setelah secret dihapus dan pemulihan secret gagal: {}",
+                            restore_error.message
+                        )));
+                    }
+                }
+                return Err(AppError::not_found(format!(
+                    "Metadata credential '{}' tidak ditemukan saat finalisasi penghapusan.",
+                    existing.label
+                )));
+            }
+            Err(database_error) => {
+                if let Some(secret) = previous_secret.as_deref() {
+                    if let Err(restore_error) = store.set_secret(&existing.credential_ref, secret) {
+                        return Err(AppError::internal(format!(
+                            "Penghapusan metadata credential gagal ({database_error}) dan pemulihan secret OS juga gagal: {}",
+                            restore_error.message
+                        )));
+                    }
+                }
+                return Err(AppError::from(database_error));
+            }
+        };
+
+        let message = format!(
+            "Kredensial '{}' berhasil dihapus dari Windows Credential Manager dan basis data lokal.",
+            existing.label
+        );
 
         Ok(DeleteCredentialResult {
             id: id.to_string(),
             credential_ref: existing.credential_ref,
-            deleted_from_store,
+            deleted_from_store: true,
             deleted_from_database,
             message,
         })

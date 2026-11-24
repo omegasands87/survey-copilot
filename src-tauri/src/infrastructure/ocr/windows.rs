@@ -103,7 +103,7 @@ impl OcrEngine for WindowsMediaOcrEngine {
         }
 
         let abs_path = std::fs::canonicalize(image_path)
-            .unwrap_or_else(|_| image_path.to_path_buf())
+            .map_err(|e| AppError::internal(format!("Gagal memvalidasi path gambar OCR: {e}")))?
             .to_string_lossy()
             .to_string();
 
@@ -124,7 +124,7 @@ impl OcrEngine for WindowsMediaOcrEngine {
             [Windows.Graphics.Imaging.BitmapDecoder, Windows.Graphics.Imaging, ContentType = WindowsRuntime] | Out-Null
             [Windows.Media.Ocr.OcrEngine, Windows.Media.Ocr, ContentType = WindowsRuntime] | Out-Null
 
-            $filePath = '{abs_path}'
+            $filePath = $env:SURVEY_COPILOT_OCR_PATH
             $file = Await ([Windows.Storage.StorageFile]::GetFileFromPathAsync($filePath)) ([Windows.Storage.StorageFile])
             $stream = Await ($file.OpenAsync([Windows.Storage.FileAccessMode]::Read)) ([Windows.Storage.Streams.IRandomAccessStream])
             $decoder = Await ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($stream)) ([Windows.Graphics.Imaging.BitmapDecoder])
@@ -169,6 +169,7 @@ impl OcrEngine for WindowsMediaOcrEngine {
         );
 
         let output = Command::new("powershell")
+            .env("SURVEY_COPILOT_OCR_PATH", &abs_path)
             .args(["-NoProfile", "-NonInteractive", "-Command", &ps_script])
             .output()
             .map_err(|e| {
@@ -185,7 +186,7 @@ impl OcrEngine for WindowsMediaOcrEngine {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let parsed: WinOcrOutputJson = serde_json::from_str(stdout.trim()).map_err(|e| {
             AppError::internal(format!(
-                "Gagal mengurai output JSON dari Windows Media OCR: {e}. Output mentah: {stdout}"
+                "Gagal mengurai struktur output JSON dari Windows Media OCR: {e}"
             ))
         })?;
 
@@ -206,7 +207,9 @@ impl OcrEngine for WindowsMediaOcrEngine {
                 words.push(OcrWord {
                     text: word.text,
                     bounding_box: BoundingBox::new(word.x, word.y, word.width, word.height),
-                    confidence: word.confidence.unwrap_or(0.95),
+                    // Windows.Media.Ocr does not expose a calibrated numeric word score.
+                    // 0.0 is the internal "not provided" sentinel; do not fabricate confidence.
+                    confidence: word.confidence.unwrap_or(0.0),
                 });
             }
 
@@ -216,11 +219,22 @@ impl OcrEngine for WindowsMediaOcrEngine {
                 BoundingBox::new(0.0, 0.0, 0.0, 0.0)
             };
 
+            let scored_words: Vec<f32> = words
+                .iter()
+                .map(|word| word.confidence)
+                .filter(|confidence| *confidence > 0.0)
+                .collect();
+            let line_confidence = if scored_words.is_empty() {
+                0.0
+            } else {
+                scored_words.iter().sum::<f32>() / scored_words.len() as f32
+            };
+
             lines.push(OcrLine {
                 text: line.text,
                 bounding_box: line_bbox,
                 words,
-                confidence: 0.95,
+                confidence: line_confidence,
             });
         }
 

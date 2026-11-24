@@ -101,6 +101,24 @@ export default function App() {
     }
   }, [activePersona?.id]);
 
+  async function handleImportProfileJson(
+    jsonContent: string,
+    displayName?: string,
+  ) {
+    setProfileLoading(true);
+    setProfileError("");
+    try {
+      const result = await personaService.importProfileFromJson(jsonContent, displayName);
+      await refreshPersonas();
+      return result;
+    } catch (error) {
+      setProfileError(AppError.from(error).message);
+      throw error;
+    } finally {
+      setProfileLoading(false);
+    }
+  }
+
   async function handleCreatePersona(displayName: string, description?: string) {
     setProfileLoading(true);
     setProfileError("");
@@ -319,6 +337,7 @@ export default function App() {
             onRefreshPersonas={refreshPersonas}
             onRefreshFacts={() => activePersona ? refreshFacts(activePersona.id) : Promise.resolve()}
             onCreatePersona={handleCreatePersona}
+            onImportProfileJson={handleImportProfileJson}
             onUpdatePersona={handleUpdatePersona}
             onActivatePersona={handleActivatePersona}
             onArchivePersona={handleArchivePersona}

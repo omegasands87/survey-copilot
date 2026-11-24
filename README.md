@@ -46,6 +46,25 @@ npm install
 npm run tauri dev
 ```
 
+### Browser UI-only preview
+
+The browser preview is for visual and interaction review only. It uses synthetic data and mock state; it does not connect to Tauri IPC, SQLite, Windows Credential Manager, screen capture, OCR, or AI providers.
+
+```powershell
+npm ci
+npm run preview:ui
+```
+
+Open `http://127.0.0.1:4173/?preview=1`. Changes made in the preview are held in memory and disappear when the page is refreshed. Do not enter real profile data, screenshots, credentials, or survey answers.
+
+See [Stage 2 UI-only Preview](docs/09-audit/STAGE_2_UI_ONLY_PREVIEW.md) for the isolation contract.
+
+### Dark Bento and profile management
+
+The active desktop UI and browser preview share the Dark Bento theme. Profile management includes blank field templates and a local JSON import flow for a single-persona Survey Copilot export. Templates never prefill personal values. JSON import creates a new inactive profile and imports its facts and sources only; sessions, answers, screenshots, provider settings, and credentials are excluded.
+
+See [Stage 3 — Dark Bento and Profile Import](docs/09-audit/STAGE_3_DARK_BENTO_PROFILE_UX.md) for supported format, limits, safety rules, and repository/device validation scope.
+
 Build the Windows installer with:
 
 ```powershell

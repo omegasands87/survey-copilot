@@ -2,6 +2,7 @@ import { invokeCommand } from "./ipcClient";
 import type {
   Persona,
   PersonaDependencySummary,
+  ProfileImportResult,
 } from "../types/persona";
 
 export const personaService = {
@@ -26,6 +27,19 @@ export const personaService = {
     return invokeCommand<Persona>("persona_create", {
       displayName,
       description: description || null,
+    });
+  },
+
+  /**
+   * Mengimpor profil dan fakta dari ekspor satu persona Survey Copilot v1.0.0.
+   */
+  async importProfileFromJson(
+    jsonContent: string,
+    displayName?: string,
+  ): Promise<ProfileImportResult> {
+    return invokeCommand<ProfileImportResult>("persona_import_profile", {
+      jsonContent,
+      displayName: displayName || null,
     });
   },
 

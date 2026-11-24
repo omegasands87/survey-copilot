@@ -2876,15 +2876,23 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
               <div className="ocr-badge-row">
                 <span
                   className={`ocr-badge ${
-                    activeOcrExtraction.overallConfidence >= 0.85
+                    activeOcrExtraction.overallConfidence <= 0
+                      ? "info"
+                      : activeOcrExtraction.overallConfidence >= 0.85
                       ? "success"
                       : activeOcrExtraction.overallConfidence >= 0.70
                       ? "warning"
                       : "danger"
                   }`}
-                  title="Tingkat keyakinan agregat OCR dan rekonstruksi layout"
+                  title={
+                    activeOcrExtraction.overallConfidence <= 0
+                      ? "Engine OCR tidak menyediakan skor confidence numerik"
+                      : "Tingkat keyakinan agregat dari skor OCR yang tersedia"
+                  }
                 >
-                  🎯 Keyakinan: {(activeOcrExtraction.overallConfidence * 100).toFixed(0)}%
+                  🎯 {activeOcrExtraction.overallConfidence <= 0
+                    ? "Keyakinan: tidak tersedia"
+                    : `Keyakinan: ${(activeOcrExtraction.overallConfidence * 100).toFixed(0)}%`}
                 </span>
 
                 <span className="ocr-badge info" title="Tipe format pertanyaan yang terdeteksi">
