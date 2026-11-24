@@ -758,7 +758,13 @@ pub fn extract_domain_from_url(url: &str) -> Option<String> {
         trimmed
     };
 
-    let domain_part = without_proto.split('/').next()?.split(':').next()?.split('?').next()?;
+    let domain_part = without_proto
+        .split('/')
+        .next()?
+        .split(':')
+        .next()?
+        .split('?')
+        .next()?;
     let domain = domain_part.trim().to_lowercase();
     if domain.is_empty() {
         None
@@ -795,7 +801,12 @@ pub fn compute_question_fingerprint(
         .collect();
     norm_options.sort();
 
-    let combined = format!("{}:{}:{}", norm_prompt, q_type.as_str(), norm_options.join("|"));
+    let combined = format!(
+        "{}:{}:{}",
+        norm_prompt,
+        q_type.as_str(),
+        norm_options.join("|")
+    );
     let mut hasher = Sha256::new();
     hasher.update(combined.as_bytes());
     let result = hasher.finalize();

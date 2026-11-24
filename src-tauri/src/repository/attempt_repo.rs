@@ -387,7 +387,8 @@ impl AttemptRepository {
             "#,
         );
 
-        let mut param_values: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(persona_id.to_string())];
+        let mut param_values: Vec<Box<dyn rusqlite::ToSql>> =
+            vec![Box::new(persona_id.to_string())];
 
         if let Some(cat) = category {
             if !cat.trim().is_empty() {

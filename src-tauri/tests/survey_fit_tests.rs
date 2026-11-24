@@ -149,8 +149,9 @@ fn test_at_060_criterion_matches_confirmed_current_fact() {
     .expect("opportunity save should succeed");
 
     // Evaluasi fit deterministik
-    let fit = FitService::evaluate_opportunity_fit(&mut conn, &opp_detail.opportunity.id, persona_id)
-        .expect("fit evaluation should succeed");
+    let fit =
+        FitService::evaluate_opportunity_fit(&mut conn, &opp_detail.opportunity.id, persona_id)
+            .expect("fit evaluation should succeed");
 
     assert_eq!(fit.overall_fit, OverallFitState::Eligible);
     assert_eq!(fit.match_count, 3);
@@ -214,8 +215,9 @@ fn test_at_061_criterion_evidence_absent_returns_unknown_never_match() {
     )
     .expect("opportunity save should succeed");
 
-    let fit = FitService::evaluate_opportunity_fit(&mut conn, &opp_detail.opportunity.id, persona_id)
-        .expect("fit evaluation should succeed");
+    let fit =
+        FitService::evaluate_opportunity_fit(&mut conn, &opp_detail.opportunity.id, persona_id)
+            .expect("fit evaluation should succeed");
 
     assert_eq!(fit.criteria_results.len(), 1);
     let crit_res = &fit.criteria_results[0];
@@ -319,8 +321,9 @@ fn test_at_062_criterion_fact_is_stale_or_disputed() {
     .expect("opportunity save should succeed");
 
     // Evaluasi Persona Stale
-    let fit_stale = FitService::evaluate_opportunity_fit(&mut conn, &opp.opportunity.id, persona_stale)
-        .expect("fit evaluation should succeed");
+    let fit_stale =
+        FitService::evaluate_opportunity_fit(&mut conn, &opp.opportunity.id, persona_stale)
+            .expect("fit evaluation should succeed");
 
     let age_res = fit_stale
         .criteria_results
@@ -416,9 +419,13 @@ fn test_industry_exclusion_criteria() {
     .expect("opportunity save should succeed");
 
     // Persona programmer: harus Match (lolos eksklusi)
-    let fit_allowed = FitService::evaluate_opportunity_fit(&mut conn, &opp.opportunity.id, p_allowed)
-        .expect("fit evaluation should succeed");
-    assert_eq!(fit_allowed.criteria_results[0].match_state, MatchState::Match);
+    let fit_allowed =
+        FitService::evaluate_opportunity_fit(&mut conn, &opp.opportunity.id, p_allowed)
+            .expect("fit evaluation should succeed");
+    assert_eq!(
+        fit_allowed.criteria_results[0].match_state,
+        MatchState::Match
+    );
     assert_eq!(fit_allowed.overall_fit, OverallFitState::Eligible);
 
     // Persona researcher: harus Mismatch (terkena eksklusi)
@@ -553,8 +560,9 @@ fn test_persistence_and_retrieval_of_survey_fit_results() {
     .expect("opportunity save should succeed");
 
     // Simpan hasil evaluasi ke tabel survey_fit_results
-    let evaluated = FitService::evaluate_opportunity_fit(&mut conn, &opp.opportunity.id, persona_id)
-        .expect("fit evaluation should succeed");
+    let evaluated =
+        FitService::evaluate_opportunity_fit(&mut conn, &opp.opportunity.id, persona_id)
+            .expect("fit evaluation should succeed");
     assert_eq!(evaluated.overall_fit, OverallFitState::Eligible);
 
     // Ambil kembali dari database menggunakan get_opportunity_fit

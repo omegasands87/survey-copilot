@@ -4,8 +4,9 @@ use crate::domain::error::AppError;
 use crate::domain::survey::{
     AnswerFormat, ConfirmationStatus, PredictionStatus, Provenance, QuestionStatus, QuestionType,
     SessionStatus, SurveyBranchTransition, SurveyMemoryQuestionItem, SurveyMemorySessionDetail,
-    SurveyQuestion, SurveyQuestionPredictionRecord, SurveyRecognitionRecord, SurveyRecognitionStatus,
-    SurveySession, SurveySessionDetail, SurveySessionSummary, TransitionType,
+    SurveyQuestion, SurveyQuestionPredictionRecord, SurveyRecognitionRecord,
+    SurveyRecognitionStatus, SurveySession, SurveySessionDetail, SurveySessionSummary,
+    TransitionType,
 };
 
 pub struct SurveyRepository;
@@ -681,7 +682,8 @@ impl SurveyRepository {
         conn: &Connection,
         rec: &SurveyRecognitionRecord,
     ) -> Result<SurveyRecognitionRecord, AppError> {
-        let diffs_json = serde_json::to_string(&rec.differences).unwrap_or_else(|_| "[]".to_string());
+        let diffs_json =
+            serde_json::to_string(&rec.differences).unwrap_or_else(|_| "[]".to_string());
         conn.execute(
             "INSERT INTO survey_recognitions (
                 id, session_id, persona_id, matched_session_id, match_status,
@@ -706,7 +708,9 @@ impl SurveyRepository {
                 rec.created_at,
             ],
         )
-        .map_err(|e| AppError::database(format!("Gagal menyimpan catatan pengenalan survei: {e}")))?;
+        .map_err(|e| {
+            AppError::database(format!("Gagal menyimpan catatan pengenalan survei: {e}"))
+        })?;
 
         Ok(rec.clone())
     }
@@ -734,7 +738,8 @@ impl SurveyRepository {
             .query_row(params![session_id, persona_id], |row| {
                 let status_str: String = row.get(4)?;
                 let diffs_json: String = row.get(10)?;
-                let differences: Vec<String> = serde_json::from_str(&diffs_json).unwrap_or_default();
+                let differences: Vec<String> =
+                    serde_json::from_str(&diffs_json).unwrap_or_default();
                 Ok(SurveyRecognitionRecord {
                     id: row.get(0)?,
                     session_id: row.get(1)?,
@@ -852,7 +857,9 @@ impl SurveyRepository {
                     ai_rationale: row.get(16)?,
                 })
             })
-            .map_err(|e| AppError::database(format!("Gagal mengambil pertanyaan memori survei: {e}")))?;
+            .map_err(|e| {
+                AppError::database(format!("Gagal mengambil pertanyaan memori survei: {e}"))
+            })?;
 
         let mut memory_questions = Vec::new();
         for row in rows {
@@ -923,8 +930,8 @@ impl SurveyRepository {
         conn: &Connection,
         transition: &SurveyBranchTransition,
     ) -> Result<(), AppError> {
-        let options_json = serde_json::to_string(&transition.to_options)
-            .unwrap_or_else(|_| "[]".to_string());
+        let options_json =
+            serde_json::to_string(&transition.to_options).unwrap_or_else(|_| "[]".to_string());
 
         conn.execute(
             "INSERT INTO survey_branch_transitions (
@@ -977,8 +984,13 @@ impl SurveyRepository {
             .map_err(|e| AppError::database(e.to_string()))?;
 
         let rows = stmt
-            .query_map(params![session_id, persona_id], Self::map_branch_transition_row)
-            .map_err(|e| AppError::database(format!("Gagal membaca transisi percabangan sesi: {e}")))?;
+            .query_map(
+                params![session_id, persona_id],
+                Self::map_branch_transition_row,
+            )
+            .map_err(|e| {
+                AppError::database(format!("Gagal membaca transisi percabangan sesi: {e}"))
+            })?;
 
         let mut transitions = Vec::new();
         for row in rows {
@@ -1009,7 +1021,10 @@ impl SurveyRepository {
             .map_err(|e| AppError::database(e.to_string()))?;
 
         let rows = stmt
-            .query_map(params![persona_id, from_question_id, fp], Self::map_branch_transition_row)
+            .query_map(
+                params![persona_id, from_question_id, fp],
+                Self::map_branch_transition_row,
+            )
             .map_err(|e| AppError::database(format!("Gagal mencari transisi pertanyaan: {e}")))?;
 
         let mut transitions = Vec::new();
@@ -1042,7 +1057,10 @@ impl SurveyRepository {
             .map_err(|e| AppError::database(e.to_string()))?;
 
         let rows = stmt
-            .query_map(params![from_question_fingerprint], Self::map_branch_transition_row)
+            .query_map(
+                params![from_question_fingerprint],
+                Self::map_branch_transition_row,
+            )
             .map_err(|e| AppError::database(format!("Gagal mencari transisi struktural: {e}")))?;
 
         let mut transitions = Vec::new();
@@ -1058,8 +1076,8 @@ impl SurveyRepository {
         conn: &Connection,
         record: &SurveyQuestionPredictionRecord,
     ) -> Result<(), AppError> {
-        let options_json = serde_json::to_string(&record.predicted_options)
-            .unwrap_or_else(|_| "[]".to_string());
+        let options_json =
+            serde_json::to_string(&record.predicted_options).unwrap_or_else(|_| "[]".to_string());
 
         conn.execute(
             "INSERT INTO survey_question_predictions (
@@ -1108,7 +1126,10 @@ impl SurveyRepository {
             .map_err(|e| AppError::database(e.to_string()))?;
 
         let rows = stmt
-            .query_map(params![session_id, persona_id], Self::map_prediction_record_row)
+            .query_map(
+                params![session_id, persona_id],
+                Self::map_prediction_record_row,
+            )
             .map_err(|e| AppError::database(format!("Gagal mengambil riwayat prediksi: {e}")))?;
 
         let mut records = Vec::new();
@@ -1136,7 +1157,10 @@ impl SurveyRepository {
             .map_err(|e| AppError::database(e.to_string()))?;
 
         let rows = stmt
-            .query_map(params![persona_id, current_question_id], Self::map_prediction_record_row)
+            .query_map(
+                params![persona_id, current_question_id],
+                Self::map_prediction_record_row,
+            )
             .map_err(|e| AppError::database(format!("Gagal mengambil prediksi tertunda: {e}")))?;
 
         let mut records = Vec::new();
@@ -1202,7 +1226,9 @@ impl SurveyRepository {
         })
     }
 
-    fn map_prediction_record_row(row: &rusqlite::Row) -> rusqlite::Result<SurveyQuestionPredictionRecord> {
+    fn map_prediction_record_row(
+        row: &rusqlite::Row,
+    ) -> rusqlite::Result<SurveyQuestionPredictionRecord> {
         let q_type_str: String = row.get(5)?;
         let options_json: String = row.get(6)?;
         let options: Vec<String> = serde_json::from_str(&options_json).unwrap_or_default();

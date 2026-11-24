@@ -56,7 +56,7 @@ pub struct OutboundFactDisclosure {
     pub attribute: String,
     pub value_preview: String,
     pub sensitivity: String, // "ordinary", "sensitive", "highly_sensitive"
-    pub status: String,      // "included", "excluded_no_consent", "excluded_archived", "excluded_unverified"
+    pub status: String, // "included", "excluded_no_consent", "excluded_archived", "excluded_unverified"
     pub is_sensitive: bool,
     pub exclusion_reason: Option<String>,
 }
@@ -230,7 +230,10 @@ impl LogRedactor {
                         || k_lower.contains("token")
                         || k_lower == "authorization"
                     {
-                        new_map.insert(k.clone(), serde_json::Value::String("[REDACTED_SECRET]".to_string()));
+                        new_map.insert(
+                            k.clone(),
+                            serde_json::Value::String("[REDACTED_SECRET]".to_string()),
+                        );
                     } else {
                         new_map.insert(k.clone(), Self::redact_json(v));
                     }
@@ -252,7 +255,8 @@ impl LogRedactor {
                 && &bytes[idx..idx + prefix_bytes.len()] == prefix_bytes
             {
                 // Check if followed by length valid token characters
-                let token_slice = &bytes[idx + prefix_bytes.len()..idx + prefix_bytes.len() + length];
+                let token_slice =
+                    &bytes[idx + prefix_bytes.len()..idx + prefix_bytes.len() + length];
                 let is_valid = token_slice
                     .iter()
                     .all(|b| b.is_ascii_alphanumeric() || *b == b'-' || *b == b'_');
@@ -269,7 +273,12 @@ impl LogRedactor {
         result
     }
 
-    fn replace_prefixed_token(text: &str, prefix: &str, min_len: usize, replacement: &str) -> String {
+    fn replace_prefixed_token(
+        text: &str,
+        prefix: &str,
+        min_len: usize,
+        replacement: &str,
+    ) -> String {
         let mut result = String::with_capacity(text.len());
         let mut idx = 0;
         let bytes = text.as_bytes();
@@ -282,7 +291,9 @@ impl LogRedactor {
                 // Find token end
                 let mut end = idx + prefix_bytes.len();
                 while end < bytes.len()
-                    && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'-' || bytes[end] == b'_')
+                    && (bytes[end].is_ascii_alphanumeric()
+                        || bytes[end] == b'-'
+                        || bytes[end] == b'_')
                 {
                     end += 1;
                 }
@@ -311,7 +322,13 @@ impl LogRedactor {
                 result.push_str("Bearer [REDACTED_TOKEN]");
                 idx += 7;
                 // Skip until whitespace, comma, or line end
-                while idx < bytes.len() && !bytes[idx].is_ascii_whitespace() && bytes[idx] != b',' && bytes[idx] != b';' && bytes[idx] != b'"' && bytes[idx] != b'\'' {
+                while idx < bytes.len()
+                    && !bytes[idx].is_ascii_whitespace()
+                    && bytes[idx] != b','
+                    && bytes[idx] != b';'
+                    && bytes[idx] != b'"'
+                    && bytes[idx] != b'\''
+                {
                     idx += 1;
                 }
                 continue;
@@ -329,14 +346,19 @@ impl LogRedactor {
         let bytes = text.as_bytes();
 
         while idx < bytes.len() {
-            if (idx == 0 || bytes[idx - 1] == b'?' || bytes[idx - 1] == b'&' || bytes[idx - 1].is_ascii_whitespace())
+            if (idx == 0
+                || bytes[idx - 1] == b'?'
+                || bytes[idx - 1] == b'&'
+                || bytes[idx - 1].is_ascii_whitespace())
                 && idx + 4 <= bytes.len()
                 && &bytes[idx..idx + 4] == b"key="
             {
                 let start_val = idx + 4;
                 let mut end_val = start_val;
                 while end_val < bytes.len()
-                    && (bytes[end_val].is_ascii_alphanumeric() || bytes[end_val] == b'-' || bytes[end_val] == b'_')
+                    && (bytes[end_val].is_ascii_alphanumeric()
+                        || bytes[end_val] == b'-'
+                        || bytes[end_val] == b'_')
                 {
                     end_val += 1;
                 }
@@ -367,7 +389,11 @@ impl LogRedactor {
                 result.push_str(replacement);
                 idx += target.len();
                 // Consume value until newline or delimiter
-                while idx < bytes.len() && bytes[idx] != b'\n' && bytes[idx] != b'\r' && bytes[idx] != b',' {
+                while idx < bytes.len()
+                    && bytes[idx] != b'\n'
+                    && bytes[idx] != b'\r'
+                    && bytes[idx] != b','
+                {
                     idx += 1;
                 }
                 continue;
@@ -390,7 +416,11 @@ impl LogRedactor {
                 let mut cur = idx + 8;
                 // Skip whitespace, quotes, colons, equals
                 while cur < bytes.len()
-                    && (bytes[cur].is_ascii_whitespace() || bytes[cur] == b':' || bytes[cur] == b'=' || bytes[cur] == b'"' || bytes[cur] == b'\'')
+                    && (bytes[cur].is_ascii_whitespace()
+                        || bytes[cur] == b':'
+                        || bytes[cur] == b'='
+                        || bytes[cur] == b'"'
+                        || bytes[cur] == b'\'')
                 {
                     cur += 1;
                 }
@@ -508,7 +538,10 @@ impl LogRedactor {
         let mut idx = 0;
 
         while idx < chars.len() {
-            let is_prefix = (idx + 3 <= chars.len() && chars[idx] == '+' && chars[idx + 1] == '6' && chars[idx + 2] == '2')
+            let is_prefix = (idx + 3 <= chars.len()
+                && chars[idx] == '+'
+                && chars[idx + 1] == '6'
+                && chars[idx + 2] == '2')
                 || (idx + 2 <= chars.len() && chars[idx] == '6' && chars[idx + 1] == '2')
                 || (idx + 2 <= chars.len() && chars[idx] == '0' && chars[idx + 1] == '8');
 
@@ -517,10 +550,18 @@ impl LogRedactor {
             if is_prefix && word_boundary_before {
                 let start = idx;
                 let mut end = start;
-                while end < chars.len() && (chars[end].is_ascii_digit() || chars[end] == '-' || chars[end] == ' ' || chars[end] == '+') {
+                while end < chars.len()
+                    && (chars[end].is_ascii_digit()
+                        || chars[end] == '-'
+                        || chars[end] == ' '
+                        || chars[end] == '+')
+                {
                     end += 1;
                 }
-                let digit_count = chars[start..end].iter().filter(|c| c.is_ascii_digit()).count();
+                let digit_count = chars[start..end]
+                    .iter()
+                    .filter(|c| c.is_ascii_digit())
+                    .count();
                 if (10..=15).contains(&digit_count) {
                     result.push_str("[REDACTED_PHONE]");
                     idx = end;
@@ -545,11 +586,19 @@ impl LogRedactor {
             if word_boundary_before && chars[idx].is_ascii_digit() {
                 let start = idx;
                 let mut end = start;
-                while end < chars.len() && (chars[end].is_ascii_digit() || chars[end] == '-' || chars[end] == ' ') {
+                while end < chars.len()
+                    && (chars[end].is_ascii_digit() || chars[end] == '-' || chars[end] == ' ')
+                {
                     end += 1;
                 }
-                let digits: Vec<char> = chars[start..end].iter().copied().filter(|c| c.is_ascii_digit()).collect();
-                if digits.len() == 16 && (chars[start..end].contains(&'-') || chars[start..end].contains(&' ')) {
+                let digits: Vec<char> = chars[start..end]
+                    .iter()
+                    .copied()
+                    .filter(|c| c.is_ascii_digit())
+                    .collect();
+                if digits.len() == 16
+                    && (chars[start..end].contains(&'-') || chars[start..end].contains(&' '))
+                {
                     result.push_str("[REDACTED_PAYMENT_CARD]");
                     idx = end;
                     continue;

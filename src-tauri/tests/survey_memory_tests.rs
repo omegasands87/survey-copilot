@@ -1,9 +1,9 @@
 use rusqlite::Connection;
 use survey_copilot_lib::domain::survey::{
-    compute_question_fingerprint, compute_session_structural_fingerprint,
-    extract_domain_from_url, AnswerFormat, ConfirmAnswerInput, ConfirmationStatus,
-    CreateQuestionInput, CreateSessionInput, Provenance, QuestionType, RecognizeSurveyInput,
-    SaveQuestionDraftInput, SurveyRecognitionStatus,
+    compute_question_fingerprint, compute_session_structural_fingerprint, extract_domain_from_url,
+    AnswerFormat, ConfirmAnswerInput, ConfirmationStatus, CreateQuestionInput, CreateSessionInput,
+    Provenance, QuestionType, RecognizeSurveyInput, SaveQuestionDraftInput,
+    SurveyRecognitionStatus,
 };
 use survey_copilot_lib::migrations::MigrationRunner;
 use survey_copilot_lib::repository::PersonaRepository;
@@ -105,7 +105,10 @@ fn test_survey_metadata_and_domain_extraction() {
     )
     .expect("create_session must succeed");
 
-    assert_eq!(session.source_domain, Some("surveys.yougov.com".to_string()));
+    assert_eq!(
+        session.source_domain,
+        Some("surveys.yougov.com".to_string())
+    );
     assert_eq!(session.version, 1);
     assert_eq!(session.recognized_from_id, None);
 }
@@ -123,7 +126,10 @@ fn test_structural_fingerprint_deterministic_and_sensitive_to_sequence() {
         QuestionType::SingleChoice,
         &q1_options,
     );
-    assert_eq!(fp1, fp1_repeat, "Fingerprint pertanyaan harus deterministik");
+    assert_eq!(
+        fp1, fp1_repeat,
+        "Fingerprint pertanyaan harus deterministik"
+    );
 
     // Perubahan opsi mengubah fingerprint
     let q1_options_modified = vec!["BCA".to_string(), "Mandiri".to_string(), "BNI".to_string()];
@@ -132,29 +138,53 @@ fn test_structural_fingerprint_deterministic_and_sensitive_to_sequence() {
         QuestionType::SingleChoice,
         &q1_options_modified,
     );
-    assert_ne!(fp1, fp1_modified, "Perubahan opsi harus mengubah fingerprint");
+    assert_ne!(
+        fp1, fp1_modified,
+        "Perubahan opsi harus mengubah fingerprint"
+    );
 
     // Fingerprint sesi
     let questions_a = vec![
-        (1, "Pertanyaan 1", QuestionType::SingleChoice, q1_options.as_slice()),
+        (
+            1,
+            "Pertanyaan 1",
+            QuestionType::SingleChoice,
+            q1_options.as_slice(),
+        ),
         (2, "Pertanyaan 2", QuestionType::Numeric, [].as_slice()),
     ];
     let session_fp_a = compute_session_structural_fingerprint(&questions_a);
 
     let questions_b = vec![
-        (1, "Pertanyaan 1", QuestionType::SingleChoice, q1_options.as_slice()),
+        (
+            1,
+            "Pertanyaan 1",
+            QuestionType::SingleChoice,
+            q1_options.as_slice(),
+        ),
         (2, "Pertanyaan 2", QuestionType::Numeric, [].as_slice()),
     ];
     let session_fp_b = compute_session_structural_fingerprint(&questions_b);
-    assert_eq!(session_fp_a, session_fp_b, "Fingerprint sesi harus identik untuk urutan pertanyaan yang sama");
+    assert_eq!(
+        session_fp_a, session_fp_b,
+        "Fingerprint sesi harus identik untuk urutan pertanyaan yang sama"
+    );
 
     // Urutan terbalik atau pertanyaan berbeda menghasilkan fingerprint berbeda
     let questions_reversed = vec![
         (1, "Pertanyaan 2", QuestionType::Numeric, [].as_slice()),
-        (2, "Pertanyaan 1", QuestionType::SingleChoice, q1_options.as_slice()),
+        (
+            2,
+            "Pertanyaan 1",
+            QuestionType::SingleChoice,
+            q1_options.as_slice(),
+        ),
     ];
     let session_fp_rev = compute_session_structural_fingerprint(&questions_reversed);
-    assert_ne!(session_fp_a, session_fp_rev, "Urutan pertanyaan yang berbeda harus menghasilkan fingerprint berbeda");
+    assert_ne!(
+        session_fp_a, session_fp_rev,
+        "Urutan pertanyaan yang berbeda harus menghasilkan fingerprint berbeda"
+    );
 }
 
 #[test]
@@ -207,7 +237,11 @@ fn test_ordered_question_sequence_persistence() {
             capture_id: None,
             question_text_original: "Apa status pekerjaan utama Anda?".to_string(),
             instructions: Some("Pilih satu jawaban".to_string()),
-            options: Some(vec!["Karyawan Swasta".to_string(), "Wirausaha".to_string(), "Pelajar".to_string()]),
+            options: Some(vec![
+                "Karyawan Swasta".to_string(),
+                "Wirausaha".to_string(),
+                "Pelajar".to_string(),
+            ]),
             question_type: Some(QuestionType::SingleChoice),
             answer_format: Some(AnswerFormat::SingleChoice),
             provenance: Some(Provenance::UserEntered),
@@ -245,7 +279,10 @@ fn test_ordered_question_sequence_persistence() {
     assert_eq!(questions[0].question_order, 1);
     assert_eq!(questions[1].question_order, 2);
     assert_eq!(questions[2].question_order, 3);
-    assert_eq!(questions[0].question_text_original, "Berapa usia Anda saat ini?");
+    assert_eq!(
+        questions[0].question_text_original,
+        "Berapa usia Anda saat ini?"
+    );
     assert_eq!(questions[1].options.len(), 3);
 }
 
@@ -275,9 +312,14 @@ fn test_strict_answer_separation_at_064() {
             persona_id: persona_id.clone(),
             session_id: session.id.clone(),
             capture_id: None,
-            question_text_original: "Seberapa sering Anda berbelanja daring dalam sebulan?".to_string(),
+            question_text_original: "Seberapa sering Anda berbelanja daring dalam sebulan?"
+                .to_string(),
             instructions: None,
-            options: Some(vec!["1-2 kali".to_string(), "3-5 kali".to_string(), ">5 kali".to_string()]),
+            options: Some(vec![
+                "1-2 kali".to_string(),
+                "3-5 kali".to_string(),
+                ">5 kali".to_string(),
+            ]),
             question_type: Some(QuestionType::SingleChoice),
             answer_format: Some(AnswerFormat::SingleChoice),
             provenance: Some(Provenance::UserEntered),
@@ -300,8 +342,14 @@ fn test_strict_answer_separation_at_064() {
     .unwrap();
 
     let q_after_draft = SurveyService::get_question(&conn, &persona_id, &question.id).unwrap();
-    assert_eq!(q_after_draft.user_answer_draft, Some("3-5 kali (sementara)".to_string()));
-    assert_eq!(q_after_draft.user_answer_confirmed, None, "Draf tidak boleh mengotori jawaban konfirmasi");
+    assert_eq!(
+        q_after_draft.user_answer_draft,
+        Some("3-5 kali (sementara)".to_string())
+    );
+    assert_eq!(
+        q_after_draft.user_answer_confirmed, None,
+        "Draf tidak boleh mengotori jawaban konfirmasi"
+    );
     assert_eq!(q_after_draft.confirmation_status, ConfirmationStatus::Draft);
 
     // 2. Simpan rekomendasi AI ke answer_recommendations
@@ -334,12 +382,9 @@ fn test_strict_answer_separation_at_064() {
     .unwrap();
 
     // 4. Ambil Survey Memory Session Detail dan verifikasi pemisahan mutlak
-    let memory_detail = SurveyRecognitionService::get_memory_session_detail(
-        &conn,
-        &persona_id,
-        &session.id,
-    )
-    .expect("get_memory_session_detail must succeed");
+    let memory_detail =
+        SurveyRecognitionService::get_memory_session_detail(&conn, &persona_id, &session.id)
+            .expect("get_memory_session_detail must succeed");
 
     assert_eq!(memory_detail.questions.len(), 1);
     let mem_q = &memory_detail.questions[0];
@@ -347,7 +392,10 @@ fn test_strict_answer_separation_at_064() {
     // AT-064: Jawaban aktual pengguna terkonfirmasi terpisah dari saran AI
     assert_eq!(mem_q.user_answer_confirmed, Some("3-5 kali".to_string()));
     assert!(mem_q.confirmed_at.is_some());
-    assert_eq!(mem_q.user_answer_draft, Some("3-5 kali (sementara)".to_string()));
+    assert_eq!(
+        mem_q.user_answer_draft,
+        Some("3-5 kali (sementara)".to_string())
+    );
     assert_eq!(mem_q.ai_recommendation_draft, Some("1-2 kali".to_string()));
     assert_ne!(
         mem_q.user_answer_confirmed, mem_q.ai_recommendation_draft,
@@ -384,7 +432,11 @@ fn test_survey_recognition_exact_match() {
             capture_id: None,
             question_text_original: "Seberapa sering Anda berolahraga setiap minggu?".to_string(),
             instructions: None,
-            options: Some(vec!["1-2 kali".to_string(), "3-4 kali".to_string(), "Hampir setiap hari".to_string()]),
+            options: Some(vec![
+                "1-2 kali".to_string(),
+                "3-4 kali".to_string(),
+                "Hampir setiap hari".to_string(),
+            ]),
             question_type: Some(QuestionType::SingleChoice),
             answer_format: Some(AnswerFormat::SingleChoice),
             provenance: Some(Provenance::UserEntered),
@@ -430,7 +482,11 @@ fn test_survey_recognition_exact_match() {
             capture_id: None,
             question_text_original: "Seberapa sering Anda berolahraga setiap minggu?".to_string(),
             instructions: None,
-            options: Some(vec!["1-2 kali".to_string(), "3-4 kali".to_string(), "Hampir setiap hari".to_string()]),
+            options: Some(vec![
+                "1-2 kali".to_string(),
+                "3-4 kali".to_string(),
+                "Hampir setiap hari".to_string(),
+            ]),
             question_type: Some(QuestionType::SingleChoice),
             answer_format: Some(AnswerFormat::SingleChoice),
             provenance: Some(Provenance::UserEntered),
@@ -452,7 +508,10 @@ fn test_survey_recognition_exact_match() {
     .expect("evaluate_recognition must succeed");
 
     assert_eq!(eval.match_status, SurveyRecognitionStatus::ExactMatch);
-    assert!(eval.confidence_score >= 0.95, "Exact match harus memiliki keyakinan >= 0.95");
+    assert!(
+        eval.confidence_score >= 0.95,
+        "Exact match harus memiliki keyakinan >= 0.95"
+    );
     assert_eq!(eval.matched_session_id, Some(session_old.id.clone()));
     assert_eq!(eval.matched_question_count, 1);
     assert_eq!(eval.recognized_answers.len(), 1);
@@ -486,9 +545,14 @@ fn test_survey_recognition_version_changed_differentiation() {
             persona_id: persona_id.clone(),
             session_id: session_v1.id.clone(),
             capture_id: None,
-            question_text_original: "Moda transportasi apa yang paling sering Anda gunakan?".to_string(),
+            question_text_original: "Moda transportasi apa yang paling sering Anda gunakan?"
+                .to_string(),
             instructions: None,
-            options: Some(vec!["KRL Commuter Line".to_string(), "MRT".to_string(), "TransJakarta".to_string()]),
+            options: Some(vec![
+                "KRL Commuter Line".to_string(),
+                "MRT".to_string(),
+                "TransJakarta".to_string(),
+            ]),
             question_type: Some(QuestionType::SingleChoice),
             answer_format: Some(AnswerFormat::SingleChoice),
             provenance: Some(Provenance::UserEntered),
@@ -540,9 +604,14 @@ fn test_survey_recognition_version_changed_differentiation() {
             persona_id: persona_id.clone(),
             session_id: session_v2.id.clone(),
             capture_id: None,
-            question_text_original: "Moda transportasi apa yang paling sering Anda gunakan?".to_string(),
+            question_text_original: "Moda transportasi apa yang paling sering Anda gunakan?"
+                .to_string(),
             instructions: None,
-            options: Some(vec!["KRL Commuter Line".to_string(), "MRT".to_string(), "TransJakarta".to_string()]),
+            options: Some(vec![
+                "KRL Commuter Line".to_string(),
+                "MRT".to_string(),
+                "TransJakarta".to_string(),
+            ]),
             question_type: Some(QuestionType::SingleChoice),
             answer_format: Some(AnswerFormat::SingleChoice),
             provenance: Some(Provenance::UserEntered),
@@ -611,7 +680,10 @@ fn test_survey_recognition_version_changed_differentiation() {
     assert_eq!(eval.matched_session_id, Some(session_v1.id.clone()));
     assert_eq!(eval.matched_question_count, 2);
     assert_eq!(eval.total_question_count, 3);
-    assert!(!eval.differences.is_empty(), "Rincian perbedaan harus tercatat");
+    assert!(
+        !eval.differences.is_empty(),
+        "Rincian perbedaan harus tercatat"
+    );
 }
 
 #[test]
@@ -676,9 +748,14 @@ fn test_survey_recognition_title_alone_never_matches_definitely() {
             persona_id: persona_id.clone(),
             session_id: session_2.id.clone(),
             capture_id: None,
-            question_text_original: "Merek smartphone apa yang sedang Anda gunakan saat ini?".to_string(),
+            question_text_original: "Merek smartphone apa yang sedang Anda gunakan saat ini?"
+                .to_string(),
             instructions: None,
-            options: Some(vec!["Samsung".to_string(), "Apple".to_string(), "Xiaomi".to_string()]),
+            options: Some(vec![
+                "Samsung".to_string(),
+                "Apple".to_string(),
+                "Xiaomi".to_string(),
+            ]),
             question_type: Some(QuestionType::SingleChoice),
             answer_format: Some(AnswerFormat::SingleChoice),
             provenance: Some(Provenance::UserEntered),
@@ -749,7 +826,10 @@ fn test_strict_persona_isolation_at_066() {
             capture_id: None,
             question_text_original: "Apakah Anda merokok?".to_string(),
             instructions: None,
-            options: Some(vec!["Ya, setiap hari".to_string(), "Tidak pernah".to_string()]),
+            options: Some(vec![
+                "Ya, setiap hari".to_string(),
+                "Tidak pernah".to_string(),
+            ]),
             question_type: Some(QuestionType::SingleChoice),
             answer_format: Some(AnswerFormat::Boolean),
             provenance: Some(Provenance::UserEntered),
@@ -795,7 +875,10 @@ fn test_strict_persona_isolation_at_066() {
             capture_id: None,
             question_text_original: "Apakah Anda merokok?".to_string(),
             instructions: None,
-            options: Some(vec!["Ya, setiap hari".to_string(), "Tidak pernah".to_string()]),
+            options: Some(vec![
+                "Ya, setiap hari".to_string(),
+                "Tidak pernah".to_string(),
+            ]),
             question_type: Some(QuestionType::SingleChoice),
             answer_format: Some(AnswerFormat::Boolean),
             provenance: Some(Provenance::UserEntered),
@@ -833,11 +916,8 @@ fn test_strict_persona_isolation_at_066() {
     );
 
     // Verifikasi bahwa Persona B tidak dapat memanggil get_memory_session_detail untuk sesi milik Persona A
-    let memory_leak_attempt = SurveyRecognitionService::get_memory_session_detail(
-        &conn,
-        &persona_b,
-        &session_a.id,
-    );
+    let memory_leak_attempt =
+        SurveyRecognitionService::get_memory_session_detail(&conn, &persona_b, &session_a.id);
     assert!(
         memory_leak_attempt.is_err(),
         "AT-066 Violation: Persona B berhasil mengakses Survey Memory milik Persona A!"

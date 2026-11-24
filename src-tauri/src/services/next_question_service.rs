@@ -6,8 +6,8 @@ use uuid::Uuid;
 use crate::domain::error::AppError;
 use crate::domain::survey::{
     compute_question_fingerprint, NextQuestionIntelligenceResult, NextQuestionPrediction,
-    PredictNextQuestionInput, PredictionStatus, SurveyBranchTransition,
-    SurveyQuestion, SurveyQuestionPredictionRecord, TransitionType,
+    PredictNextQuestionInput, PredictionStatus, SurveyBranchTransition, SurveyQuestion,
+    SurveyQuestionPredictionRecord, TransitionType,
 };
 use crate::repository::{PersonaRepository, SurveyRepository};
 
@@ -34,10 +34,11 @@ impl NextQuestionService {
             })?;
 
         // 3. Ambil pertanyaan saat ini
-        let current_question = SurveyRepository::get_question(conn, &input.persona_id, &input.current_question_id)?
-            .ok_or_else(|| {
-                AppError::not_found("Pertanyaan survei aktif tidak ditemukan pada sesi ini")
-            })?;
+        let current_question =
+            SurveyRepository::get_question(conn, &input.persona_id, &input.current_question_id)?
+                .ok_or_else(|| {
+                    AppError::not_found("Pertanyaan survei aktif tidak ditemukan pada sesi ini")
+                })?;
 
         let now = Utc::now().to_rfc3339();
 
@@ -67,7 +68,8 @@ impl NextQuestionService {
         // mengenali atau cocok secara struktural dengan sesi survei lain (Struktur saja, tanpa data jawaban pribadi)
         let is_structural_fallback = if transitions.is_empty() {
             if let Some(ref fp) = current_question.question_fingerprint {
-                let structural = SurveyRepository::get_structural_transitions_for_fingerprint(conn, fp)?;
+                let structural =
+                    SurveyRepository::get_structural_transitions_for_fingerprint(conn, fp)?;
                 if !structural.is_empty() {
                     transitions = structural;
                     true
@@ -198,7 +200,11 @@ impl NextQuestionService {
             }
 
             // Hitung skor confidence berdasarkan bukti dan kondisi
-            let (confidence, explanation, leading_condition) = match (active_answer, answer_matched, is_alternative) {
+            let (confidence, explanation, leading_condition) = match (
+                active_answer,
+                answer_matched,
+                is_alternative,
+            ) {
                 // Jawaban saat ini cocok persis dengan cabang percabangan teramati
                 (Some(ans), true, _) => {
                     let conf = (0.85 + (frequency_ratio * 0.10)).min(0.95);
@@ -272,7 +278,11 @@ impl NextQuestionService {
         }
 
         // Urutkan kandidat berdasarkan confidence tertinggi
-        candidate_list.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap_or(std::cmp::Ordering::Equal));
+        candidate_list.sort_by(|a, b| {
+            b.confidence
+                .partial_cmp(&a.confidence)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         candidate_list
     }
 
@@ -298,9 +308,9 @@ impl NextQuestionService {
             let to_q = &questions[i + 1];
 
             // Cek apakah transisi dari from_q ke to_q sudah pernah dicatat
-            let already_exists = existing_transitions
-                .iter()
-                .any(|t| t.from_question_id == from_q.id && t.to_question_id.as_deref() == Some(&to_q.id));
+            let already_exists = existing_transitions.iter().any(|t| {
+                t.from_question_id == from_q.id && t.to_question_id.as_deref() == Some(&to_q.id)
+            });
 
             if !already_exists {
                 let order_diff = to_q.question_order - from_q.question_order;
@@ -327,7 +337,10 @@ impl NextQuestionService {
                     from_question_id: from_q.id.clone(),
                     from_question_fingerprint: from_q.question_fingerprint.clone(),
                     from_question_order: from_q.question_order,
-                    from_answer_value: from_q.user_answer_confirmed.as_ref().map(|s| s.trim().to_lowercase()),
+                    from_answer_value: from_q
+                        .user_answer_confirmed
+                        .as_ref()
+                        .map(|s| s.trim().to_lowercase()),
                     to_question_id: Some(to_q.id.clone()),
                     to_question_fingerprint: to_q.question_fingerprint.clone(),
                     to_question_text: to_q.question_text_original.clone(),
@@ -360,14 +373,18 @@ impl NextQuestionService {
 
         // 1. Jika ada preceding_question_id, cari prediksi tertunda untuk pertanyaan pendahulu tersebut
         if let Some(ref pred_q_id) = detected_question.preceding_question_id {
-            let pending_predictions =
-                SurveyRepository::find_pending_predictions_for_question(conn, persona_id, pred_q_id)?;
+            let pending_predictions = SurveyRepository::find_pending_predictions_for_question(
+                conn, persona_id, pred_q_id,
+            )?;
 
             let detected_text_norm = detected_question
                 .question_text_original
                 .trim()
                 .to_lowercase();
-            let detected_fp = detected_question.question_fingerprint.as_deref().unwrap_or("");
+            let detected_fp = detected_question
+                .question_fingerprint
+                .as_deref()
+                .unwrap_or("");
 
             for pred in pending_predictions {
                 let pred_text_norm = pred.predicted_question_text.trim().to_lowercase();
@@ -380,7 +397,8 @@ impl NextQuestionService {
                 // Periksa kecocokan prediksi dengan observasi aktual yang baru saja terkonfirmasi
                 let is_match = pred_text_norm == detected_text_norm
                     || (!detected_fp.is_empty() && detected_fp == pred_fp)
-                    || (detected_text_norm.len() >= 10 && pred_text_norm.contains(&detected_text_norm))
+                    || (detected_text_norm.len() >= 10
+                        && pred_text_norm.contains(&detected_text_norm))
                     || (pred_text_norm.len() >= 10 && detected_text_norm.contains(&pred_text_norm));
 
                 let new_status = if is_match {
@@ -396,12 +414,7 @@ impl NextQuestionService {
                 };
 
                 let _ = SurveyRepository::update_prediction_status(
-                    conn,
-                    persona_id,
-                    &pred.id,
-                    new_status,
-                    matched_id,
-                    &now,
+                    conn, persona_id, &pred.id, new_status, matched_id, &now,
                 );
             }
         }

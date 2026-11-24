@@ -3,10 +3,10 @@ use uuid::Uuid;
 
 use crate::domain::error::AppError;
 use crate::domain::survey::{
-    compute_question_fingerprint, compute_session_structural_fingerprint,
-    RecognizeSurveyInput, RecognizedQuestionAnswer, SurveyMemorySessionDetail,
-    SurveyQuestion, SurveyRecognitionEvaluation, SurveyRecognitionRecord, SurveyRecognitionStatus,
-    SurveySession, SurveySessionDetail,
+    compute_question_fingerprint, compute_session_structural_fingerprint, RecognizeSurveyInput,
+    RecognizedQuestionAnswer, SurveyMemorySessionDetail, SurveyQuestion,
+    SurveyRecognitionEvaluation, SurveyRecognitionRecord, SurveyRecognitionStatus, SurveySession,
+    SurveySessionDetail,
 };
 use crate::repository::{PersonaRepository, SurveyRepository};
 
@@ -26,20 +26,26 @@ impl SurveyRecognitionService {
         Self::validate_persona(conn, &input.persona_id)?;
 
         // Ambil sesi target
-        let target_session = match SurveyRepository::get_session(conn, &input.persona_id, &input.session_id)? {
-            Some(s) => s,
-            None => {
-                return Err(AppError::not_found(
-                    "Sesi survei tidak ditemukan atau bukan milik profil aktif ini",
-                ));
-            }
-        };
+        let target_session =
+            match SurveyRepository::get_session(conn, &input.persona_id, &input.session_id)? {
+                Some(s) => s,
+                None => {
+                    return Err(AppError::not_found(
+                        "Sesi survei tidak ditemukan atau bukan milik profil aktif ini",
+                    ));
+                }
+            };
 
         // Ambil daftar seluruh pertanyaan sesi target
-        let target_questions = SurveyRepository::list_questions_by_session(conn, &input.persona_id, &input.session_id)?;
+        let target_questions = SurveyRepository::list_questions_by_session(
+            conn,
+            &input.persona_id,
+            &input.session_id,
+        )?;
 
         // Pastikan sidik jari sesi target terhitung dan tersimpan
-        let target_fingerprint = Self::ensure_target_fingerprints(conn, &target_session, &target_questions)?;
+        let target_fingerprint =
+            Self::ensure_target_fingerprints(conn, &target_session, &target_questions)?;
 
         // Ambil kandidat sesi historis HANYA untuk persona yang sama (AT-066: isolasi persona mutlak)
         let candidates = SurveyRepository::list_candidate_sessions_for_recognition(
@@ -62,9 +68,13 @@ impl SurveyRecognitionService {
                 matched_version: None,
                 matched_question_count: 0,
                 total_question_count: target_questions.len() as i64,
-                differences: vec!["Belum ada sesi survei historis tersimpan untuk profil responden ini.".to_string()],
+                differences: vec![
+                    "Belum ada sesi survei historis tersimpan untuk profil responden ini."
+                        .to_string(),
+                ],
                 provenance: "structural_fingerprint".to_string(),
-                explanation: "Survei baru — belum ada riwayat survei tersimpan pada profil ini.".to_string(),
+                explanation: "Survei baru — belum ada riwayat survei tersimpan pada profil ini."
+                    .to_string(),
                 recognized_answers: Vec::new(),
                 recognized_at: chrono::Utc::now().to_rfc3339(),
             };
@@ -115,7 +125,9 @@ impl SurveyRecognitionService {
             matched_version: None,
             matched_question_count: 0,
             total_question_count: target_questions.len() as i64,
-            differences: vec!["Tidak ditemukan kesamaan struktur dengan survei terdahulu.".to_string()],
+            differences: vec![
+                "Tidak ditemukan kesamaan struktur dengan survei terdahulu.".to_string()
+            ],
             provenance: "structural_fingerprint".to_string(),
             explanation: "Tidak ada kecocokan survei historis yang signifikan.".to_string(),
             recognized_answers: Vec::new(),
@@ -195,9 +207,9 @@ impl SurveyRecognitionService {
     ) -> Result<SurveyMemorySessionDetail, AppError> {
         Self::validate_persona(conn, persona_id)?;
 
-        SurveyRepository::get_memory_session_detail(conn, persona_id, session_id)?.ok_or_else(|| {
-            AppError::not_found("Sesi survei tidak ditemukan atau bukan milik profil aktif ini")
-        })
+        SurveyRepository::get_memory_session_detail(conn, persona_id, session_id)?.ok_or_else(
+            || AppError::not_found("Sesi survei tidak ditemukan atau bukan milik profil aktif ini"),
+        )
     }
 
     // ==========================================
@@ -354,7 +366,8 @@ impl SurveyRecognitionService {
 
         let total_matched = exact_matches + modified_matches;
         let max_len = target_len.max(cand_len) as f64;
-        let structural_similarity = (exact_matches as f64 * 1.0 + modified_matches as f64 * 0.7) / max_len;
+        let structural_similarity =
+            (exact_matches as f64 * 1.0 + modified_matches as f64 * 0.7) / max_len;
 
         // ATURAN KRITIS NON-NEGOTIABLE:
         // "Jangan menyatakan cocok secara pasti jika hanya berdasarkan kemiripan judul."
@@ -390,7 +403,10 @@ impl SurveyRecognitionService {
         }
 
         // Penentuan Status dan Skor Keyakinan
-        let (status, confidence, explanation) = if exact_fingerprint_match && exact_matches == target_len && target_len == cand_len {
+        let (status, confidence, explanation) = if exact_fingerprint_match
+            && exact_matches == target_len
+            && target_len == cand_len
+        {
             // SAMA PERSIS (Exact Match)
             let conf = 0.98;
             let expl = format!(
@@ -457,7 +473,8 @@ impl SurveyRecognitionService {
         target_session: &SurveySession,
         target_questions: &[SurveyQuestion],
     ) -> Result<String, AppError> {
-        let mut question_tuples: Vec<(i64, &str, crate::domain::survey::QuestionType, &[String])> = Vec::new();
+        let mut question_tuples: Vec<(i64, &str, crate::domain::survey::QuestionType, &[String])> =
+            Vec::new();
 
         for q in target_questions {
             let q_fp = compute_question_fingerprint(
@@ -474,7 +491,12 @@ impl SurveyRecognitionService {
                 );
             }
 
-            question_tuples.push((q.question_order, &q.question_text_original, q.question_type, &q.options));
+            question_tuples.push((
+                q.question_order,
+                &q.question_text_original,
+                q.question_type,
+                &q.options,
+            ));
         }
 
         let session_fp = compute_session_structural_fingerprint(&question_tuples);

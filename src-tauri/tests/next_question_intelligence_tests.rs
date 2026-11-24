@@ -1,8 +1,8 @@
 use rusqlite::Connection;
 use survey_copilot_lib::domain::survey::{
     AnswerFormat, ConfirmAnswerInput, CreateQuestionInput, CreateSessionInput,
-    PredictNextQuestionInput, PredictionStatus, Provenance, QuestionType,
-    SurveyBranchTransition, TransitionType,
+    PredictNextQuestionInput, PredictionStatus, Provenance, QuestionType, SurveyBranchTransition,
+    TransitionType,
 };
 use survey_copilot_lib::migrations::MigrationRunner;
 use survey_copilot_lib::repository::{PersonaRepository, SurveyRepository};
@@ -43,7 +43,10 @@ fn test_migration_0012_schema_and_tables() {
             |r| r.get(0),
         )
         .expect("query sqlite_master for survey_branch_transitions must succeed");
-    assert_eq!(count_transitions, 1, "survey_branch_transitions table must exist");
+    assert_eq!(
+        count_transitions, 1,
+        "survey_branch_transitions table must exist"
+    );
 
     // Verify survey_question_predictions table exists
     let count_predictions: i64 = conn
@@ -53,7 +56,10 @@ fn test_migration_0012_schema_and_tables() {
             |r| r.get(0),
         )
         .expect("query sqlite_master for survey_question_predictions must succeed");
-    assert_eq!(count_predictions, 1, "survey_question_predictions table must exist");
+    assert_eq!(
+        count_predictions, 1,
+        "survey_question_predictions table must exist"
+    );
 
     // Verify columns on survey_branch_transitions
     let mut stmt = conn
@@ -120,7 +126,11 @@ fn test_sequential_question_sequence_modeling() {
             capture_id: None,
             question_text_original: "Berapa usia Anda saat ini?".to_string(),
             instructions: None,
-            options: Some(vec!["18-25".to_string(), "26-35".to_string(), "36+".to_string()]),
+            options: Some(vec![
+                "18-25".to_string(),
+                "26-35".to_string(),
+                "36+".to_string(),
+            ]),
             question_type: Some(QuestionType::SingleChoice),
             answer_format: Some(AnswerFormat::SingleChoice),
             provenance: Some(Provenance::UserEntered),
@@ -156,9 +166,14 @@ fn test_sequential_question_sequence_modeling() {
             persona_id: persona_id.clone(),
             session_id: session.id.clone(),
             capture_id: None,
-            question_text_original: "Jenis olahraga apa yang paling sering Anda lakukan?".to_string(),
+            question_text_original: "Jenis olahraga apa yang paling sering Anda lakukan?"
+                .to_string(),
             instructions: None,
-            options: Some(vec!["Lari".to_string(), "Renang".to_string(), "Sepeda".to_string()]),
+            options: Some(vec![
+                "Lari".to_string(),
+                "Renang".to_string(),
+                "Sepeda".to_string(),
+            ]),
             question_type: Some(QuestionType::SingleChoice),
             answer_format: Some(AnswerFormat::SingleChoice),
             provenance: Some(Provenance::UserEntered),
@@ -174,8 +189,9 @@ fn test_sequential_question_sequence_modeling() {
         .expect("sync transitions must succeed");
     assert!(synced >= 2, "Harus mencatat minimal 2 transisi sekuensial");
 
-    let transitions = NextQuestionService::get_session_branch_transitions(&conn, &persona_id, &session.id)
-        .expect("get transitions must succeed");
+    let transitions =
+        NextQuestionService::get_session_branch_transitions(&conn, &persona_id, &session.id)
+            .expect("get transitions must succeed");
 
     assert_eq!(transitions.len(), 2);
     assert_eq!(transitions[0].from_question_id, q1.id);
@@ -309,9 +325,14 @@ fn test_conditional_branch_transitions_and_accuracy_matching_at_065() {
             persona_id: persona_id.clone(),
             session_id: session2.id.clone(),
             capture_id: None,
-            question_text_original: "Apakah Anda berencana membeli kendaraan dalam 12 bulan ke depan?".to_string(),
+            question_text_original:
+                "Apakah Anda berencana membeli kendaraan dalam 12 bulan ke depan?".to_string(),
             instructions: None,
-            options: Some(vec!["Ya".to_string(), "Tidak".to_string(), "Mungkin".to_string()]),
+            options: Some(vec![
+                "Ya".to_string(),
+                "Tidak".to_string(),
+                "Mungkin".to_string(),
+            ]),
             question_type: Some(QuestionType::SingleChoice),
             answer_format: Some(AnswerFormat::SingleChoice),
             provenance: Some(Provenance::UserEntered),
@@ -374,15 +395,28 @@ fn test_conditional_branch_transitions_and_accuracy_matching_at_065() {
 
     // Kandidat #1 harus Q2A ("Berapa jumlah kendaraan yang Anda miliki?") dengan keyakinan tinggi (>= 0.85)
     let top_pred = &nqi_result_ya.predictions[0];
-    assert!(top_pred.candidate_question_text.contains("jumlah kendaraan"));
-    assert!(top_pred.confidence >= 0.85, "Confidence untuk jawaban yang cocok harus tinggi");
-    assert!(top_pred.is_predicted_not_detected, "AT-065: Wajib berlabel is_predicted_not_detected");
+    assert!(top_pred
+        .candidate_question_text
+        .contains("jumlah kendaraan"));
+    assert!(
+        top_pred.confidence >= 0.85,
+        "Confidence untuk jawaban yang cocok harus tinggi"
+    );
+    assert!(
+        top_pred.is_predicted_not_detected,
+        "AT-065: Wajib berlabel is_predicted_not_detected"
+    );
     assert_eq!(top_pred.evidence_source, "observed_branch");
 
     // Kandidat #2 harus cabang alternatif dengan keyakinan lebih rendah (< 0.50)
     let alt_pred = &nqi_result_ya.predictions[1];
-    assert!(alt_pred.candidate_question_text.contains("berencana membeli kendaraan"));
-    assert!(alt_pred.confidence < 0.50, "Confidence untuk cabang alternatif harus lebih rendah");
+    assert!(alt_pred
+        .candidate_question_text
+        .contains("berencana membeli kendaraan"));
+    assert!(
+        alt_pred.confidence < 0.50,
+        "Confidence untuk cabang alternatif harus lebih rendah"
+    );
     assert!(alt_pred.is_predicted_not_detected);
 
     // Evaluasi prediksi jika pengguna memilih jawaban 'Tidak'
@@ -397,7 +431,10 @@ fn test_conditional_branch_transitions_and_accuracy_matching_at_065() {
     )
     .unwrap();
 
-    assert_eq!(nqi_result_tidak.predictions[0].candidate_question_text, "Apakah Anda berencana membeli kendaraan dalam 12 bulan ke depan?");
+    assert_eq!(
+        nqi_result_tidak.predictions[0].candidate_question_text,
+        "Apakah Anda berencana membeli kendaraan dalam 12 bulan ke depan?"
+    );
     assert!(nqi_result_tidak.predictions[0].confidence >= 0.85);
 }
 
@@ -476,7 +513,10 @@ fn test_unanswered_question_returns_all_candidates_with_conditions() {
         to_question_fingerprint: None,
         to_question_text: "Apa alasan utama Anda belum berbelanja secara online?".to_string(),
         to_question_type: QuestionType::SingleChoice,
-        to_options: vec!["Khawatir penipuan".to_string(), "Lebih suka belanja langsung".to_string()],
+        to_options: vec![
+            "Khawatir penipuan".to_string(),
+            "Lebih suka belanja langsung".to_string(),
+        ],
         to_question_order: 2,
         branch_condition: Some("Jawaban: belum pernah".to_string()),
         transition_type: TransitionType::ConditionalBranch,
@@ -501,8 +541,14 @@ fn test_unanswered_question_returns_all_candidates_with_conditions() {
     assert_eq!(nqi_result.predictions.len(), 2);
 
     for pred in &nqi_result.predictions {
-        assert!(pred.is_predicted_not_detected, "Harus berlabel tegas not yet detected");
-        assert!(pred.leading_condition.is_some(), "Harus menyertakan kondisi percabangan");
+        assert!(
+            pred.is_predicted_not_detected,
+            "Harus berlabel tegas not yet detected"
+        );
+        assert!(
+            pred.leading_condition.is_some(),
+            "Harus menyertakan kondisi percabangan"
+        );
         assert!(pred.confidence >= 0.60 && pred.confidence <= 0.85);
     }
 }
@@ -533,7 +579,8 @@ fn test_nqi_sparse_or_empty_history_returns_insufficient_evidence_at_065() {
             persona_id: persona_id.clone(),
             session_id: session.id.clone(),
             capture_id: None,
-            question_text_original: "Apakah Anda memiliki hewan ternak di pekarangan rumah?".to_string(),
+            question_text_original: "Apakah Anda memiliki hewan ternak di pekarangan rumah?"
+                .to_string(),
             instructions: None,
             options: None,
             question_type: None,
@@ -560,9 +607,15 @@ fn test_nqi_sparse_or_empty_history_returns_insufficient_evidence_at_065() {
 
     // AT-065 & Non-negotiable Rule 5
     assert_eq!(nqi_result.status, PredictionStatus::InsufficientEvidence);
-    assert_eq!(nqi_result.predictions.len(), 0, "Dilarang mempublikasikan prediksi spekulatif");
+    assert_eq!(
+        nqi_result.predictions.len(),
+        0,
+        "Dilarang mempublikasikan prediksi spekulatif"
+    );
     assert_eq!(nqi_result.observed_transitions_count, 0);
-    assert!(nqi_result.explanation.contains("tidak membuat prediksi spekulatif"));
+    assert!(nqi_result
+        .explanation
+        .contains("tidak membuat prediksi spekulatif"));
 }
 
 #[test]
@@ -593,7 +646,10 @@ fn test_nqi_question_detected_lifecycle_transition_matched_and_diverged() {
             capture_id: None,
             question_text_original: "Moda transportasi apa yang Anda gunakan hari ini?".to_string(),
             instructions: None,
-            options: Some(vec!["KRL / Kereta".to_string(), "Kendaraan Pribadi".to_string()]),
+            options: Some(vec![
+                "KRL / Kereta".to_string(),
+                "Kendaraan Pribadi".to_string(),
+            ]),
             question_type: Some(QuestionType::SingleChoice),
             answer_format: Some(AnswerFormat::SingleChoice),
             provenance: Some(Provenance::UserEntered),
@@ -662,9 +718,14 @@ fn test_nqi_question_detected_lifecycle_transition_matched_and_diverged() {
     .unwrap();
 
     // Periksa status pending pada audit log prediksi
-    let pending_before = SurveyRepository::find_pending_predictions_for_question(&conn, &persona_id, &q1.id).unwrap();
+    let pending_before =
+        SurveyRepository::find_pending_predictions_for_question(&conn, &persona_id, &q1.id)
+            .unwrap();
     assert_eq!(pending_before.len(), 2);
-    assert_eq!(pending_before[0].status, PredictionStatus::PredictedNotDetected);
+    assert_eq!(
+        pending_before[0].status,
+        PredictionStatus::PredictedNotDetected
+    );
 
     // Pengguna sekarang memajukan survei dan OCR mendeteksi pertanyaan aktual:
     // "Stasiun mana stasiun keberangkatan Anda?"
@@ -690,14 +751,21 @@ fn test_nqi_question_detected_lifecycle_transition_matched_and_diverged() {
     // Verifikasi bahwa status prediksi terbarui:
     // - Prediksi yang cocok menjadi 'detected_matched' dan tertaut ke q2_actual.id
     // - Prediksi yang diverged menjadi 'detected_diverged'
-    let all_preds = NextQuestionService::get_session_predictions(&conn, &persona_id, &session.id).unwrap();
+    let all_preds =
+        NextQuestionService::get_session_predictions(&conn, &persona_id, &session.id).unwrap();
     assert_eq!(all_preds.len(), 2);
 
-    let matched = all_preds.iter().find(|p| p.predicted_question_text.contains("Stasiun mana")).unwrap();
+    let matched = all_preds
+        .iter()
+        .find(|p| p.predicted_question_text.contains("Stasiun mana"))
+        .unwrap();
     assert_eq!(matched.status, PredictionStatus::DetectedMatched);
     assert_eq!(matched.matched_question_id, Some(q2_actual.id.clone()));
 
-    let diverged = all_preds.iter().find(|p| p.predicted_question_text.contains("liter bensin")).unwrap();
+    let diverged = all_preds
+        .iter()
+        .find(|p| p.predicted_question_text.contains("liter bensin"))
+        .unwrap();
     assert_eq!(diverged.status, PredictionStatus::DetectedDiverged);
     assert_eq!(diverged.matched_question_id, None);
 }
@@ -759,7 +827,8 @@ fn test_skip_jump_transition_modeling() {
             persona_id: persona_id.clone(),
             session_id: session.id.clone(),
             capture_id: None,
-            question_text_original: "Terima kasih atas partisipasi Anda, survei telah selesai.".to_string(),
+            question_text_original: "Terima kasih atas partisipasi Anda, survei telah selesai."
+                .to_string(),
             instructions: None,
             options: None,
             question_type: Some(QuestionType::Other),
@@ -772,14 +841,20 @@ fn test_skip_jump_transition_modeling() {
     )
     .unwrap();
 
-    let transitions = NextQuestionService::get_session_branch_transitions(&conn, &persona_id, &session.id).unwrap();
+    let transitions =
+        NextQuestionService::get_session_branch_transitions(&conn, &persona_id, &session.id)
+            .unwrap();
     assert_eq!(transitions.len(), 1);
 
     let jump_trans = &transitions[0];
     assert_eq!(jump_trans.from_question_id, q1.id);
     assert_eq!(jump_trans.to_question_id, Some(q5.id));
     assert_eq!(jump_trans.transition_type, TransitionType::SkipJump);
-    assert!(jump_trans.branch_condition.as_ref().unwrap().contains("Lompat 3 pertanyaan"));
+    assert!(jump_trans
+        .branch_condition
+        .as_ref()
+        .unwrap()
+        .contains("Lompat 3 pertanyaan"));
 }
 
 #[test]
@@ -853,8 +928,14 @@ fn test_strict_persona_isolation_at_066() {
     .unwrap();
 
     // Verifikasi Persona B tidak bisa mengakses data transisi Persona A
-    let trans_b = NextQuestionService::get_session_branch_transitions(&conn, &persona_b, &session_a.id).unwrap();
-    assert_eq!(trans_b.len(), 0, "Transisi sesi Persona A tidak boleh dibaca oleh Persona B");
+    let trans_b =
+        NextQuestionService::get_session_branch_transitions(&conn, &persona_b, &session_a.id)
+            .unwrap();
+    assert_eq!(
+        trans_b.len(),
+        0,
+        "Transisi sesi Persona A tidak boleh dibaca oleh Persona B"
+    );
 
     // Persona B membuat sesi sendiri
     let session_b = SurveyService::create_session(

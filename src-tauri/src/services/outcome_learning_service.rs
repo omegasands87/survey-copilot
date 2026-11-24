@@ -65,7 +65,9 @@ impl OutcomeLearningService {
                 let new_opp_id = Uuid::new_v4().to_string();
                 let new_opp = SurveyOpportunity {
                     id: new_opp_id.clone(),
-                    title: input.opportunity_title.or_else(|| Some("Survei Mandiri".to_string())),
+                    title: input
+                        .opportunity_title
+                        .or_else(|| Some("Survei Mandiri".to_string())),
                     platform_label: input.source_platform.or_else(|| Some("Manual".to_string())),
                     topic: input.category,
                     description: None,
@@ -79,8 +81,9 @@ impl OutcomeLearningService {
                     updated_at: now.clone(),
                 };
 
-                OpportunityRepository::save_opportunity(conn, &new_opp)
-                    .map_err(|e| AppError::database(format!("Gagal membuat peluang survei: {e}")))?;
+                OpportunityRepository::save_opportunity(conn, &new_opp).map_err(|e| {
+                    AppError::database(format!("Gagal membuat peluang survei: {e}"))
+                })?;
 
                 new_opp_id
             }
@@ -233,16 +236,13 @@ impl OutcomeLearningService {
         conn: &Connection,
         filter: AttemptFilter,
     ) -> Result<Vec<SurveyAttemptDetail>, AppError> {
-        AttemptRepository::list_attempts(conn, &filter)
-            .map_err(|e| AppError::database(format!("Gagal mengambil daftar percobaan survei: {e}")))
+        AttemptRepository::list_attempts(conn, &filter).map_err(|e| {
+            AppError::database(format!("Gagal mengambil daftar percobaan survei: {e}"))
+        })
     }
 
     /// Menghapus percobaan survei dengan isolasi persona
-    pub fn delete_attempt(
-        conn: &Connection,
-        id: &str,
-        persona_id: &str,
-    ) -> Result<bool, AppError> {
+    pub fn delete_attempt(conn: &Connection, id: &str, persona_id: &str) -> Result<bool, AppError> {
         let id_trimmed = id.trim();
         let persona_id_trimmed = persona_id.trim();
 
@@ -352,7 +352,12 @@ impl OutcomeLearningService {
 
         let train_qualified_or_completed = train_set
             .iter()
-            .filter(|a| matches!(a.current_outcome, OutcomeLabel::Qualified | OutcomeLabel::Completed))
+            .filter(|a| {
+                matches!(
+                    a.current_outcome,
+                    OutcomeLabel::Qualified | OutcomeLabel::Completed
+                )
+            })
             .count();
         let train_rate = if !train_set.is_empty() {
             train_qualified_or_completed as f64 / train_set.len() as f64
@@ -362,7 +367,12 @@ impl OutcomeLearningService {
 
         let holdout_qualified_or_completed = holdout_set
             .iter()
-            .filter(|a| matches!(a.current_outcome, OutcomeLabel::Qualified | OutcomeLabel::Completed))
+            .filter(|a| {
+                matches!(
+                    a.current_outcome,
+                    OutcomeLabel::Qualified | OutcomeLabel::Completed
+                )
+            })
             .count();
         let holdout_rate = if !holdout_set.is_empty() {
             holdout_qualified_or_completed as f64 / holdout_set.len() as f64
@@ -382,7 +392,8 @@ impl OutcomeLearningService {
         let qualification_rate = (total_qualified + total_completed) as f64 / sample_size as f64;
 
         // Hitung margin ketidakpastian sederhana (wilson/normal approximation standard error)
-        let std_err = ((qualification_rate * (1.0 - qualification_rate)) / sample_size as f64).sqrt();
+        let std_err =
+            ((qualification_rate * (1.0 - qualification_rate)) / sample_size as f64).sqrt();
         let margin_percent = (1.96 * std_err * 100.0).clamp(1.0, 50.0);
 
         disclaimers.push(format!(

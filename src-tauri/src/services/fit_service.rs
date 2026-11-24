@@ -41,17 +41,22 @@ impl FitService {
         let persona = PersonaRepository::find_by_id(conn, persona_id_trimmed)
             .map_err(|e| AppError::database(format!("Gagal mengambil data persona: {e}")))?
             .ok_or_else(|| {
-                AppError::not_found(format!("Persona dengan ID '{persona_id_trimmed}' tidak ditemukan"))
+                AppError::not_found(format!(
+                    "Persona dengan ID '{persona_id_trimmed}' tidak ditemukan"
+                ))
             })?;
 
         // 2. Verifikasi peluang survei dan ambil seluruh kriterianya
-        let opp_detail: OpportunityDetail = OpportunityRepository::get_opportunity_detail(conn, opp_id_trimmed)
-            .map_err(|e| AppError::database(format!("Gagal mengambil detail peluang survei: {e}")))?
-            .ok_or_else(|| {
-                AppError::not_found(format!(
-                    "Peluang survei dengan ID '{opp_id_trimmed}' tidak ditemukan"
-                ))
-            })?;
+        let opp_detail: OpportunityDetail =
+            OpportunityRepository::get_opportunity_detail(conn, opp_id_trimmed)
+                .map_err(|e| {
+                    AppError::database(format!("Gagal mengambil detail peluang survei: {e}"))
+                })?
+                .ok_or_else(|| {
+                    AppError::not_found(format!(
+                        "Peluang survei dengan ID '{opp_id_trimmed}' tidak ditemukan"
+                    ))
+                })?;
 
         // 3. Ambil fakta profil terkonfirmasi persona
         let now = chrono::Utc::now().to_rfc3339();
@@ -128,8 +133,9 @@ impl FitService {
         };
 
         let opp_detail = match OpportunityRepository::get_opportunity_detail(conn, opp_id_trimmed)
-            .map_err(|e| AppError::database(format!("Gagal mengambil data peluang: {e}")))?
-        {
+            .map_err(|e| {
+            AppError::database(format!("Gagal mengambil data peluang: {e}"))
+        })? {
             Some(od) => od,
             None => return Ok(None),
         };

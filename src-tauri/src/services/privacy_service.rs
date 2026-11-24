@@ -1,6 +1,6 @@
+use chrono::Utc;
 use std::fs;
 use std::path::Path;
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::db::Database;
@@ -69,7 +69,10 @@ impl PrivacyService {
             current.auto_cleanup_temp_on_exit = auto_clean;
         }
         if let Some(lvl) = input.log_level {
-            let valid = matches!(lvl.to_uppercase().as_str(), "INFO" | "WARN" | "ERROR" | "DEBUG");
+            let valid = matches!(
+                lvl.to_uppercase().as_str(),
+                "INFO" | "WARN" | "ERROR" | "DEBUG"
+            );
             if !valid {
                 return Err(AppError::validation(
                     "logLevel",
@@ -185,16 +188,26 @@ impl PrivacyService {
             // Cek relevansi kasar terhadap kategori pertanyaan
             let is_category_relevant = match classification.primary_category {
                 QuestionCategory::Demographic => {
-                    fact.category == "demographics" || fact.category == "identity" || fact.category == "household"
+                    fact.category == "demographics"
+                        || fact.category == "identity"
+                        || fact.category == "household"
                 }
                 QuestionCategory::EmploymentEducation => {
-                    fact.category == "employment" || fact.category == "industry" || fact.category == "organization" || fact.category == "education"
+                    fact.category == "employment"
+                        || fact.category == "industry"
+                        || fact.category == "organization"
+                        || fact.category == "education"
                 }
                 QuestionCategory::FinancialEconomic => {
-                    fact.category == "financial" || fact.category == "income" || fact.category == "banking"
+                    fact.category == "financial"
+                        || fact.category == "income"
+                        || fact.category == "banking"
                 }
                 QuestionCategory::AssetOwnership => {
-                    fact.category == "technology" || fact.category == "devices" || fact.category == "assets" || fact.category == "vehicles"
+                    fact.category == "technology"
+                        || fact.category == "devices"
+                        || fact.category == "assets"
+                        || fact.category == "vehicles"
                 }
                 _ => true, // Kategori umum/behavioral dapat mereferensikan fakta relevan
             };
@@ -241,7 +254,8 @@ impl PrivacyService {
                                 status: "excluded_no_consent".to_string(),
                                 is_sensitive: true,
                                 exclusion_reason: Some(
-                                    "Izin fakta sensitif tidak diaktifkan untuk permintaan ini".to_string(),
+                                    "Izin fakta sensitif tidak diaktifkan untuk permintaan ini"
+                                        .to_string(),
                                 ),
                             });
                         }
@@ -349,7 +363,10 @@ impl PrivacyService {
     }
 
     /// Mencatat log diagnostik secara aman (Otomatis Diredaksi)
-    pub fn record_log(database: &Database, input: RecordLogInput) -> Result<DiagnosticsLogEntry, AppError> {
+    pub fn record_log(
+        database: &Database,
+        input: RecordLogInput,
+    ) -> Result<DiagnosticsLogEntry, AppError> {
         let conn = database
             .connection
             .lock()
@@ -489,7 +506,8 @@ impl PrivacyService {
                         let should_delete = if max_age_seconds <= 0 {
                             true
                         } else if let Ok(meta) = path.metadata() {
-                            let file_time = meta.created().or_else(|_| meta.modified()).unwrap_or(now);
+                            let file_time =
+                                meta.created().or_else(|_| meta.modified()).unwrap_or(now);
                             if let Ok(elapsed) = now.duration_since(file_time) {
                                 elapsed.as_secs() >= max_age_seconds as u64
                             } else {

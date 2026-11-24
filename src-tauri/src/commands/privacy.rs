@@ -4,8 +4,8 @@ use crate::db::Database;
 use crate::domain::error::AppError;
 use crate::domain::privacy::{
     CleanupTempFilesInput, DiagnosticsLogEntry, InspectOutboundDataInput, OutboundDataDisclosure,
-    PrivacySettings, RecordLogInput, RetentionCleanupResult, RetentionStatus, SystemDiagnosticsInfo,
-    UpdatePrivacySettingsInput,
+    PrivacySettings, RecordLogInput, RetentionCleanupResult, RetentionStatus,
+    SystemDiagnosticsInfo, UpdatePrivacySettingsInput,
 };
 use crate::services::PrivacyService;
 

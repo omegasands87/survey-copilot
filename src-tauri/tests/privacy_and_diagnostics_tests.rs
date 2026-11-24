@@ -40,7 +40,8 @@ fn test_log_redactor_redacts_generic_sk_and_bearer_tokens() {
 
 #[test]
 fn test_log_redactor_redacts_indonesian_nik_16_digits() {
-    let input = "Data responden memiliki NIK 3171012304950001 dan tahun lahir 1995 dengan saldo 5000000";
+    let input =
+        "Data responden memiliki NIK 3171012304950001 dan tahun lahir 1995 dengan saldo 5000000";
     let redacted = LogRedactor::redact_text(input);
 
     assert!(!redacted.contains("3171012304950001"));
@@ -101,11 +102,15 @@ fn test_privacy_settings_default_and_persistence() {
     let db = setup_memory_db();
 
     // 1. Ambil pengaturan default
-    let default_settings = PrivacyService::get_privacy_settings(&db).expect("Failed to get privacy settings");
+    let default_settings =
+        PrivacyService::get_privacy_settings(&db).expect("Failed to get privacy settings");
     assert!(default_settings.auto_redact_logs);
     assert!(default_settings.require_sensitive_consent_prompt);
     assert!(default_settings.require_vision_consent_prompt);
-    assert_eq!(default_settings.screenshot_retention_policy, "immediate_delete");
+    assert_eq!(
+        default_settings.screenshot_retention_policy,
+        "immediate_delete"
+    );
     assert!(default_settings.auto_cleanup_temp_on_exit);
     assert_eq!(default_settings.log_level, "INFO");
 
@@ -129,7 +134,8 @@ fn test_privacy_settings_default_and_persistence() {
     assert_eq!(updated.log_level, "DEBUG");
 
     // 3. Pastikan tersimpan dan terbaca kembali dari basis data
-    let reloaded = PrivacyService::get_privacy_settings(&db).expect("Failed to reload privacy settings");
+    let reloaded =
+        PrivacyService::get_privacy_settings(&db).expect("Failed to reload privacy settings");
     assert_eq!(reloaded.screenshot_retention_policy, "retain_24_hours");
     assert_eq!(reloaded.log_level, "DEBUG");
 }
@@ -174,7 +180,11 @@ fn test_outbound_data_inspection_transparency() {
             persona_id: persona.id.clone(),
             question_text: "Berapa usia Anda saat ini?".to_string(),
             instructions: None,
-            options: Some(vec!["20-29".to_string(), "30-39".to_string(), "40+".to_string()]),
+            options: Some(vec![
+                "20-29".to_string(),
+                "30-39".to_string(),
+                "40+".to_string(),
+            ]),
             allow_sensitive: Some(false),
             allow_highly_sensitive: Some(false),
             allow_external_vision: Some(false),
@@ -245,7 +255,10 @@ fn test_outbound_data_excludes_sensitive_facts_when_consent_denied() {
     assert_eq!(disclosure.included_facts.len(), 0);
     assert_eq!(disclosure.excluded_facts.len(), 1);
     assert_eq!(disclosure.excluded_facts[0].status, "excluded_no_consent");
-    assert_eq!(disclosure.excluded_facts[0].value_preview, "[REDAKSI_SENSITIF]");
+    assert_eq!(
+        disclosure.excluded_facts[0].value_preview,
+        "[REDAKSI_SENSITIF]"
+    );
 }
 
 #[test]
@@ -297,7 +310,10 @@ fn test_outbound_data_includes_sensitive_facts_when_consent_granted() {
 
     assert!(disclosure.sensitive_consent_granted);
     assert_eq!(disclosure.included_facts.len(), 1);
-    assert_eq!(disclosure.included_facts[0].attribute, "Penghasilan Bulanan");
+    assert_eq!(
+        disclosure.included_facts[0].attribute,
+        "Penghasilan Bulanan"
+    );
     assert_eq!(disclosure.included_facts[0].status, "included");
 }
 
@@ -310,7 +326,10 @@ fn test_per_request_consent_enforcement_for_vision() {
         allow_external_vision: false,
     };
     let result = PrivacyService::enforce_per_request_consent(Some(&consent_no_vision), false, true);
-    assert!(result.is_err(), "Must reject external vision without consent");
+    assert!(
+        result.is_err(),
+        "Must reject external vision without consent"
+    );
 
     // 2. Vision dengan persetujuan harus diterima
     let consent_with_vision = SensitivityConsent {
@@ -318,8 +337,12 @@ fn test_per_request_consent_enforcement_for_vision() {
         allow_highly_sensitive: false,
         allow_external_vision: true,
     };
-    let result_ok = PrivacyService::enforce_per_request_consent(Some(&consent_with_vision), false, true);
-    assert!(result_ok.is_ok(), "Must accept external vision with consent");
+    let result_ok =
+        PrivacyService::enforce_per_request_consent(Some(&consent_with_vision), false, true);
+    assert!(
+        result_ok.is_ok(),
+        "Must accept external vision with consent"
+    );
 }
 
 #[test]
@@ -327,7 +350,8 @@ fn test_diagnostic_logging_and_automatic_redaction() {
     let db = setup_memory_db();
 
     // Catat log dengan kunci rahasia mentah dan NIK
-    let raw_msg = "Provider call with key AIzaSyD1234567890abcdefghijklmnopqrstuv and NIK 3171012304950001";
+    let raw_msg =
+        "Provider call with key AIzaSyD1234567890abcdefghijklmnopqrstuv and NIK 3171012304950001";
     let entry = PrivacyService::record_log(
         &db,
         RecordLogInput {
@@ -339,7 +363,9 @@ fn test_diagnostic_logging_and_automatic_redaction() {
     )
     .expect("Failed to record diagnostic log");
 
-    assert!(!entry.message.contains("AIzaSyD1234567890abcdefghijklmnopqrstuv"));
+    assert!(!entry
+        .message
+        .contains("AIzaSyD1234567890abcdefghijklmnopqrstuv"));
     assert!(!entry.message.contains("3171012304950001"));
     assert!(entry.message.contains("[REDACTED_API_KEY]"));
     assert!(entry.message.contains("[REDACTED_NIK_16_DIGITS]"));
@@ -353,7 +379,8 @@ fn test_diagnostic_logging_and_automatic_redaction() {
     // Uji pembersihan log
     let cleared = PrivacyService::clear_logs(&db).expect("Failed to clear logs");
     assert!(cleared >= 1);
-    let logs_after = PrivacyService::list_logs(&db, Some(10), None, None).expect("Failed to list logs");
+    let logs_after =
+        PrivacyService::list_logs(&db, Some(10), None, None).expect("Failed to list logs");
     assert!(logs_after.is_empty());
 }
 
@@ -367,8 +394,14 @@ fn test_retention_temp_captures_cleanup() {
     // Buat beberapa file screenshot palsu di temp_captures
     let file1 = temp_captures_dir.join("capture1.png");
     let file2 = temp_captures_dir.join("capture2.png");
-    File::create(&file1).unwrap().write_all(b"fake image data 1").unwrap();
-    File::create(&file2).unwrap().write_all(b"fake image data 2").unwrap();
+    File::create(&file1)
+        .unwrap()
+        .write_all(b"fake image data 1")
+        .unwrap();
+    File::create(&file2)
+        .unwrap()
+        .write_all(b"fake image data 2")
+        .unwrap();
 
     // Verifikasi status retensi mencatat 2 file
     let status_before = PrivacyService::get_retention_status(&db, Some(&temp_dir))
@@ -380,7 +413,9 @@ fn test_retention_temp_captures_cleanup() {
     let clean_res = PrivacyService::cleanup_temp_files(
         &db,
         Some(&temp_dir),
-        CleanupTempFilesInput { max_age_seconds: Some(0) },
+        CleanupTempFilesInput {
+            max_age_seconds: Some(0),
+        },
     )
     .expect("Failed to cleanup temp files");
 

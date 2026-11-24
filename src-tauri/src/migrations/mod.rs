@@ -480,7 +480,9 @@ pub fn get_registered_migrations() -> Vec<Migration> {
         Migration::new(
             12,
             "0012_next_question_intelligence_and_branch_prediction",
-            include_str!("../../migrations/0012_next_question_intelligence_and_branch_prediction.sql"),
+            include_str!(
+                "../../migrations/0012_next_question_intelligence_and_branch_prediction.sql"
+            ),
         ),
         Migration::new(
             13,

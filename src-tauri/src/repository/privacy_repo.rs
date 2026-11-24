@@ -128,11 +128,9 @@ impl PrivacyRepository {
 
     /// Menghitung jumlah log yang tersimpan
     pub fn count_diagnostic_logs(conn: &Connection) -> Result<i64, rusqlite::Error> {
-        conn.query_row(
-            "SELECT COUNT(*) FROM app_diagnostic_logs",
-            [],
-            |row| row.get(0),
-        )
+        conn.query_row("SELECT COUNT(*) FROM app_diagnostic_logs", [], |row| {
+            row.get(0)
+        })
     }
 
     /// Membersihkan seluruh log diagnostik

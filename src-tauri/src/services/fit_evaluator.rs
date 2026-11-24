@@ -23,12 +23,18 @@ impl FitEvaluator {
         }
 
         // 1. Jika ada kriteria yang tidak cocok (mismatch), persona tidak memenuhi syarat
-        if results.iter().any(|r| r.match_state == MatchState::Mismatch) {
+        if results
+            .iter()
+            .any(|r| r.match_state == MatchState::Mismatch)
+        {
             return OverallFitState::Ineligible;
         }
 
         // 2. Jika ada konflik data profil pada kriteria
-        if results.iter().any(|r| r.match_state == MatchState::Conflict) {
+        if results
+            .iter()
+            .any(|r| r.match_state == MatchState::Conflict)
+        {
             return OverallFitState::Conflict;
         }
 
@@ -67,10 +73,7 @@ impl FitEvaluator {
     // ==========================================
     // 1. USIA (Age)
     // ==========================================
-    fn evaluate_age(
-        criterion: &OpportunityCriterion,
-        facts: &[FactSummary],
-    ) -> FitCriterionResult {
+    fn evaluate_age(criterion: &OpportunityCriterion, facts: &[FactSummary]) -> FitCriterionResult {
         let matching_facts: Vec<&FactSummary> = facts
             .iter()
             .filter(|f| {
@@ -127,7 +130,8 @@ impl FitEvaluator {
                     "Fakta usia berstatus '{}' (belum terkonfirmasi)",
                     matching_facts[0].verification_status
                 )],
-                explanation: "Data usia tersedia namun belum terkonfirmasi (unverified).".to_string(),
+                explanation: "Data usia tersedia namun belum terkonfirmasi (unverified)."
+                    .to_string(),
             };
         }
 
@@ -235,10 +239,7 @@ impl FitEvaluator {
                         )
                     }
                 }
-                _ => (
-                    true,
-                    format!("Usia persona ({age} tahun) terverifikasi."),
-                ),
+                _ => (true, format!("Usia persona ({age} tahun) terverifikasi.")),
             };
 
             FitCriterionResult {
@@ -443,13 +444,13 @@ impl FitEvaluator {
                 match_state: MatchState::Unknown,
                 supporting_fact_ids: vec![],
                 supporting_facts_summary: vec![],
-                explanation: "Tidak ada data domisili atau lokasi tempat tinggal pada profil persona ini."
-                    .to_string(),
+                explanation:
+                    "Tidak ada data domisili atau lokasi tempat tinggal pada profil persona ini."
+                        .to_string(),
             };
         }
 
-        if let Some(err_result) =
-            Self::check_fact_validity(&matching_facts, criterion, "domisili")
+        if let Some(err_result) = Self::check_fact_validity(&matching_facts, criterion, "domisili")
         {
             return err_result;
         }
@@ -574,8 +575,7 @@ impl FitEvaluator {
             };
         }
 
-        if let Some(err_result) =
-            Self::check_fact_validity(&matching_facts, criterion, "pekerjaan")
+        if let Some(err_result) = Self::check_fact_validity(&matching_facts, criterion, "pekerjaan")
         {
             return err_result;
         }
@@ -675,7 +675,9 @@ impl FitEvaluator {
             }
         }
 
-        let is_match = target_jobs.iter().any(|t| persona_job.contains(t) || t.contains(&persona_job));
+        let is_match = target_jobs
+            .iter()
+            .any(|t| persona_job.contains(t) || t.contains(&persona_job));
 
         let (state, reason) = if is_match {
             (
@@ -740,7 +742,8 @@ impl FitEvaluator {
                 match_state: MatchState::Unknown,
                 supporting_fact_ids: vec![],
                 supporting_facts_summary: vec![],
-                explanation: "Tidak ada data jenjang pendidikan pada profil persona ini.".to_string(),
+                explanation: "Tidak ada data jenjang pendidikan pada profil persona ini."
+                    .to_string(),
             };
         }
 
@@ -937,7 +940,8 @@ impl FitEvaluator {
                 match_state: MatchState::Unknown,
                 supporting_fact_ids: vec![],
                 supporting_facts_summary: vec![],
-                explanation: "Tidak ada data status pernikahan pada profil persona ini.".to_string(),
+                explanation: "Tidak ada data status pernikahan pada profil persona ini."
+                    .to_string(),
             };
         }
 
@@ -981,7 +985,8 @@ impl FitEvaluator {
             .unwrap_or("")
             .to_lowercase();
 
-        let is_match = persona_status.contains(&target_status) || target_status.contains(&persona_status);
+        let is_match =
+            persona_status.contains(&target_status) || target_status.contains(&persona_status);
 
         let (state, reason) = if is_match {
             (
@@ -1117,7 +1122,9 @@ impl FitEvaluator {
         if let Some(attr) = &criterion.normalized_attribute {
             let matching_facts: Vec<&FactSummary> = facts
                 .iter()
-                .filter(|f| f.fact_key.eq_ignore_ascii_case(attr) || f.attribute.eq_ignore_ascii_case(attr))
+                .filter(|f| {
+                    f.fact_key.eq_ignore_ascii_case(attr) || f.attribute.eq_ignore_ascii_case(attr)
+                })
                 .collect();
 
             if !matching_facts.is_empty() {
@@ -1181,7 +1188,10 @@ impl FitEvaluator {
         let fact_ids: Vec<String> = facts.iter().map(|f| f.id.clone()).collect();
 
         // 1. Cek Disputed
-        if facts.iter().any(|f| f.verification_status == "disputed" || f.has_conflict) {
+        if facts
+            .iter()
+            .any(|f| f.verification_status == "disputed" || f.has_conflict)
+        {
             return Some(FitCriterionResult {
                 criterion_id: criterion.id.clone(),
                 criterion_text: criterion.criterion_text.clone(),
@@ -1229,7 +1239,10 @@ impl FitEvaluator {
         }
 
         // 3. Cek Outdated / Expired (Stale)
-        if facts.iter().all(|f| f.verification_status == "outdated" || !f.is_valid) {
+        if facts
+            .iter()
+            .all(|f| f.verification_status == "outdated" || !f.is_valid)
+        {
             return Some(FitCriterionResult {
                 criterion_id: criterion.id.clone(),
                 criterion_text: criterion.criterion_text.clone(),
@@ -1293,9 +1306,17 @@ impl FitEvaluator {
             6
         } else if lower.contains("s1") || lower.contains("sarjana") || lower.contains("d4") {
             5
-        } else if lower.contains("d3") || lower.contains("diploma") || lower.contains("d1") || lower.contains("d2") {
+        } else if lower.contains("d3")
+            || lower.contains("diploma")
+            || lower.contains("d1")
+            || lower.contains("d2")
+        {
             4
-        } else if lower.contains("sma") || lower.contains("smk") || lower.contains("slta") || lower.contains("smu") {
+        } else if lower.contains("sma")
+            || lower.contains("smk")
+            || lower.contains("slta")
+            || lower.contains("smu")
+        {
             3
         } else if lower.contains("smp") || lower.contains("sltp") {
             2
@@ -1318,8 +1339,15 @@ impl FitEvaluator {
 
         if is_jabodetabek_cluster {
             let jabo_cities = [
-                "jakarta", "bogor", "depok", "tangerang", "bekasi", "tangsel",
-                "tangerang selatan", "dki", "jabodetabek",
+                "jakarta",
+                "bogor",
+                "depok",
+                "tangerang",
+                "bekasi",
+                "tangsel",
+                "tangerang selatan",
+                "dki",
+                "jabodetabek",
             ];
             if jabo_cities.iter().any(|city| persona_loc.contains(city)) {
                 return true;

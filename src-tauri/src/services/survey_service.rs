@@ -43,7 +43,10 @@ impl SurveyService {
         Self::validate_persona_exists(conn, &input.persona_id)?;
 
         let now = chrono::Utc::now().to_rfc3339();
-        let domain = input.source_url.as_deref().and_then(extract_domain_from_url);
+        let domain = input
+            .source_url
+            .as_deref()
+            .and_then(extract_domain_from_url);
         let session = SurveySession {
             id: Uuid::new_v4().to_string(),
             persona_id: input.persona_id,
@@ -131,7 +134,10 @@ impl SurveyService {
             .source_url
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty());
-        session.source_domain = session.source_url.as_deref().and_then(extract_domain_from_url);
+        session.source_domain = session
+            .source_url
+            .as_deref()
+            .and_then(extract_domain_from_url);
         session.external_survey_id = input
             .external_survey_id
             .map(|s| s.trim().to_string())
@@ -545,11 +551,8 @@ impl SurveyService {
             ));
         }
 
-        let _ = SurveyRecognitionService::refresh_session_fingerprint(
-            conn,
-            persona_id,
-            &q.session_id,
-        );
+        let _ =
+            SurveyRecognitionService::refresh_session_fingerprint(conn, persona_id, &q.session_id);
 
         Ok(())
     }

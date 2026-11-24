@@ -224,8 +224,14 @@ fn test_attempt_data_consistency_and_criteria_association() {
     assert_eq!(attempt_detail.source_platform, "Toluna");
     assert_eq!(attempt_detail.category, Some("Finansial".to_string()));
     assert_eq!(attempt_detail.criteria.len(), 2);
-    assert_eq!(attempt_detail.criteria[0].criterion_type, CriterionType::Age);
-    assert_eq!(attempt_detail.criteria[1].criterion_type, CriterionType::ProductUsage);
+    assert_eq!(
+        attempt_detail.criteria[0].criterion_type,
+        CriterionType::Age
+    );
+    assert_eq!(
+        attempt_detail.criteria[1].criterion_type,
+        CriterionType::ProductUsage
+    );
 }
 
 /// 4. Isolasi Persona yang Ketat (Strict Persona Isolation)
@@ -259,7 +265,10 @@ fn test_strict_persona_isolation() {
 
     // 1. Persona B tidak boleh bisa mengakses detail percobaan Persona A
     let access_b = OutcomeLearningService::get_attempt_detail(&conn, &detail_a.id, Some(persona_b));
-    assert!(access_b.is_err(), "Persona B tidak boleh dapat mengakses percobaan persona A");
+    assert!(
+        access_b.is_err(),
+        "Persona B tidak boleh dapat mengakses percobaan persona A"
+    );
 
     // 2. Persona B tidak boleh bisa memperbarui event pada percobaan Persona A
     let update_b = RecordOutcomeEventInput {
@@ -272,7 +281,10 @@ fn test_strict_persona_isolation() {
         observed_at: None,
     };
     let update_res = OutcomeLearningService::record_outcome_event(&mut conn, update_b);
-    assert!(update_res.is_err(), "Persona B dilarang memperbarui percobaan Persona A");
+    assert!(
+        update_res.is_err(),
+        "Persona B dilarang memperbarui percobaan Persona A"
+    );
 
     // 3. Filter riwayat untuk Persona B tidak boleh menampilkan percobaan Persona A
     let list_b = OutcomeLearningService::list_attempts(
@@ -283,11 +295,16 @@ fn test_strict_persona_isolation() {
         },
     )
     .expect("query list persona B harus sukses");
-    assert_eq!(list_b.len(), 0, "Percobaan Persona A tidak boleh bocor ke Persona B");
+    assert_eq!(
+        list_b.len(),
+        0,
+        "Percobaan Persona A tidak boleh bocor ke Persona B"
+    );
 
     // 4. Pembelajaran historis Persona B tidak boleh memuat data Persona A
-    let summary_b = OutcomeLearningService::evaluate_historical_learning(&conn, persona_b, None, None)
-        .expect("ringkasan pembelajaran persona B harus sukses");
+    let summary_b =
+        OutcomeLearningService::evaluate_historical_learning(&conn, persona_b, None, None)
+            .expect("ringkasan pembelajaran persona B harus sukses");
     assert_eq!(summary_b.sample_size, 0);
 }
 
@@ -301,8 +318,18 @@ fn test_attempt_filtering_by_category_platform_status() {
     // Catat 3 percobaan dengan variasi
     let attempts_data = vec![
         ("Survei Game", "Milieu", "Gaming", OutcomeLabel::Completed),
-        ("Survei Belanja", "YouGov", "Retail", OutcomeLabel::ScreenedOut),
-        ("Survei Otomotif", "YouGov", "Otomotif", OutcomeLabel::QuotaFull),
+        (
+            "Survei Belanja",
+            "YouGov",
+            "Retail",
+            OutcomeLabel::ScreenedOut,
+        ),
+        (
+            "Survei Otomotif",
+            "YouGov",
+            "Otomotif",
+            OutcomeLabel::QuotaFull,
+        ),
     ];
 
     for (title, platform, category, status) in attempts_data {
@@ -374,17 +401,28 @@ fn test_at_063_sparse_history_labeled_insufficient() {
     create_test_persona(&conn, persona_id, "Persona Data Terbatas", true);
 
     // Skenario A: 0 riwayat historis
-    let empty_summary = OutcomeLearningService::evaluate_historical_learning(&conn, persona_id, None, None)
-        .expect("evaluasi data kosong harus sukses");
+    let empty_summary =
+        OutcomeLearningService::evaluate_historical_learning(&conn, persona_id, None, None)
+            .expect("evaluasi data kosong harus sukses");
 
     assert_eq!(empty_summary.status, LearningDataStatus::InsufficientData);
     assert_eq!(empty_summary.sample_size, 0);
     assert_eq!(empty_summary.minimum_required_sample, MIN_SAMPLE_THRESHOLD);
-    assert!(empty_summary.completion_rate.is_none(), "Dilarang menampilkan completion_rate jika data sparse");
-    assert!(empty_summary.qualification_rate.is_none(), "Dilarang memfabrikasi persentase kelulusan jika data sparse");
+    assert!(
+        empty_summary.completion_rate.is_none(),
+        "Dilarang menampilkan completion_rate jika data sparse"
+    );
+    assert!(
+        empty_summary.qualification_rate.is_none(),
+        "Dilarang memfabrikasi persentase kelulusan jika data sparse"
+    );
     assert!(empty_summary.holdout_consistency_rate.is_none());
-    assert!(empty_summary.message.contains("Data historis belum mencukupi"));
-    assert!(empty_summary.uncertainty_disclosure.contains("Ketidakpastian sangat tinggi"));
+    assert!(empty_summary
+        .message
+        .contains("Data historis belum mencukupi"));
+    assert!(empty_summary
+        .uncertainty_disclosure
+        .contains("Ketidakpastian sangat tinggi"));
 
     // Skenario B: Hanya 3 percobaan (di bawah ambang batas MIN_SAMPLE_THRESHOLD = 10)
     for i in 1..=3 {
@@ -409,14 +447,20 @@ fn test_at_063_sparse_history_labeled_insufficient() {
         .expect("insert sparse attempt");
     }
 
-    let sparse_summary = OutcomeLearningService::evaluate_historical_learning(&conn, persona_id, None, None)
-        .expect("evaluasi 3 data harus sukses");
+    let sparse_summary =
+        OutcomeLearningService::evaluate_historical_learning(&conn, persona_id, None, None)
+            .expect("evaluasi 3 data harus sukses");
 
     assert_eq!(sparse_summary.status, LearningDataStatus::InsufficientData);
     assert_eq!(sparse_summary.sample_size, 3);
-    assert_eq!(sparse_summary.completion_rate, None, "Dilarang menampilkan 100% dari 3 data kecil");
+    assert_eq!(
+        sparse_summary.completion_rate, None,
+        "Dilarang menampilkan 100% dari 3 data kecil"
+    );
     assert_eq!(sparse_summary.qualification_rate, None);
-    assert!(sparse_summary.message.contains("tercatat 3 dari minimal 10"));
+    assert!(sparse_summary
+        .message
+        .contains("tercatat 3 dari minimal 10"));
 }
 
 /// 7. Validasi Chronological Holdout dengan Sampel Memadai (>= 10 Observasi)
@@ -428,18 +472,18 @@ fn test_chronological_holdout_validation_sufficient_history() {
 
     // Catat 12 observasi dalam urutan waktu kronologis (10 November s.d. 21 November)
     let outcomes = vec![
-        OutcomeLabel::Completed,    // 1
-        OutcomeLabel::Qualified,    // 2
-        OutcomeLabel::ScreenedOut,  // 3
-        OutcomeLabel::QuotaFull,    // 4
-        OutcomeLabel::Completed,    // 5
-        OutcomeLabel::ScreenedOut,  // 6
-        OutcomeLabel::Completed,    // 7
-        OutcomeLabel::Qualified,    // 8  <- Batas train 70% (8 item)
-        OutcomeLabel::Completed,    // 9  <- Holdout 30% (4 item)
-        OutcomeLabel::ScreenedOut,  // 10
-        OutcomeLabel::Completed,    // 11
-        OutcomeLabel::ScreenedOut,  // 12
+        OutcomeLabel::Completed,   // 1
+        OutcomeLabel::Qualified,   // 2
+        OutcomeLabel::ScreenedOut, // 3
+        OutcomeLabel::QuotaFull,   // 4
+        OutcomeLabel::Completed,   // 5
+        OutcomeLabel::ScreenedOut, // 6
+        OutcomeLabel::Completed,   // 7
+        OutcomeLabel::Qualified,   // 8  <- Batas train 70% (8 item)
+        OutcomeLabel::Completed,   // 9  <- Holdout 30% (4 item)
+        OutcomeLabel::ScreenedOut, // 10
+        OutcomeLabel::Completed,   // 11
+        OutcomeLabel::ScreenedOut, // 12
     ];
 
     assert_eq!(outcomes.len(), 12);
@@ -484,8 +528,14 @@ fn test_chronological_holdout_validation_sufficient_history() {
     assert!(summary.holdout_consistency_rate.is_some());
 
     // Verifikasi rentang observasi
-    assert_eq!(summary.observation_window_start, Some("2026-11-10T10:00:00Z".to_string()));
-    assert_eq!(summary.observation_window_end, Some("2026-11-21T10:00:00Z".to_string()));
+    assert_eq!(
+        summary.observation_window_start,
+        Some("2026-11-10T10:00:00Z".to_string())
+    );
+    assert_eq!(
+        summary.observation_window_end,
+        Some("2026-11-21T10:00:00Z".to_string())
+    );
 }
 
 /// 8. Batas Produk: Tidak Ada Pelacakan Saldo/Uang dan Tidak Ada Manipulasi Jawaban
@@ -495,8 +545,9 @@ fn test_product_boundary_no_earnings_and_no_answer_manipulation() {
     let persona_id = "persona-boundary";
     create_test_persona(&conn, persona_id, "Persona Batas Integritas", true);
 
-    let summary = OutcomeLearningService::evaluate_historical_learning(&conn, persona_id, None, None)
-        .expect("ringkasan pembelajaran");
+    let summary =
+        OutcomeLearningService::evaluate_historical_learning(&conn, persona_id, None, None)
+            .expect("ringkasan pembelajaran");
 
     // Periksa disclaimer non-negosiasi
     let has_no_earnings = summary
@@ -512,7 +563,10 @@ fn test_product_boundary_no_earnings_and_no_answer_manipulation() {
         .iter()
         .any(|d| d.contains("Observasi faktual terpisah secara tegas"));
 
-    assert!(has_no_earnings, "Harus menegakkan batas tidak ada saldo/reward");
+    assert!(
+        has_no_earnings,
+        "Harus menegakkan batas tidak ada saldo/reward"
+    );
     assert!(has_no_manipulation, "Harus melarang manipulasi jawaban");
     assert!(has_separation, "Harus memisahkan observasi dari estimasi");
 }
