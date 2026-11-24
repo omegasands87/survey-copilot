@@ -572,7 +572,7 @@ export function PreviewApp() {
           <span className="preview-banner-dot" />
           <div>
             <strong>UI PREVIEW</strong>
-            <span>Data demo · mock interaction · tidak ada koneksi ke backend desktop · perubahan hilang saat refresh</span>
+            <span>Data sintetis · jangan masukkan data pribadi/kredensial · tanpa backend desktop · perubahan hilang saat refresh</span>
           </div>
           <span className="preview-readonly-tag">BROWSER ONLY</span>
         </div>
