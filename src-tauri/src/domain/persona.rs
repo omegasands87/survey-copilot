@@ -17,6 +17,15 @@ pub struct PersonaSummary {
     pub sessions_count: i64,
 }
 
+/// Hasil import profil dari file ekspor JSON satu persona.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfileImportResult {
+    pub persona: PersonaSummary,
+    pub imported_facts: usize,
+    pub imported_sources: usize,
+}
+
 /// Detail lengkap persona beserta ringkasan metadata
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
