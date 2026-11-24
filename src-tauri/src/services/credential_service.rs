@@ -271,13 +271,7 @@ impl CredentialService {
             None
         };
 
-        let db_update = CredentialRepository::update(
-            &conn,
-            id,
-            new_label.as_deref(),
-            status,
-            &now,
-        );
+        let db_update = CredentialRepository::update(&conn, id, new_label.as_deref(), status, &now);
 
         let updated_ok = match db_update {
             Ok(updated) => updated,
