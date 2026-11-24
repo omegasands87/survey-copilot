@@ -111,16 +111,14 @@ impl DeletionService {
             Err(error) => {
                 drop(transaction);
                 let restore_failures = Self::restore_deleted_secrets(store, &deleted_secrets);
-                return Err(AppError::from(rusqlite::Error::InvalidQuery)).map_err(|_| {
-                    AppError::database(format!(
-                        "Full wipe database dibatalkan: {error}. Pemulihan credential: {}",
-                        if restore_failures.is_empty() {
-                            "berhasil".to_string()
-                        } else {
-                            format!("perlu pemeriksaan: {}", restore_failures.join(", "))
-                        }
-                    ))
-                });
+                return Err(AppError::database(format!(
+                    "Full wipe database dibatalkan: {error}. Pemulihan credential: {}",
+                    if restore_failures.is_empty() {
+                        "berhasil".to_string()
+                    } else {
+                        format!("perlu pemeriksaan: {}", restore_failures.join(", "))
+                    }
+                )));
             }
         };
 
