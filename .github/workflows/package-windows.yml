@@ -1,0 +1,86 @@
+name: Windows NSIS installer package
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Build and validate Windows x64 NSIS installer
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      CARGO_BUILD_JOBS: 1
+      CI: true
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run frontend tests
+        run: npm test
+
+      - name: Check Rust formatting
+        working-directory: src-tauri
+        run: cargo fmt --all -- --check
+
+      - name: Check Rust backend
+        working-directory: src-tauri
+        run: cargo check
+
+      - name: Run Rust tests
+        working-directory: src-tauri
+        run: cargo test
+
+      - name: Build unsigned NSIS installer
+        run: npm run tauri -- build --ci --no-sign
+
+      - name: Validate installer and generate SHA-256 manifest
+        shell: pwsh
+        run: |
+          $installerDirectory = Join-Path $PWD "src-tauri/target/release/bundle/nsis"
+          if (-not (Test-Path $installerDirectory)) {
+            throw "NSIS output directory was not created: $installerDirectory"
+          }
+          $installers = @(Get-ChildItem -Path $installerDirectory -Filter "*-setup.exe" -File)
+          if ($installers.Count -ne 1) {
+            throw "Expected exactly one NSIS setup EXE, found $($installers.Count)."
+          }
+          ./scripts/validate-windows-installer.ps1 -InstallerPath $installers[0].FullName -OutputDirectory "release-artifacts"
+
+      - name: Upload private CI installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Survey-Copilot-NSIS-${{ github.sha }}
+          path: |
+            release-artifacts/*.exe
+            release-artifacts/*.sha256
+            release-artifacts/SHA256SUMS.txt
+            release-artifacts/build-manifest.json
+          if-no-files-found: error
+          retention-days: 30
