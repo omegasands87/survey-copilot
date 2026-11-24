@@ -88,6 +88,8 @@ test("install documentation separates AppData deletion from Credential Manager",
   assert.match(installGuide, /Uninstall Survey Copilot/);
   assert.match(installGuide, /Delete app data/);
   assert.match(installGuide, /Credential Manager/);
+  assert.match(installGuide, /repository bersifat public/);
+  assert.match(installGuide, /bukan distribusi privat/);
   assert.match(backupGuide, /TIDAK|Tidak dicentang|tidak dicentang/);
   assert.match(backupGuide, /Credential Manager/);
 });
