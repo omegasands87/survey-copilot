@@ -112,6 +112,8 @@ export interface AllRecordCounts {
   branchTransitions: number;
   questionPredictions: number;
   diagnosticLogs: number;
+  recommendationSources: number;
+  providerHealth: number;
   total: number;
 }
 
@@ -134,6 +136,8 @@ export interface WipeReport {
   deletedBranchTransitionsCount: number;
   deletedQuestionPredictionsCount: number;
   deletedDiagnosticLogsCount: number;
+  deletedRecommendationSourcesCount: number;
+  deletedProviderHealthCount: number;
   deletedTempFilesCount: number;
   failedTempFilesCount: number;
   cleanupWarnings: string[];
