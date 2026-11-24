@@ -28,6 +28,8 @@ pub struct AllRecordCounts {
     pub branch_transitions: i64,
     pub question_predictions: i64,
     pub diagnostic_logs: i64,
+    pub recommendation_sources: i64,
+    pub provider_health: i64,
     pub total: i64,
 }
 
@@ -51,6 +53,8 @@ pub struct WipeTableCounts {
     pub branch_transitions: i64,
     pub question_predictions: i64,
     pub diagnostic_logs: i64,
+    pub recommendation_sources: i64,
+    pub provider_health: i64,
 }
 
 pub struct DeletionRepository;
@@ -86,12 +90,15 @@ impl DeletionRepository {
         let branch_transitions = count_table("survey_branch_transitions")?;
         let question_predictions = count_table("survey_question_predictions")?;
         let diagnostic_logs = count_table("app_diagnostic_logs")?;
+        let recommendation_sources = count_table("recommendation_sources")?;
+        let provider_health = count_table("provider_health")?;
 
         let total = [
             personas, facts, sources, history, preferences, sessions, captures, questions,
             recommendations, answers, opportunities, criteria, fit_results, attempts, outcomes,
             provider_configs, ai_usage, app_settings, credentials, ocr_extractions, recognitions,
-            branch_transitions, question_predictions, diagnostic_logs,
+            branch_transitions, question_predictions, diagnostic_logs, recommendation_sources,
+            provider_health,
         ]
         .iter()
         .sum();
@@ -121,6 +128,8 @@ impl DeletionRepository {
             branch_transitions,
             question_predictions,
             diagnostic_logs,
+            recommendation_sources,
+            provider_health,
             total,
         })
     }
@@ -217,6 +226,8 @@ impl DeletionRepository {
             branch_transitions: before.branch_transitions,
             question_predictions: before.question_predictions,
             diagnostic_logs: before.diagnostic_logs,
+            recommendation_sources: before.recommendation_sources,
+            provider_health: before.provider_health,
         })
     }
 
