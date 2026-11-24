@@ -52,6 +52,93 @@ interface ProfilesViewProps {
 
 type FilterStatus = "all" | "active" | "archived";
 
+interface ProfileTemplateField {
+  attribute: string;
+  dataType: DataType;
+  unit?: string;
+}
+
+interface ProfileFieldTemplate {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  fields: ProfileTemplateField[];
+}
+
+const PROFILE_FIELD_TEMPLATES: ProfileFieldTemplate[] = [
+  {
+    id: "demographics",
+    title: "Demografi dasar",
+    description: "Field demografi yang umum muncul pada studi responden.",
+    category: "Demografi",
+    fields: [
+      { attribute: "Usia", dataType: "number", unit: "tahun" },
+      { attribute: "Domisili", dataType: "string" },
+      { attribute: "Jenis kelamin", dataType: "string" },
+      { attribute: "Status pernikahan", dataType: "string" },
+    ],
+  },
+  {
+    id: "work-education",
+    title: "Pekerjaan & pendidikan",
+    description: "Latar belakang pekerjaan dan pendidikan.",
+    category: "Pekerjaan",
+    fields: [
+      { attribute: "Status pekerjaan", dataType: "string" },
+      { attribute: "Bidang pekerjaan", dataType: "string" },
+      { attribute: "Pendidikan terakhir", dataType: "string" },
+      { attribute: "Jenis industri", dataType: "string" },
+    ],
+  },
+  {
+    id: "household",
+    title: "Rumah tangga",
+    description: "Komposisi dan kondisi rumah tangga.",
+    category: "Rumah Tangga",
+    fields: [
+      { attribute: "Jumlah anggota rumah tangga", dataType: "number", unit: "orang" },
+      { attribute: "Status tempat tinggal", dataType: "string" },
+      { attribute: "Jumlah kendaraan rumah tangga", dataType: "number", unit: "unit" },
+    ],
+  },
+  {
+    id: "technology",
+    title: "Teknologi & perangkat",
+    description: "Perangkat dan kebiasaan penggunaan teknologi.",
+    category: "Teknologi",
+    fields: [
+      { attribute: "Perangkat utama", dataType: "string" },
+      { attribute: "Sistem operasi utama", dataType: "string" },
+      { attribute: "Koneksi internet", dataType: "string" },
+      { attribute: "Penggunaan aplikasi digital", dataType: "string" },
+    ],
+  },
+  {
+    id: "consumer",
+    title: "Konsumsi & kebiasaan",
+    description: "Kebiasaan dan preferensi konsumsi non-finansial.",
+    category: "Konsumsi",
+    fields: [
+      { attribute: "Kanal belanja utama", dataType: "string" },
+      { attribute: "Frekuensi belanja", dataType: "string" },
+      { attribute: "Kategori produk yang digunakan", dataType: "string" },
+      { attribute: "Merek yang digunakan", dataType: "string" },
+    ],
+  },
+  {
+    id: "mobility",
+    title: "Transportasi & mobilitas",
+    description: "Moda transportasi dan pola mobilitas responden.",
+    category: "Transportasi",
+    fields: [
+      { attribute: "Moda transportasi utama", dataType: "string" },
+      { attribute: "Kendaraan pribadi", dataType: "string" },
+      { attribute: "Frekuensi bepergian", dataType: "string" },
+    ],
+  },
+];
+
 export function ProfilesView({
   personas,
   activePersona,
