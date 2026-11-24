@@ -19,20 +19,37 @@ impl ProfileImportService {
         value: &serde_json::Value,
     ) -> Result<String, AppError> {
         match data_type {
-            DataType::String | DataType::Date => value.as_str().map(str::to_string).ok_or_else(|| {
+            DataType::String | DataType::Date => {
+                value.as_str().map(str::to_string).ok_or_else(|| {
+                    AppError::validation(
+                        "facts.value",
+                        "Nilai teks/tanggal dalam berkas profil tidak sesuai dengan tipe datanya.",
+                    )
+                })
+            }
+            DataType::Number => value
+                .as_number()
+                .map(|number| number.to_string())
+                .ok_or_else(|| {
+                    AppError::validation(
+                        "facts.value",
+                        "Nilai angka dalam berkas profil bukan angka yang valid.",
+                    )
+                }),
+            DataType::Boolean => value
+                .as_bool()
+                .map(|value| value.to_string())
+                .ok_or_else(|| {
+                    AppError::validation(
+                        "facts.value",
+                        "Nilai ya/tidak dalam berkas profil tidak valid.",
+                    )
+                }),
+            DataType::Json => serde_json::to_string(value).map_err(|error| {
                 AppError::validation(
                     "facts.value",
-                    "Nilai teks/tanggal dalam berkas profil tidak sesuai dengan tipe datanya.",
+                    format!("Nilai JSON profil tidak dapat dibaca: {error}"),
                 )
-            }),
-            DataType::Number => value.as_number().map(|number| number.to_string()).ok_or_else(|| {
-                AppError::validation("facts.value", "Nilai angka dalam berkas profil bukan angka yang valid.")
-            }),
-            DataType::Boolean => value.as_bool().map(|value| value.to_string()).ok_or_else(|| {
-                AppError::validation("facts.value", "Nilai ya/tidak dalam berkas profil tidak valid.")
-            }),
-            DataType::Json => serde_json::to_string(value).map_err(|error| {
-                AppError::validation("facts.value", format!("Nilai JSON profil tidak dapat dibaca: {error}"))
             }),
         }
     }
@@ -41,8 +58,14 @@ impl ProfileImportService {
         if source.title.chars().count() > 120
             || source.description.trim().is_empty()
             || source.description.chars().count() > 500
-            || source.reference_uri.as_ref().is_some_and(|value| value.chars().count() > 2_048)
-            || source.notes.as_ref().is_some_and(|value| value.chars().count() > 1_000)
+            || source
+                .reference_uri
+                .as_ref()
+                .is_some_and(|value| value.chars().count() > 2_048)
+            || source
+                .notes
+                .as_ref()
+                .is_some_and(|value| value.chars().count() > 1_000)
         {
             return Err(AppError::validation(
                 "factSources",
@@ -58,7 +81,10 @@ impl ProfileImportService {
             "external_record" => Ok(SourceType::ExternalRecord),
             _ => Err(AppError::validation(
                 "factSources.sourceType",
-                format!("Jenis sumber bukti '{}' tidak didukung.", source.source_type),
+                format!(
+                    "Jenis sumber bukti '{}' tidak didukung.",
+                    source.source_type
+                ),
             )),
         }
     }
@@ -74,7 +100,10 @@ impl ProfileImportService {
             return Err(AppError::validation("file", "Berkas JSON profil kosong."));
         }
         if json_content.len() > MAX_PROFILE_IMPORT_BYTES {
-            return Err(AppError::validation("file", "Ukuran berkas profil melebihi batas 5 MB."));
+            return Err(AppError::validation(
+                "file",
+                "Ukuran berkas profil melebihi batas 5 MB.",
+            ));
         }
 
         let payload: ExportPayload = serde_json::from_str(json_content).map_err(|error| {
@@ -164,16 +193,19 @@ impl ProfileImportService {
                 ));
             }
             Self::validate_source(source)?;
-            sources_by_fact.entry(source.fact_id.clone()).or_default().push(source);
+            sources_by_fact
+                .entry(source.fact_id.clone())
+                .or_default()
+                .push(source);
         }
 
         let mut connection = database
             .connection
             .lock()
             .map_err(|_| AppError::database("Database sedang tidak tersedia."))?;
-        let transaction = connection
-            .transaction()
-            .map_err(|error| AppError::database(format!("Gagal memulai transaksi import profil: {error}")))?;
+        let transaction = connection.transaction().map_err(|error| {
+            AppError::database(format!("Gagal memulai transaksi import profil: {error}"))
+        })?;
 
         let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
         let new_persona_id = Uuid::new_v4().to_string();
@@ -203,15 +235,24 @@ impl ProfileImportService {
             // Jika file tidak membawa sumber asli, fakta diimpor sebagai belum terverifikasi.
             let fallback_description =
                 "Sumber asli tidak tersedia pada file ekspor; pengguna perlu memverifikasi kembali.".to_string();
-            let (source_type, source_title, source_description, reference_uri, observed_at,
-                verification_status) = if let Some(source) = first_source {
+            let (
+                source_type,
+                source_title,
+                source_description,
+                reference_uri,
+                observed_at,
+                verification_status,
+            ) = if let Some(source) = first_source {
                     let source_type = Self::validate_source(source)?;
                     (
                         source_type.as_str().to_string(),
                         Some(source.title.clone()),
                         source.description.clone(),
                         source.reference_uri.clone(),
-                        source.observed_at.clone().or_else(|| exported_fact.source_date.clone()),
+                    source
+                        .observed_at
+                        .clone()
+                        .or_else(|| exported_fact.source_date.clone()),
                         exported_fact.verification_status.clone(),
                     )
                 } else {
@@ -298,7 +339,9 @@ impl ProfileImportService {
         }
 
         transaction.commit().map_err(|error| {
-            AppError::database(format!("Import profil dibatalkan karena transaksi gagal: {error}"))
+            AppError::database(format!(
+                "Import profil dibatalkan karena transaksi gagal: {error}"
+            ))
         })?;
 
         let persona = PersonaRepository::find_by_id(&connection, &new_persona_id)
