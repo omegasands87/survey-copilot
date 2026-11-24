@@ -11,6 +11,7 @@ async function bootstrap() {
 
   if (isUiPreview) {
     // Keep the web preview isolated: it loads no desktop app/services/IPC module.
+    document.title = "Survey Copilot — UI Preview";
     const { PreviewApp } = await import("./preview/PreviewApp");
     root.render(
       <React.StrictMode>
