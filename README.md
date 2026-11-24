@@ -77,7 +77,7 @@ The Windows x64 NSIS package is built by the **Windows NSIS installer package** 
 
 The current-user installer adds both the app and **Uninstall Survey Copilot** shortcuts to the Start Menu. Windows Settings → Apps → Installed apps is also an uninstall entry point. The NSIS uninstaller offers a **Delete app data** choice; leave it unchecked to retain the local database. Windows Credential Manager secrets are separate and are not removed by deleting the app data folder.
 
-The CI package is an internal testing artifact (30-day retention), not a public GitHub Release. Current workflow builds without code signing, so do not distribute it publicly. Clean install, upgrade, uninstall, database retention, credential behavior and publisher trust remain DEVICE TEST REQUIRED until verified on Windows 11 x64.
+The CI package is a 30-day workflow artifact, not a GitHub Release. Because this repository is public, treat the artifact as accessible to repository readers rather than as private distribution. It contains only an unsigned installer and verification manifests; do not include user data, databases, screenshots, API keys or secrets. Do not distribute the unsigned package as an official public release. Clean install, upgrade, uninstall, database retention, credential behavior and publisher trust remain DEVICE TEST REQUIRED until verified on Windows 11 x64.
 
 See [Stage 5 — Windows Installer and Uninstall](docs/09-audit/STAGE_5_WINDOWS_PACKAGING_UNINSTALL.md), [Installation](docs/06-operations/INSTALLATION.md), and [Backup & Restore](docs/06-operations/BACKUP_AND_RESTORE.md).
 
