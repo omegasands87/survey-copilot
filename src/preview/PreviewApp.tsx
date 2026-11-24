@@ -21,7 +21,7 @@ const DEMO_TIME = "2026-11-24T09:00:00.000Z";
 const initialPersonas: Persona[] = [
   {
     id: "demo-persona-01",
-    displayName: "Andi Pratama",
+    displayName: "Profil Demo 01",
     description: "Contoh profil responden untuk evaluasi tampilan.",
     isActive: true,
     status: "active",
@@ -32,7 +32,7 @@ const initialPersonas: Persona[] = [
   },
   {
     id: "demo-persona-02",
-    displayName: "Maya Putri",
+    displayName: "Profil Demo 02",
     description: "Profil demo kedua untuk menguji pergantian persona.",
     isActive: false,
     status: "active",
@@ -186,7 +186,7 @@ function PreviewCopilotView() {
           <span className="preview-muted-label">SESI AKTIF</span>
           <strong>Studi pengalaman belanja online</strong>
         </div>
-        <span className="preview-session-tag">Profil: Andi Pratama</span>
+        <span className="preview-session-tag">Profil: Profil Demo 01</span>
       </div>
 
       <div className="preview-copilot-grid">
@@ -256,7 +256,7 @@ function PreviewCopilotView() {
             <div className="preview-panel-heading compact">
               <div>
                 <span className="preview-muted-label">KONTEKS PROFIL</span>
-                <h3>Andi Pratama</h3>
+                <h3>Profil Demo 01</h3>
               </div>
               <span className="preview-avatar">AP</span>
             </div>
