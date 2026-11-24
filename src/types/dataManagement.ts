@@ -106,6 +106,12 @@ export interface AllRecordCounts {
   providerConfigs: number;
   aiUsage: number;
   appSettings: number;
+  credentials: number;
+  ocrExtractions: number;
+  recognitions: number;
+  branchTransitions: number;
+  questionPredictions: number;
+  diagnosticLogs: number;
   total: number;
 }
 
@@ -122,7 +128,15 @@ export interface WipeReport {
   deletedFitResultsCount: number;
   deletedAttemptsCount: number;
   deletedProviderConfigsCount: number;
+  deletedCredentialsCount: number;
+  deletedOcrExtractionsCount: number;
+  deletedRecognitionsCount: number;
+  deletedBranchTransitionsCount: number;
+  deletedQuestionPredictionsCount: number;
+  deletedDiagnosticLogsCount: number;
   deletedTempFilesCount: number;
+  failedTempFilesCount: number;
+  cleanupWarnings: string[];
   walCheckpointStatus: string;
   vacuumStatus: string;
   wipedAt: string;
