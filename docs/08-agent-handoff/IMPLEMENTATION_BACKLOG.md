@@ -321,7 +321,7 @@ See [Stage 4 — Capture and Automatic Local OCR](../09-audit/STAGE_4_CAPTURE_AU
 
 - NSIS configured for current-user install, Start Menu folder, and custom hook file `src-tauri/windows/nsis-hooks.nsh`.
 - Start Menu receives a direct `Uninstall Survey Copilot` shortcut; the post-uninstall hook removes that shortcut only after successful uninstallation.
-- `.github/workflows/package-windows.yml` runs the full Windows validation/build pipeline and uploads the installer plus SHA-256 and build manifest as a 30-day CI artifact. It does not publish a GitHub Release.
+- `.github/workflows/package-windows.yml` runs the full Windows validation/build pipeline and uploads the installer plus SHA-256 and build manifest as a 30-day CI artifact. Because the repository is public, readers may access the artifact; it is not a private distribution channel and must contain no user data or secrets. It does not publish a GitHub Release.
 - `scripts/validate-windows-installer.ps1` checks package filename/version/size/currentUser settings and generates SHA-256 and Authenticode metadata.
 - Installation, backup/restore, update, release and manual test documents now explain current-user install, uninstall discovery, NSIS Delete app data, and the separate Windows Credential Manager retention boundary.
 
