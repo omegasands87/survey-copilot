@@ -308,3 +308,10 @@ This branch implements the Stage 3 UI/UX requirements from owner feedback. It is
 - Missing-source facts are marked unverified. Invalid or oversized imports roll back completely.
 
 Details and deferred device checks: [Stage 3 — Dark Bento and Profile Import](../09-audit/STAGE_3_DARK_BENTO_PROFILE_UX.md).
+
+
+## Stage 4 repository implementation (branch: feat/stage-4-capture-auto-local-ocr-2026-11-24)
+
+The region and window capture handlers now start local OCR automatically after a successful explicit capture. The result is presented for human review/correction; no AI analysis or external transmission starts automatically. OCR errors leave the capture preview available with a retry action and manual fallback. Capture requires an active session. The capture window list uses an explicit keyboard-accessible action button, and controls that could race an in-flight OCR operation are disabled.
+
+See [Stage 4 — Capture and Automatic Local OCR](../09-audit/STAGE_4_CAPTURE_AUTO_LOCAL_OCR.md). Do not mark installed-device acceptance complete until the consolidated Windows 11 x64 device checklist is run after all five stages.
