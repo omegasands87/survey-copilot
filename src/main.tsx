@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./styles.css";
+import "./styles/dark-bento.css";
 
 async function bootstrap() {
   const rootElement = document.getElementById("root");
