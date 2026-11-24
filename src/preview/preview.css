@@ -583,7 +583,34 @@
   opacity: .5;
 }
 
+.preview-mobile-settings-nav {
+  display: none;
+}
+
+.preview-mobile-settings-nav button {
+  border: 1px solid #dfe8e1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #68786e;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.preview-mobile-settings-nav button.active {
+  border-color: #c9ddce;
+  color: #236542;
+  background: #edf5ef;
+}
+
 @media (max-width: 860px) {
+  .preview-mobile-settings-nav {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 16px 0;
+    background: #f6f8f6;
+  }
+
   .preview-mode-banner {
     padding: 9px 16px;
   }
