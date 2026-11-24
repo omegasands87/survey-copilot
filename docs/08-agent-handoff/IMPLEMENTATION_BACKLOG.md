@@ -315,3 +315,14 @@ Details and deferred device checks: [Stage 3 — Dark Bento and Profile Import](
 The region and window capture handlers now start local OCR automatically after a successful explicit capture. The result is presented for human review/correction; no AI analysis or external transmission starts automatically. OCR errors leave the capture preview available with a retry action and manual fallback. Capture requires an active session. The capture window list uses an explicit keyboard-accessible action button, and controls that could race an in-flight OCR operation are disabled.
 
 See [Stage 4 — Capture and Automatic Local OCR](../09-audit/STAGE_4_CAPTURE_AUTO_LOCAL_OCR.md). Do not mark installed-device acceptance complete until the consolidated Windows 11 x64 device checklist is run after all five stages.
+
+
+## Stage 5 repository implementation (branch: feat/stage-5-windows-installer-uninstall-2026-11-24)
+
+- NSIS configured for current-user install, Start Menu folder, and custom hook file `src-tauri/windows/nsis-hooks.nsh`.
+- Start Menu receives a direct `Uninstall Survey Copilot` shortcut; the pre-uninstall hook removes that shortcut.
+- `.github/workflows/package-windows.yml` runs the full Windows validation/build pipeline and uploads the installer plus SHA-256 and build manifest as a 30-day CI artifact. It does not publish a GitHub Release.
+- `scripts/validate-windows-installer.ps1` checks package filename/version/size/currentUser settings and generates SHA-256 and Authenticode metadata.
+- Installation, backup/restore, update, release and manual test documents now explain current-user install, uninstall discovery, NSIS Delete app data, and the separate Windows Credential Manager retention boundary.
+
+All clean-install, in-place-update, uninstall-with/without-data-deletion and Windows credential tests remain DEVICE TEST REQUIRED until executed on a supported Windows 11 x64 device. See [Stage 5](../09-audit/STAGE_5_WINDOWS_PACKAGING_UNINSTALL.md).
