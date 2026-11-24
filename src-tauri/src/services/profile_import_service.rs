@@ -198,6 +198,7 @@ impl ProfileImportService {
                 .map(Vec::as_slice)
                 .unwrap_or(&[]);
             let first_source = fact_sources.first().copied();
+            let original_source_count = fact_sources.len();
 
             // Jika file tidak membawa sumber asli, fakta diimpor sebagai belum terverifikasi.
             let fallback_description =
@@ -259,7 +260,9 @@ impl ProfileImportService {
                 &now,
             )
             .map_err(AppError::from)?;
-            imported_sources += 1;
+            // This initial row is a disclosed placeholder when no source exists; only count
+            // actual source records from the source export in the import result.
+            imported_sources += original_source_count.min(1);
 
             if let Some(archived_at) = exported_fact.archived_at.as_deref() {
                 transaction
