@@ -12,7 +12,7 @@ impl OcrRepository {
     pub fn save_extraction(
         conn: &Connection,
         extraction: &ExtractedSurveyQuestion,
-    ) -> Result<(), rusqlite::Error> {
+    ) -> Result<bool, rusqlite::Error> {
         let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
         let options_json =
             serde_json::to_string(&extraction.answer_options).unwrap_or_else(|_| "[]".to_string());
@@ -146,7 +146,7 @@ impl OcrRepository {
         confirmation_status: &str,
     ) -> Result<(), rusqlite::Error> {
         let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
-        conn.execute(
+        let affected = conn.execute(
             r#"
             UPDATE ocr_extractions SET
                 question_text_corrected = ?1,
@@ -165,7 +165,7 @@ impl OcrRepository {
                 extraction_id,
             ],
         )?;
-        Ok(())
+        Ok(affected > 0)
     }
 
     fn map_row_to_extraction(
