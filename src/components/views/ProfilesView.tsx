@@ -843,7 +843,7 @@ export function ProfilesView({
             </div>
           </section>
 
-          {/* Formulir Penambahan Fakta Baru (Typed Facts) */
+          {/* Formulir Penambahan Fakta Baru (Typed Facts) */}
           <form className="profile-form" onSubmit={handleCreateFact} style={{ marginTop: 16 }}>
             <div className="fact-form-intro">
               <div>
@@ -930,7 +930,7 @@ export function ProfilesView({
                     onChange={(e) => setFactValue(e.target.value)}
                     placeholder={
                       factDataType === "number"
-                        ? "Contoh: 15000000 atau 28"
+                        ? "Contoh: 28 atau 3"
                         : factDataType === "json"
                         ? '{"merk": ["Toyota", "Honda"]}'
                         : "Contoh: Karyawan Swasta"
@@ -1003,7 +1003,7 @@ export function ProfilesView({
                 <input
                   value={factSourceTitle}
                   onChange={(e) => setFactSourceTitle(e.target.value)}
-                  placeholder="Contoh: KTP, Slip Gaji, dll"
+                  placeholder="Contoh: dokumen pendukung atau catatan pengguna"
                   maxLength={80}
                   style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 6, border: "1px solid #dce4de" }}
                 />
