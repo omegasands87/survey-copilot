@@ -14,3 +14,10 @@ src-tauri/gen
 *.sqlite3-shm
 *.sqlite-wal
 *.sqlite-shm
+
+# Build and release artifacts
+release-testing/
+*.exe
+*.dll
+*.msi
+src-tauri/.cargo/
