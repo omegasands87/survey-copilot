@@ -264,7 +264,9 @@ impl ProfileImportService {
                     exported_fact.source_date.clone(),
                     "unverified".to_string(),
                 )
-            };put {
+            };
+
+            let input = CreateFactInput {
                 persona_id: new_persona_id.clone(),
                 category: exported_fact.category.clone(),
                 fact_key: Some(exported_fact.fact_key.clone()),
