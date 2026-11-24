@@ -413,6 +413,45 @@ fn test_at_071_full_application_wipe_and_zero_orphans() {
 }
 
 #[test]
+fn test_full_wipe_aborts_without_database_changes_when_os_credential_delete_fails() {
+    let db = setup_memory_db();
+    let store = InMemoryCredentialStore::new();
+    let persona = PersonaService::create(&db, CreatePersonaInput::new("Tetap Tersimpan"))
+        .expect("persona");
+
+    let credential = CredentialService::save_credential(
+        &db,
+        &store,
+        SaveCredentialInput {
+            id: None,
+            provider_type: "gemini".to_string(),
+            label: "Credential blocked during wipe".to_string(),
+            secret: "KeepCredentialDuringFailedWipe987".to_string(),
+        },
+    )
+    .expect("credential");
+
+    store.set_delete_failure(true);
+    let error = DeletionService::wipe_all_data(
+        &db,
+        &store,
+        None,
+        "HAPUS SEMUA DATA",
+    )
+    .expect_err("full wipe must fail if OS credential deletion fails");
+    assert_eq!(error.code, "CREDENTIAL_ERROR");
+
+    let personas = PersonaService::list(&db, true).expect("personas remain");
+    assert_eq!(personas.len(), 1);
+    assert_eq!(personas[0].id, persona.id);
+    assert!(store.exists(&credential.credential_ref).unwrap());
+
+    let counts = DeletionService::get_wipe_summary(&db).expect("summary");
+    assert_eq!(counts.credentials, 1);
+    assert_eq!(counts.personas, 1);
+}
+
+#[test]
 fn test_wipe_requires_exact_confirmation() {
     let db = setup_memory_db();
     let store = InMemoryCredentialStore::new();
