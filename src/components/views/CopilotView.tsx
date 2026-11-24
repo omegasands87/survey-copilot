@@ -451,6 +451,7 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
       });
       setActiveCapturePreview(preview);
       setActiveCaptureId(preview.captureId);
+      setActiveOcrExtraction(null);
       setShowCapturePreviewModal(true);
       setShowOcrReviewModal(false);
       setSuccessMessage("Jendela berhasil ditangkap. OCR lokal dimulai otomatis; hasil akan muncul untuk ditinjau.");
