@@ -370,7 +370,7 @@ impl CredentialService {
             &conn,
             &existing.credential_ref,
         )
-        .unwrap_or(0);
+        .map_err(AppError::from)?;
 
         if usage_count > 0 && !force {
             return Err(AppError::conflict(format!(
@@ -379,29 +379,27 @@ impl CredentialService {
             )));
         }
 
-        // Hapus secret dari Windows Credential Manager
-        let store_del_res = store.delete_secret(&existing.credential_ref);
-        let deleted_from_store = store_del_res.is_ok();
+        // Jangan hapus metadata jika OS gagal menghapus secret; caller harus dapat retry.
+        store.delete_secret(&existing.credential_ref)?;
 
-        // Hapus rekaman metadata dari SQLite
         let deleted_from_database =
             CredentialRepository::delete_by_id(&conn, id).map_err(AppError::from)?;
-
-        let message = if deleted_from_store && deleted_from_database {
-            format!("Kredensial '{}' berhasil dihapus secara bersih dari Windows Credential Manager dan basis data lokal.", existing.label)
-        } else if deleted_from_database {
-            format!("Metadata kredensial '{}' dihapus dari basis data lokal (secret di Windows Credential Manager sebelumnya telah terhapus atau tidak ditemukan).", existing.label)
-        } else {
-            format!(
-                "Peringatan: Gagal menghapus kredensial '{}' secara tuntas.",
+        if !deleted_from_database {
+            return Err(AppError::internal(format!(
+                "Secret credential '{}' telah dihapus dari OS, tetapi metadata SQLite tidak ditemukan saat finalisasi.",
                 existing.label
-            )
-        };
+            )));
+        }
+
+        let message = format!(
+            "Kredensial '{}' berhasil dihapus dari Windows Credential Manager dan basis data lokal.",
+            existing.label
+        );
 
         Ok(DeleteCredentialResult {
             id: id.to_string(),
             credential_ref: existing.credential_ref,
-            deleted_from_store,
+            deleted_from_store: true,
             deleted_from_database,
             message,
         })
