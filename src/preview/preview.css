@@ -632,6 +632,22 @@
 }
 
 @media (max-width: 600px) {
+  .preview-shell .sidebar nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .preview-shell .nav-item {
+    justify-content: center;
+    gap: 5px;
+    padding: 9px 4px;
+    font-size: 10px;
+  }
+
+  .preview-shell .nav-icon {
+    width: auto;
+    font-size: 15px;
+  }
+
   .preview-mode-banner > div {
     display: grid;
     gap: 3px;
