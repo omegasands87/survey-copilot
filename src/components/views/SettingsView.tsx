@@ -2127,6 +2127,8 @@ export function SettingsView({
                   <li>Branch transition NQI: <strong>{wipeSummary.branchTransitions}</strong></li>
                   <li>Prediksi pertanyaan NQI: <strong>{wipeSummary.questionPredictions}</strong></li>
                   <li>Log diagnostik: <strong>{wipeSummary.diagnosticLogs}</strong></li>
+                  <li>Sumber rekomendasi: <strong>{wipeSummary.recommendationSources}</strong></li>
+                  <li>Riwayat health provider: <strong>{wipeSummary.providerHealth}</strong></li>
                   <li>Sumber Bukti: <strong>{wipeSummary.sources}</strong></li>
                   <li>Riwayat Perubahan: <strong>{wipeSummary.history}</strong></li>
                   <li>Preferensi: <strong>{wipeSummary.preferences}</strong></li>
@@ -2207,6 +2209,8 @@ export function SettingsView({
                   <li>Survey recognition terhapus: {wipeReport.deletedRecognitionsCount}</li>
                   <li>NQI transition/prediction terhapus: {wipeReport.deletedBranchTransitionsCount + wipeReport.deletedQuestionPredictionsCount}</li>
                   <li>Diagnostic log terhapus: {wipeReport.deletedDiagnosticLogsCount}</li>
+                  <li>Sumber rekomendasi terhapus: {wipeReport.deletedRecommendationSourcesCount}</li>
+                  <li>Riwayat health provider terhapus: {wipeReport.deletedProviderHealthCount}</li>
                   <li>File sementara dibersihkan: {wipeReport.deletedTempFilesCount}; gagal dihapus: {wipeReport.failedTempFilesCount}</li>
                   <li>Checkpoint WAL SQLite: {wipeReport.walCheckpointStatus}</li>
                   <li>Status VACUUM SQLite: {wipeReport.vacuumStatus}</li>
