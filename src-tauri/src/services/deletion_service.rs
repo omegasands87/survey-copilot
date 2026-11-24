@@ -221,6 +221,8 @@ impl DeletionService {
             deleted_branch_transitions_count: table_counts.branch_transitions,
             deleted_question_predictions_count: table_counts.question_predictions,
             deleted_diagnostic_logs_count: table_counts.diagnostic_logs,
+            deleted_recommendation_sources_count: table_counts.recommendation_sources,
+            deleted_provider_health_count: table_counts.provider_health,
             deleted_temp_files_count: deleted_files_count,
             failed_temp_files_count: failed_files_count,
             cleanup_warnings,
@@ -241,7 +243,7 @@ impl DeletionService {
             survey_history_policy: "Riwayat sesi dan pertanyaan survei disimpan secara terisolasi per persona untuk audit dan pengenalan survei (Survey Memory).".into(),
             export_file_policy: "Berkas ekspor JSON dibuat atas permintaan eksplisit pengguna; tidak menyertakan kunci API atau kredensial rahasia.".into(),
             logs_and_diagnostics_policy: "Log diagnostik lokal menerapkan redaksi otomatis untuk nilai sensitif dan kunci rahasia.".into(),
-            deletion_scope_disclaimer: "Full wipe menghapus seluruh record SQLite dan secret yang dikelola aplikasi di Windows Credential Manager, membersihkan file capture yang terdaftar, serta menjalankan WAL checkpoint dan VACUUM. Jika file tidak dapat dihapus, aplikasi melaporkan jumlah dan peringatannya. Backup di luar direktori aplikasi tidak terhapus.".into(),
+            deletion_scope_disclaimer: "Full wipe menghapus seluruh record pengguna dan secret yang dikelola aplikasi di Windows Credential Manager, mereset pengaturan provider pool ke default, membersihkan file capture yang terdaftar, serta menjalankan WAL checkpoint dan VACUUM. Ledger migrasi SQLite dipertahankan agar database tetap dapat dibuka. Jika file tidak dapat dihapus, aplikasi melaporkan jumlah dan peringatannya. Backup di luar direktori aplikasi tidak terhapus.".into(),
         }
     }
 }
