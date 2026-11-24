@@ -1,6 +1,6 @@
 # Repository Map for Coding Agents
 
-This map describes the current starter repository. Verify paths before assuming a module exists.
+This map describes the current implemented repository snapshot, not an initial starter shell. Verify paths and current audit status before assuming a feature is complete. The [24 November 2026 audit](../09-audit/AUDIT_COMPLETENESS_SECURITY_RELEASE_2026-11-24.md) records partial milestones and runtime/release gaps; the [installation/UI feedback](../09-audit/INSTALLATION_AND_UI_UX_FEEDBACK_2026-11-24.md) records owner-reported usability issues and proposed UX requirements.
 
 ## Root
 
@@ -12,7 +12,7 @@ This map describes the current starter repository. Verify paths before assuming 
 | `README.md` | Project overview and local run commands | Present |
 | `package.json` | Frontend scripts and dependencies | Present with committed `package-lock.json` |
 | `vite.config.ts` | Vite configuration | Present |
-| `src/` | React application | Starter UI |
+| `src/` | React application | Implemented views and service wrappers; review audit for usability/runtime gaps |
 | `src-tauri/` | Tauri/Rust backend | Structured backend with application layers and migration runner |
 | `.github/workflows/windows.yml` | Windows CI build/check/test workflow | Present with deterministic caching and checks |
 
