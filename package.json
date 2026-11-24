@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "test": "node --experimental-strip-types --test tests/**/*.test.ts",
     "preview": "vite preview",
+    "preview:ui": "vite --host 127.0.0.1 --port 4173 --strictPort",
     "tauri": "tauri"
   },
   "dependencies": {

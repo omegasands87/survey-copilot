@@ -55,27 +55,30 @@ impl LayoutReconstructorService {
 
         for (line_idx, line) in sorted_lines.iter().enumerate() {
             for word in &line.words {
-                total_word_confidence += word.confidence;
-                word_count += 1;
+                // Confidence 0.0 menandakan bahwa engine tidak menyediakan skor terkalibrasi.
+                // Hanya skor nyata yang boleh memengaruhi confidence agregat dan low-confidence flags.
+                if word.confidence > 0.0 {
+                    total_word_confidence += word.confidence;
+                    word_count += 1;
 
-                // Deteksi low confidence (< 0.70)
-                if word.confidence < 0.70 {
-                    uncertain_regions.push(UncertainRegion {
-                        id: format!("unc-low-conf-{line_idx}-{}", word.text),
-                        reason: UncertaintyReason::LowConfidence,
-                        bounding_box: Some(word.bounding_box),
-                        text: Some(word.text.clone()),
-                        details: format!(
-                            "Keyakinan OCR rendah ({:.1}%) pada kata '{}'.",
-                            word.confidence * 100.0,
-                            word.text
-                        ),
-                    });
-                    warnings.push(format!(
-                        "Kata '{}' memiliki keyakinan OCR rendah ({:.1}%). Harap periksa ejaan.",
-                        word.text,
-                        word.confidence * 100.0
-                    ));
+                    if word.confidence < 0.70 {
+                        uncertain_regions.push(UncertainRegion {
+                            id: format!("unc-low-conf-{line_idx}-{}", word.text),
+                            reason: UncertaintyReason::LowConfidence,
+                            bounding_box: Some(word.bounding_box),
+                            text: Some(word.text.clone()),
+                            details: format!(
+                                "Keyakinan OCR rendah ({:.1}%) pada kata '{}'.",
+                                word.confidence * 100.0,
+                                word.text
+                            ),
+                        });
+                        warnings.push(format!(
+                            "Kata '{}' memiliki keyakinan OCR rendah ({:.1}%). Harap periksa ejaan.",
+                            word.text,
+                            word.confidence * 100.0
+                        ));
+                    }
                 }
 
                 // Deteksi kemungkinan teks terpotong di tepi screenshot (Clipping)
@@ -339,25 +342,32 @@ impl LayoutReconstructorService {
             }
         }
 
-        // Hitung overall confidence
+        // Score hanya dihitung bila OCR engine benar-benar memberikan confidence numerik.
+        // Windows.Media.Ocr tidak menyediakannya, sehingga 0.0 berarti "tidak tersedia", bukan 0%.
         let mut overall_confidence = if word_count > 0 {
             total_word_confidence / (word_count as f32)
         } else {
-            0.85
+            warnings.push(
+                "Engine OCR tidak menyediakan skor keyakinan terkalibrasi; tinjau hasil ekstraksi secara manual."
+                    .to_string(),
+            );
+            0.0
         };
 
-        // Berikan penalti jika ada teks terpotong atau layout ambigu
-        if uncertain_regions
-            .iter()
-            .any(|u| u.reason == UncertaintyReason::LikelyClipped)
-        {
-            overall_confidence = (overall_confidence - 0.15).max(0.1);
-        }
-        if uncertain_regions
-            .iter()
-            .any(|u| u.reason == UncertaintyReason::AmbiguousLayout)
-        {
-            overall_confidence = (overall_confidence - 0.20).max(0.1);
+        // Berikan penalti jika ada teks terpotong atau layout ambigu, hanya jika skor tersedia.
+        if overall_confidence > 0.0 {
+            if uncertain_regions
+                .iter()
+                .any(|u| u.reason == UncertaintyReason::LikelyClipped)
+            {
+                overall_confidence = (overall_confidence - 0.15).max(0.1);
+            }
+            if uncertain_regions
+                .iter()
+                .any(|u| u.reason == UncertaintyReason::AmbiguousLayout)
+            {
+                overall_confidence = (overall_confidence - 0.20).max(0.1);
+            }
         }
 
         Ok(ExtractedSurveyQuestion {

@@ -46,6 +46,19 @@ npm install
 npm run tauri dev
 ```
 
+### Browser UI-only preview
+
+The browser preview is for visual and interaction review only. It uses synthetic data and mock state; it does not connect to Tauri IPC, SQLite, Windows Credential Manager, screen capture, OCR, or AI providers.
+
+```powershell
+npm ci
+npm run preview:ui
+```
+
+Open `http://127.0.0.1:4173/?preview=1`. Changes made in the preview are held in memory and disappear when the page is refreshed. Do not enter real profile data, screenshots, credentials, or survey answers.
+
+See [Stage 2 UI-only Preview](docs/09-audit/STAGE_2_UI_ONLY_PREVIEW.md) for the isolation contract.
+
 Build the Windows installer with:
 
 ```powershell

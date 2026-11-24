@@ -6,9 +6,7 @@ use crate::domain::capture::CaptureMode;
 use crate::domain::error::AppError;
 use crate::domain::ocr::{ConfirmOcrExtractionInput, ExtractOcrInput, ExtractedSurveyQuestion};
 use crate::domain::survey::{ConfirmationStatus, CreateQuestionInput, Provenance, SurveyQuestion};
-use crate::infrastructure::ocr::{
-    CompositeOcrEngine, FixtureOcrEngine, OcrEngine, WindowsMediaOcrEngine,
-};
+use crate::infrastructure::ocr::{CompositeOcrEngine, OcrEngine, WindowsMediaOcrEngine};
 use crate::repository::OcrRepository;
 use crate::services::capture_service::CaptureService;
 use crate::services::layout_reconstructor::LayoutReconstructorService;
@@ -30,12 +28,11 @@ impl OcrService {
         }
     }
 
-    /// Membuat instance default OcrService dengan Windows Media OCR sebagai engine utama
-    /// dan FixtureOcrEngine sebagai engine uji / fallback
+    /// Membuat instance default OcrService tanpa synthetic fallback.
+    /// FixtureOcrEngine hanya boleh dipasang secara eksplisit oleh test harness.
     pub fn with_default_engine(temp_dir: PathBuf, database: Arc<Database>) -> Self {
         let primary = Arc::new(WindowsMediaOcrEngine::new());
-        let fallback = Arc::new(FixtureOcrEngine::new());
-        let composite = Arc::new(CompositeOcrEngine::new(primary, Some(fallback)));
+        let composite = Arc::new(CompositeOcrEngine::new(primary, None));
         Self::new(composite, temp_dir, database)
     }
 
@@ -118,10 +115,11 @@ impl OcrService {
             application_label,
         )?;
 
-        // Persistensi hasil ekstraksi ke SQLite untuk mempertahankan provenance capture-to-extraction (SC-041)
-        if let Ok(conn) = database.connection.lock() {
-            let _ = OcrRepository::save_extraction(&conn, &extracted);
-        }
+        // Persistence is part of the extraction contract: never return a draft as saved when SQLite failed.
+        let conn = database.connection.lock().map_err(|_| {
+            AppError::database("Gagal mengunci basis data untuk menyimpan hasil OCR.")
+        })?;
+        OcrRepository::save_extraction(&conn, &extracted).map_err(AppError::from)?;
 
         // Set status konfirmasi awal sebagai draf
         extracted.confirmation_status = ConfirmationStatus::Draft;
@@ -186,23 +184,32 @@ impl OcrService {
         let options_json =
             serde_json::to_string(&input.options).unwrap_or_else(|_| "[]".to_string());
 
-        let conn = database.connection.lock().map_err(|_| {
+        let mut conn = database.connection.lock().map_err(|_| {
             AppError::internal(
                 "Gagal mengunci koneksi basis data untuk mengonfirmasi hasil ekstraksi OCR.",
             )
         })?;
+        let transaction = conn.transaction().map_err(|e| {
+            AppError::database(format!("Gagal memulai transaksi konfirmasi OCR: {e}"))
+        })?;
 
-        // 1. Perbarui status ekstraksi OCR menjadi confirmed
-        let _ = OcrRepository::update_confirmed_extraction(
-            &conn,
+        // 1. Perbarui status ekstraksi OCR dan pastikan record yang dimaksud benar-benar ada.
+        let updated = OcrRepository::update_confirmed_extraction(
+            &transaction,
             extraction_id,
             &input.question_text_corrected,
             input.instructions.as_deref(),
             &options_json,
             "confirmed",
-        );
+        )
+        .map_err(AppError::from)?;
+        if !updated {
+            return Err(AppError::not_found(format!(
+                "Hasil ekstraksi OCR '{extraction_id}' tidak ditemukan atau tidak dapat diperbarui."
+            )));
+        }
 
-        // 2. Buat atau rekam pertanyaan survei ke sesi survei aktif melalui SurveyService
+        // 2. Buat pertanyaan dalam transaksi yang sama agar status OCR dan sesi tetap sinkron.
         let create_input = CreateQuestionInput {
             persona_id: persona_id.to_string(),
             session_id: session_id.to_string(),
@@ -218,7 +225,12 @@ impl OcrService {
             branch_logic: None,
         };
 
-        let recorded_question = SurveyService::create_question(&conn, create_input)?;
+        let recorded_question = SurveyService::create_question(&transaction, create_input)?;
+        transaction.commit().map_err(|e| {
+            AppError::database(format!(
+                "Gagal menyimpan konfirmasi OCR dan pertanyaan: {e}"
+            ))
+        })?;
 
         Ok(recorded_question)
     }
