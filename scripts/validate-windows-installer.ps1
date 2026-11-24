@@ -12,7 +12,7 @@ $installer = Get-Item -LiteralPath $InstallerPath
 if (-not $installer -or $installer.PSIsContainer) {
     throw "Installer path does not point to a file."
 }
-if ($installer.Extension -ne ".exe" -or $installer.Name -notmatch "-x64-setup\.exe$") {
+if ($installer.Extension -ne ".exe" -or $installer.Name -notmatch "[_-]x64-setup\.exe$") {
     throw "Expected a Tauri x64 NSIS setup executable. Found '$($installer.Name)'."
 }
 if ($installer.Length -lt 1MB) {
