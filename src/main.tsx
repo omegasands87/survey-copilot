@@ -1,10 +1,31 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
 import "./styles.css";
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+async function bootstrap() {
+  const rootElement = document.getElementById("root");
+  if (!rootElement) throw new Error("Root element was not found.");
+
+  const root = ReactDOM.createRoot(rootElement);
+  const isUiPreview = new URLSearchParams(window.location.search).get("preview") === "1";
+
+  if (isUiPreview) {
+    // Keep the web preview isolated: it loads no desktop app/services/IPC module.
+    const { PreviewApp } = await import("./preview/PreviewApp");
+    root.render(
+      <React.StrictMode>
+        <PreviewApp />
+      </React.StrictMode>,
+    );
+    return;
+  }
+
+  const { default: App } = await import("./App");
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+}
+
+void bootstrap();
