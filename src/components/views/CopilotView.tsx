@@ -400,6 +400,7 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
       });
       setActiveCapturePreview(preview);
       setActiveCaptureId(preview.captureId);
+      setActiveOcrExtraction(null);
       setShowCapturePreviewModal(true);
       setShowOcrReviewModal(false);
       setSuccessMessage("Tangkapan layar berhasil. OCR lokal dimulai otomatis; hasil akan muncul untuk ditinjau.");
@@ -2730,7 +2731,6 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
                     <div
                       key={win.id}
                       className="window-item-card"
-                      onClick={() => void handleSelectWindowToCapture(win.id)}
                     >
                       <div className="window-item-info">
                         <span className="window-item-title">{win.title}</span>
@@ -2742,10 +2742,7 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
                         type="button"
                         className="capture-btn primary"
                         style={{ padding: "6px 12px", fontSize: "11px", whiteSpace: "nowrap" }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleSelectWindowToCapture(win.id);
-                        }}
+                        onClick={() => void handleSelectWindowToCapture(win.id)}
                       >
                         Tangkap
                       </button>
@@ -2786,6 +2783,7 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
                 style={{ padding: "4px 8px", fontSize: "12px", marginTop: 0 }}
                 aria-label="Tutup pratinjau tangkapan layar"
                 onClick={() => setShowCapturePreviewModal(false)}
+                disabled={isExtractingOcr}
               >
                 ✕
               </button>
@@ -2795,7 +2793,7 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
                 {activeCapturePreview.previewDataUrl ? (
                   <img
                     src={activeCapturePreview.previewDataUrl}
-                    alt="Pratinjau Tangkapan Layar Penuh"
+                    alt="Pratinjau tangkapan layar yang dipilih"
                     className="capture-modal-img"
                   />
                 ) : (
@@ -2849,6 +2847,7 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
                 style={{ color: "#991b1b", borderColor: "#fecaca" }}
                 onClick={() => void handleDiscardCapture()}
                 title="Hapus berkas gambar sementara dari disk"
+                disabled={isExtractingOcr}
               >
                 🗑️ Batalkan & Hapus Gambar
               </button>
@@ -2879,6 +2878,7 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
                   style={{ marginTop: 0 }}
                   onClick={handleConfirmCaptureUse}
                   title="Gunakan tangkapan layar untuk diketik manual"
+                  disabled={isExtractingOcr}
                 >
                   ✓ Tautkan Manual
                 </button>
