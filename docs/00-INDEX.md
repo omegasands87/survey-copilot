@@ -73,6 +73,7 @@ Survey Copilot is a Windows 11 x64 desktop AI copilot. This repository contains 
 
 ## Development preview
 - [Stage 2 — Browser UI-only Preview](09-audit/STAGE_2_UI_ONLY_PREVIEW.md) — how to run the visual preview and its strict data/service isolation contract.
+- [Stage 3 — Dark Bento and Profile Import](09-audit/STAGE_3_DARK_BENTO_PROFILE_UX.md) — shared theme, blank profile field templates, and validated single-persona JSON import.
 
 ## Audit and owner feedback
 - [Audit: completeness, security, and release readiness (24 Nov 2026)](09-audit/AUDIT_COMPLETENESS_SECURITY_RELEASE_2026-11-24.md)
