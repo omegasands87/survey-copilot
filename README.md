@@ -91,7 +91,7 @@ npm run tauri build
 
 **Current version:** v0.1.0-beta (private testing; not production-approved)
 
-The latest repository audit (24 November 2026) verified that Windows GitHub Actions run #60 passed: 130 frontend tests and 221 Rust tests, in addition to frontend build, Rust formatting, and compile checks. These automated results do not establish installer or runtime readiness. The audit identified Critical/High security and data-integrity findings, and the clean-install, launch, update, uninstall, and data-retention acceptance tests remain unverified.
+The audit snapshot dated 24 November 2026 verified Windows GitHub Actions run #60: 130 frontend tests and 221 Rust tests, in addition to frontend build, Rust formatting, and compile checks. These are historical automated results, not proof that the subsequent Stage 1–5 branch changes have passed CI or that installer/device behavior is accepted. The audit identified Critical/High security and data-integrity findings; use the current PR checks and the manual device checklist for later verification.
 
 At the time of the 24 November audit, no installer was present on `main` and no GitHub Release asset was available. Stage 5 adds a Windows NSIS CI packaging workflow and Start Menu uninstall shortcut on the implementation branch; that work is still subject to CI and Windows device acceptance. No public installer or release is claimed. See the [audit report](docs/09-audit/AUDIT_COMPLETENESS_SECURITY_RELEASE_2026-11-24.md) and [installation/UI feedback](docs/09-audit/INSTALLATION_AND_UI_UX_FEEDBACK_2026-11-24.md).
 
