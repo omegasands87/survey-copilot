@@ -589,6 +589,61 @@ export function ProfilesView({
         </div>
       </form>
 
+      <section className="profile-import-panel" aria-labelledby="profile-import-title">
+        <div className="profile-import-heading">
+          <div>
+            <span className="eyebrow">PORTABILITAS DATA</span>
+            <h3 id="profile-import-title">Import profil dari JSON</h3>
+            <p>Gunakan file ekspor satu profil Survey Copilot. File dibaca dan diproses lokal di aplikasi.</p>
+          </div>
+          <span className="profile-import-icon" aria-hidden="true">↥</span>
+        </div>
+        <label className="profile-import-file">
+          <span>Pilih file JSON profil</span>
+          <input
+            type="file"
+            accept=".json,application/json"
+            aria-label="Pilih file JSON ekspor satu profil"
+            onChange={(event) => void handleProfileImportFile(event)}
+          />
+          <small>{profileImportFileName || "Maksimal 5 MB · ekspor satu profil versi 1.0.0"}</small>
+        </label>
+        {profileImportPayload && (
+          <div className="profile-import-preview" role="region" aria-label="Pratinjau profil yang akan diimpor">
+            <div className="profile-import-preview-title">
+              <strong>Pratinjau sebelum import</strong>
+              <span className="profile-import-count">{profileImportPayload.data.facts.length} fakta · {profileImportPayload.data.factSources.length} sumber</span>
+            </div>
+            <label className="profile-import-name">
+              Nama profil baru
+              <input
+                value={profileImportName}
+                onChange={(event) => setProfileImportName(event.target.value)}
+                maxLength={80}
+                required
+              />
+            </label>
+            {personas.some((persona) => persona.displayName.trim().toLowerCase() === profileImportName.trim().toLowerCase()) && (
+              <p className="profile-import-warning" role="status">
+                Nama ini sudah digunakan. Import tetap membuat profil baru yang terpisah; ganti nama agar mudah dibedakan.
+              </p>
+            )}
+            <p className="profile-import-scope">
+              Yang diimpor: identitas profil, fakta, dan sumber bukti. Sesi survei, jawaban, screenshot, riwayat, pengaturan provider, serta credential tidak diimpor.
+            </p>
+            <button
+              type="button"
+              className="primary-button"
+              disabled={!profileImportName.trim() || profileImportSubmitting || profileLoading}
+              onClick={() => void handleImportProfile()}
+            >
+              {profileImportSubmitting ? "Mengimpor..." : "Import sebagai profil baru"}
+            </button>
+          </div>
+        )}
+        {profileImportError && <p className="profile-import-error" role="alert">{profileImportError}</p>}
+      </section>
+
       {/* Filter Tabs Persona */}
       <div className="filter-tabs">
         <button
