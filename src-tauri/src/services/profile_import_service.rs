@@ -243,30 +243,28 @@ impl ProfileImportService {
                 observed_at,
                 verification_status,
             ) = if let Some(source) = first_source {
-                    let source_type = Self::validate_source(source)?;
-                    (
-                        source_type.as_str().to_string(),
-                        Some(source.title.clone()),
-                        source.description.clone(),
-                        source.reference_uri.clone(),
+                let source_type = Self::validate_source(source)?;
+                (
+                    source_type.as_str().to_string(),
+                    Some(source.title.clone()),
+                    source.description.clone(),
+                    source.reference_uri.clone(),
                     source
                         .observed_at
                         .clone()
                         .or_else(|| exported_fact.source_date.clone()),
-                        exported_fact.verification_status.clone(),
-                    )
-                } else {
-                    (
-                        "manual_entry".to_string(),
-                        Some("Impor profil — sumber tidak disertakan".to_string()),
-                        fallback_description,
-                        None,
-                        exported_fact.source_date.clone(),
-                        "unverified".to_string(),
-                    )
-                };
-
-            let input = CreateFactInput {
+                    exported_fact.verification_status.clone(),
+                )
+            } else {
+                (
+                    "manual_entry".to_string(),
+                    Some("Impor profil — sumber tidak disertakan".to_string()),
+                    fallback_description,
+                    None,
+                    exported_fact.source_date.clone(),
+                    "unverified".to_string(),
+                )
+            };put {
                 persona_id: new_persona_id.clone(),
                 category: exported_fact.category.clone(),
                 fact_key: Some(exported_fact.fact_key.clone()),
