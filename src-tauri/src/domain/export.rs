@@ -297,6 +297,8 @@ pub struct WipeReport {
     pub deleted_branch_transitions_count: i64,
     pub deleted_question_predictions_count: i64,
     pub deleted_diagnostic_logs_count: i64,
+    pub deleted_recommendation_sources_count: i64,
+    pub deleted_provider_health_count: i64,
     pub deleted_temp_files_count: i64,
     pub failed_temp_files_count: i64,
     pub cleanup_warnings: Vec<String>,
