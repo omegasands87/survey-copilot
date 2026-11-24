@@ -10,7 +10,10 @@ impl EndpointValidator {
     pub fn validate_url(url_str: &str) -> Result<String, AppError> {
         let trimmed = url_str.trim();
         if trimmed.is_empty() {
-            return Err(AppError::validation("baseUrl", "URL endpoint tidak boleh kosong."));
+            return Err(AppError::validation(
+                "baseUrl",
+                "URL endpoint tidak boleh kosong.",
+            ));
         }
 
         let parsed = Url::parse(trimmed).map_err(|_| {
@@ -28,7 +31,10 @@ impl EndpointValidator {
         }
 
         if parsed.host_str().is_none() || parsed.host_str().unwrap_or_default().is_empty() {
-            return Err(AppError::validation("baseUrl", "Host URL endpoint tidak valid."));
+            return Err(AppError::validation(
+                "baseUrl",
+                "Host URL endpoint tidak valid.",
+            ));
         }
 
         if !parsed.username().is_empty() || parsed.password().is_some() {
@@ -91,9 +97,15 @@ impl EndpointValidator {
     }
 
     pub fn is_local_host(host: &str) -> bool {
-        let normalized = host.trim_matches(['[', ']']).trim_end_matches('.').to_ascii_lowercase();
+        let normalized = host
+            .trim_matches(['[', ']'])
+            .trim_end_matches('.')
+            .to_ascii_lowercase();
         normalized == "localhost"
-            || normalized.parse::<IpAddr>().map(|ip| ip.is_loopback()).unwrap_or(false)
+            || normalized
+                .parse::<IpAddr>()
+                .map(|ip| ip.is_loopback())
+                .unwrap_or(false)
     }
 
     /// True only for globally routable destinations, except explicitly allowed local test endpoints.
@@ -132,7 +144,12 @@ impl EndpointValidator {
         let deprecated_relay = a == 192 && b == 88 && c == 99;
         let reserved = a >= 240;
 
-        !(shared || protocol_assignment || documentation || benchmark || deprecated_relay || reserved)
+        !(shared
+            || protocol_assignment
+            || documentation
+            || benchmark
+            || deprecated_relay
+            || reserved)
     }
 
     fn is_allowed_ipv6(ip: Ipv6Addr, allow_loopback: bool) -> bool {
@@ -239,7 +256,10 @@ mod tests {
             "https://[fe80::1]",
             "https://[2001:db8::1]",
         ] {
-            assert!(EndpointValidator::validate_url(url).is_err(), "must reject {url}");
+            assert!(
+                EndpointValidator::validate_url(url).is_err(),
+                "must reject {url}"
+            );
         }
     }
 
@@ -252,11 +272,29 @@ mod tests {
     #[test]
     fn test_redirect_must_preserve_exact_origin() {
         let original = "https://api.example.com:443/v1/models";
-        assert!(EndpointValidator::is_safe_redirect(original, "/v1/models/next"));
-        assert!(EndpointValidator::is_safe_redirect(original, "https://api.example.com/v1/next"));
-        assert!(!EndpointValidator::is_safe_redirect(original, "http://api.example.com/v1/next"));
-        assert!(!EndpointValidator::is_safe_redirect(original, "https://api.example.com:8443/v1/next"));
-        assert!(!EndpointValidator::is_safe_redirect(original, "https://evil.example.net/steal"));
-        assert!(!EndpointValidator::is_safe_redirect(original, "https://api.example.com@evil.example.net/steal"));
+        assert!(EndpointValidator::is_safe_redirect(
+            original,
+            "/v1/models/next"
+        ));
+        assert!(EndpointValidator::is_safe_redirect(
+            original,
+            "https://api.example.com/v1/next"
+        ));
+        assert!(!EndpointValidator::is_safe_redirect(
+            original,
+            "http://api.example.com/v1/next"
+        ));
+        assert!(!EndpointValidator::is_safe_redirect(
+            original,
+            "https://api.example.com:8443/v1/next"
+        ));
+        assert!(!EndpointValidator::is_safe_redirect(
+            original,
+            "https://evil.example.net/steal"
+        ));
+        assert!(!EndpointValidator::is_safe_redirect(
+            original,
+            "https://api.example.com@evil.example.net/steal"
+        ));
     }
 }
