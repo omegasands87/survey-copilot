@@ -1,10 +1,10 @@
 use std::path::Path;
 use survey_copilot_lib::db::Database;
-use survey_copilot_lib::domain::fact::CreateFactInput;
 use survey_copilot_lib::domain::credential::SaveCredentialInput;
+use survey_copilot_lib::domain::fact::CreateFactInput;
+use survey_copilot_lib::domain::persona::CreatePersonaInput;
 use survey_copilot_lib::infrastructure::credentials::in_memory::InMemoryCredentialStore;
 use survey_copilot_lib::infrastructure::credentials::CredentialStore;
-use survey_copilot_lib::domain::persona::CreatePersonaInput;
 use survey_copilot_lib::services::{
     CredentialService, DeletionService, ExportService, FactService, PersonaService,
 };
@@ -365,9 +365,8 @@ fn test_at_071_full_application_wipe_and_zero_orphans() {
     assert!(before.total > 0);
 
     // Execute Wipe with exact confirmation string
-    let report = DeletionService::wipe_all_data(
-        &db, &store, None, "HAPUS SEMUA DATA"
-    ).expect("wipe");
+    let report =
+        DeletionService::wipe_all_data(&db, &store, None, "HAPUS SEMUA DATA").expect("wipe");
     assert_eq!(report.deleted_personas_count, 1);
     assert_eq!(report.deleted_facts_count, 1);
     assert_eq!(report.deleted_provider_configs_count, 1);
@@ -416,8 +415,8 @@ fn test_at_071_full_application_wipe_and_zero_orphans() {
 fn test_full_wipe_aborts_without_database_changes_when_os_credential_delete_fails() {
     let db = setup_memory_db();
     let store = InMemoryCredentialStore::new();
-    let persona = PersonaService::create(&db, CreatePersonaInput::new("Tetap Tersimpan"))
-        .expect("persona");
+    let persona =
+        PersonaService::create(&db, CreatePersonaInput::new("Tetap Tersimpan")).expect("persona");
 
     let credential = CredentialService::save_credential(
         &db,
@@ -432,13 +431,8 @@ fn test_full_wipe_aborts_without_database_changes_when_os_credential_delete_fail
     .expect("credential");
 
     store.set_delete_failure(true);
-    let error = DeletionService::wipe_all_data(
-        &db,
-        &store,
-        None,
-        "HAPUS SEMUA DATA",
-    )
-    .expect_err("full wipe must fail if OS credential deletion fails");
+    let error = DeletionService::wipe_all_data(&db, &store, None, "HAPUS SEMUA DATA")
+        .expect_err("full wipe must fail if OS credential deletion fails");
     assert_eq!(error.code, "CREDENTIAL_ERROR");
 
     let personas = PersonaService::list(&db, true).expect("personas remain");
