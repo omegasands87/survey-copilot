@@ -285,3 +285,13 @@ This backlog is the execution order for Antigravity. Checkboxes are intentionall
 - [x] Do not publish until all MUST requirements and release gates pass (Private testing release only; awaiting user approval before final production release).
 
 **Acceptance:** Windows 11 x64 NSIS testing package built cleanly without administrator rights requirement (`currentUser`), data retention guaranteed at `%APPDATA%\com.surveycopilot.desktop` across updates and uninstallations, credentials isolated in Windows Credential Manager, and complete operational and testing documentation provided.
+
+
+## Post-audit findings and owner feedback (24 November 2026)
+
+The following documents capture a repository/source audit and post-installation feedback. They are **not marked as implemented backlog items** and must be reviewed and prioritized before implementation:
+
+- [Audit: completeness, security, and release readiness](../09-audit/AUDIT_COMPLETENESS_SECURITY_RELEASE_2026-11-24.md) — includes code-level risks R-01 through R-15, CI evidence, installer availability, and release gates.
+- [Installation and UI/UX feedback](../09-audit/INSTALLATION_AND_UI_UX_FEEDBACK_2026-11-24.md) — includes responsive redesign, dark Bento direction, form usability, profile templates/import, capture-to-local-OCR flow, broken-page reproduction, UI-only browser preview, and uninstall discoverability.
+
+Do not infer that a checkbox elsewhere in this historical backlog overrides an audit finding. Do not mark these follow-up requirements complete until implementation and relevant manual/automated evidence exist. Product-scope changes (including any interpretation of “profit”) require explicit owner approval. The browser preview is UI-only with synthetic data/mock services; desktop functionality remains in the installed Windows app.
