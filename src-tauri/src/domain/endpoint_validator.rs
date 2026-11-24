@@ -56,7 +56,10 @@ impl EndpointValidator {
             Some(Host::Ipv4(ip)) => ip.to_string(),
             Some(Host::Ipv6(ip)) => ip.to_string(),
             None => {
-                return Err(AppError::validation("baseUrl", "Host URL endpoint tidak valid."));
+                return Err(AppError::validation(
+                    "baseUrl",
+                    "Host URL endpoint tidak valid.",
+                ));
             }
         };
         if Self::is_blocked_metadata_host(&host) {
