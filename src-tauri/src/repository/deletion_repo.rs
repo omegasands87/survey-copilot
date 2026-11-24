@@ -22,6 +22,12 @@ pub struct AllRecordCounts {
     pub provider_configs: i64,
     pub ai_usage: i64,
     pub app_settings: i64,
+    pub credentials: i64,
+    pub ocr_extractions: i64,
+    pub recognitions: i64,
+    pub branch_transitions: i64,
+    pub question_predictions: i64,
+    pub diagnostic_logs: i64,
     pub total: i64,
 }
 
@@ -39,6 +45,12 @@ pub struct WipeTableCounts {
     pub fit_results: i64,
     pub attempts: i64,
     pub provider_configs: i64,
+    pub credentials: i64,
+    pub ocr_extractions: i64,
+    pub recognitions: i64,
+    pub branch_transitions: i64,
+    pub question_predictions: i64,
+    pub diagnostic_logs: i64,
 }
 
 pub struct DeletionRepository;
@@ -47,8 +59,7 @@ impl DeletionRepository {
     pub fn count_all_records(connection: &Connection) -> Result<AllRecordCounts, rusqlite::Error> {
         let count_table = |table: &str| -> Result<i64, rusqlite::Error> {
             let sql = format!("SELECT COUNT(1) FROM {table}");
-            let count: i64 = connection.query_row(&sql, [], |row| row.get(0))?;
-            Ok(count)
+            connection.query_row(&sql, [], |row| row.get(0))
         };
 
         let personas = count_table("personas")?;
@@ -69,25 +80,21 @@ impl DeletionRepository {
         let provider_configs = count_table("provider_configs")?;
         let ai_usage = count_table("ai_usage_events")?;
         let app_settings = count_table("app_settings")?;
+        let credentials = count_table("app_credentials")?;
+        let ocr_extractions = count_table("ocr_extractions")?;
+        let recognitions = count_table("survey_recognitions")?;
+        let branch_transitions = count_table("survey_branch_transitions")?;
+        let question_predictions = count_table("survey_question_predictions")?;
+        let diagnostic_logs = count_table("app_diagnostic_logs")?;
 
-        let total = personas
-            + facts
-            + sources
-            + history
-            + preferences
-            + sessions
-            + captures
-            + questions
-            + recommendations
-            + answers
-            + opportunities
-            + criteria
-            + fit_results
-            + attempts
-            + outcomes
-            + provider_configs
-            + ai_usage
-            + app_settings;
+        let total = [
+            personas, facts, sources, history, preferences, sessions, captures, questions,
+            recommendations, answers, opportunities, criteria, fit_results, attempts, outcomes,
+            provider_configs, ai_usage, app_settings, credentials, ocr_extractions, recognitions,
+            branch_transitions, question_predictions, diagnostic_logs,
+        ]
+        .iter()
+        .sum();
 
         Ok(AllRecordCounts {
             personas,
@@ -108,6 +115,12 @@ impl DeletionRepository {
             provider_configs,
             ai_usage,
             app_settings,
+            credentials,
+            ocr_extractions,
+            recognitions,
+            branch_transitions,
+            question_predictions,
+            diagnostic_logs,
             total,
         })
     }
@@ -147,11 +160,11 @@ impl DeletionRepository {
     pub fn wipe_all_data(connection: &Connection) -> Result<WipeTableCounts, rusqlite::Error> {
         let before = Self::count_all_records(connection)?;
 
-        // Execute deletions in cascading and safe order inside the active connection/transaction
-        let _ = connection.execute("DELETE FROM survey_question_predictions", []);
-        let _ = connection.execute("DELETE FROM survey_branch_transitions", []);
-        let _ = connection.execute("DELETE FROM survey_recognitions", []);
-        let _ = connection.execute("DELETE FROM ocr_extractions", []);
+        // Every delete is checked. Missing tables or SQL errors abort the transaction.
+        connection.execute("DELETE FROM survey_question_predictions", [])?;
+        connection.execute("DELETE FROM survey_branch_transitions", [])?;
+        connection.execute("DELETE FROM survey_recognitions", [])?;
+        connection.execute("DELETE FROM ocr_extractions", [])?;
         connection.execute("DELETE FROM recommendation_sources", [])?;
         connection.execute("DELETE FROM answer_history", [])?;
         connection.execute("DELETE FROM answer_recommendations", [])?;
@@ -172,9 +185,10 @@ impl DeletionRepository {
         connection.execute("DELETE FROM provider_configs", [])?;
         connection.execute("DELETE FROM app_settings", [])?;
         connection.execute("DELETE FROM app_diagnostic_logs", [])?;
+        connection.execute("DELETE FROM app_credentials", [])?;
         connection.execute("DELETE FROM personas", [])?;
 
-        // Reset provider pool settings to default
+        // Provider pool settings are intentionally re-created with safe defaults.
         connection.execute("DELETE FROM provider_pool_settings", [])?;
         connection.execute(
             "INSERT INTO provider_pool_settings
@@ -197,6 +211,12 @@ impl DeletionRepository {
             fit_results: before.fit_results,
             attempts: before.attempts,
             provider_configs: before.provider_configs,
+            credentials: before.credentials,
+            ocr_extractions: before.ocr_extractions,
+            recognitions: before.recognitions,
+            branch_transitions: before.branch_transitions,
+            question_predictions: before.question_predictions,
+            diagnostic_logs: before.diagnostic_logs,
         })
     }
 
