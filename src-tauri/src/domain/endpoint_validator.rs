@@ -61,17 +61,24 @@ impl EndpointValidator {
         }
 
         let local_host = Self::is_local_host(&host);
+        let allow_local_http = parsed.scheme() == "http" && local_host;
         if parsed.scheme() == "http" && !local_host {
             return Err(AppError::validation(
                 "baseUrl",
                 "Endpoint HTTP hanya diperbolehkan untuk localhost / loopback. Endpoint lainnya wajib menggunakan HTTPS.",
             ));
         }
+        if parsed.scheme() == "https" && local_host {
+            return Err(AppError::validation(
+                "baseUrl",
+                "HTTPS ke loopback/localhost tidak diizinkan; gunakan HTTP hanya untuk local provider yang Anda kelola.",
+            ));
+        }
 
         // Literal IP dapat diputuskan pada tahap validasi konfigurasi.
         // Hostname akan di-resolve dan dipin ke IP yang telah diperiksa oleh HttpTransport.
         if let Ok(ip) = host.parse::<IpAddr>() {
-            if !Self::is_allowed_ip(ip, local_host) {
+            if !Self::is_allowed_ip(ip, allow_local_http) {
                 return Err(AppError::validation(
                     "baseUrl",
                     "Endpoint menuju alamat IP private, reserved, loopback, atau link-local tidak diizinkan.",
@@ -203,6 +210,8 @@ mod tests {
         assert!(EndpointValidator::validate_url("http://localhost:11434").is_ok());
         assert!(EndpointValidator::validate_url("http://127.0.0.1:8080/v1").is_ok());
         assert!(EndpointValidator::validate_url("http://[::1]:8000").is_ok());
+        assert!(EndpointValidator::validate_url("https://localhost:11434").is_err());
+        assert!(EndpointValidator::validate_url("https://127.0.0.1:8443").is_err());
         assert!(EndpointValidator::validate_url("http://192.168.1.8:8080").is_err());
         assert!(EndpointValidator::validate_url("http://api.example.com").is_err());
     }
