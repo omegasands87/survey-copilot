@@ -1,5 +1,6 @@
-import { useState, useEffect, type FormEvent } from "react";
-import type { Persona, PersonaDependencySummary } from "../../types/persona";
+import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
+import type { Persona, PersonaDependencySummary, ProfileImportResult } from "../../types/persona";
+import type { ExportPayload } from "../../types/dataManagement";
 import type {
   ConflictWarning,
   CreateFactInput,
@@ -46,6 +47,7 @@ interface ProfilesViewProps {
     notes?: string;
   }) => Promise<FactSource>;
   onDeleteFact: (factId: string) => Promise<void>;
+  onImportProfileJson: (jsonContent: string, displayName?: string) => Promise<ProfileImportResult>;
 }
 
 type FilterStatus = "all" | "active" | "archived";
@@ -75,6 +77,7 @@ export function ProfilesView({
   onGetFactDetail,
   onAddFactSource,
   onDeleteFact,
+  onImportProfileJson,
 }: ProfilesViewProps) {
   // Success state notification
   const [successMessage, setSuccessMessage] = useState("");
@@ -86,6 +89,14 @@ export function ProfilesView({
   // New persona form
   const [profileName, setProfileName] = useState("");
   const [profileDescription, setProfileDescription] = useState("");
+
+  // Import JSON hanya menerima export satu persona; isi file tetap lokal pada desktop.
+  const [profileImportJson, setProfileImportJson] = useState("");
+  const [profileImportPayload, setProfileImportPayload] = useState<ExportPayload | null>(null);
+  const [profileImportName, setProfileImportName] = useState("");
+  const [profileImportFileName, setProfileImportFileName] = useState("");
+  const [profileImportError, setProfileImportError] = useState("");
+  const [profileImportSubmitting, setProfileImportSubmitting] = useState(false);
 
   // Filter tab for personas
   const [filterTab, setFilterTab] = useState<FilterStatus>("active");
@@ -170,6 +181,92 @@ export function ProfilesView({
     setProfileName("");
     setProfileDescription("");
     showSuccess(`Profil responden "${name}" berhasil dibuat.`);
+  }
+
+  async function handleProfileImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    setProfileImportError("");
+    setProfileImportJson("");
+    setProfileImportPayload(null);
+    setProfileImportFileName("");
+    setProfileImportName("");
+
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".json")) {
+      setProfileImportError("Pilih file JSON ekspor satu profil Survey Copilot.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileImportError("Ukuran file maksimal 5 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      const content = await file.text();
+      const parsed: unknown = JSON.parse(content);
+      if (!parsed || typeof parsed !== "object") {
+        throw new Error("Struktur file JSON tidak valid.");
+      }
+      const candidate = parsed as Partial<ExportPayload>;
+      const data = candidate.data;
+      if (
+        candidate.schemaVersion !== "1.0.0" ||
+        candidate.exportScope !== "single_persona" ||
+        candidate.summary?.exportScope !== "single_persona" ||
+        !data ||
+        !Array.isArray(data.personas) ||
+        data.personas.length !== 1 ||
+        !Array.isArray(data.facts) ||
+        !Array.isArray(data.factSources)
+      ) {
+        throw new Error("File harus merupakan ekspor satu profil Survey Copilot versi 1.0.0, bukan ekspor seluruh aplikasi.");
+      }
+
+      const importedPersona = data.personas[0];
+      if (
+        !importedPersona ||
+        typeof importedPersona.id !== "string" ||
+        typeof importedPersona.displayName !== "string" ||
+        importedPersona.id !== candidate.targetPersonaId ||
+        !data.facts.every((fact) => fact.personaId === importedPersona.id) ||
+        !data.factSources.every((source) => source.personaId === importedPersona.id)
+      ) {
+        throw new Error("Profil, fakta, atau sumber bukti pada file tidak konsisten.");
+      }
+
+      setProfileImportJson(content);
+      setProfileImportPayload(candidate as ExportPayload);
+      setProfileImportFileName(file.name);
+      setProfileImportName(importedPersona.displayName);
+    } catch (error) {
+      setProfileImportError(
+        error instanceof Error ? error.message : "File JSON tidak dapat dibaca.",
+      );
+      event.target.value = "";
+    }
+  }
+
+  async function handleImportProfile() {
+    if (!profileImportPayload || !profileImportJson || !profileImportName.trim()) return;
+    setProfileImportSubmitting(true);
+    setProfileImportError("");
+    try {
+      const result = await onImportProfileJson(profileImportJson, profileImportName.trim());
+      await onRefreshPersonas?.();
+      showSuccess(
+        `Profil "${result.persona.displayName}" diimpor: ${result.importedFacts} fakta dan ${result.importedSources} sumber bukti.`,
+      );
+      setProfileImportJson("");
+      setProfileImportPayload(null);
+      setProfileImportFileName("");
+      setProfileImportName("");
+    } catch (error) {
+      setProfileImportError(error instanceof Error ? error.message : "Import profil gagal.");
+    } finally {
+      setProfileImportSubmitting(false);
+    }
   }
 
   function openEditModal(persona: Persona) {
