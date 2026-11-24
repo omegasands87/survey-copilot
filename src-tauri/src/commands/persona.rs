@@ -1,7 +1,8 @@
 use crate::db::Database;
 use crate::domain::error::AppError;
 use crate::domain::persona::{
-    CreatePersonaInput, PersonaDependencySummary, PersonaDetail, ProfileImportResult, PersonaSummary, UpdatePersonaInput,
+    CreatePersonaInput, PersonaDependencySummary, PersonaDetail, PersonaSummary,
+    ProfileImportResult, UpdatePersonaInput,
 };
 use crate::services::{PersonaService, ProfileImportService};
 use tauri::State;
