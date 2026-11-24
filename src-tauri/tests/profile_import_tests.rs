@@ -1,19 +1,11 @@
 use rusqlite::Connection;
-use std::sync::Mutex;
+use std::path::Path;
 use survey_copilot_lib::db::Database;
-use survey_copilot_lib::domain::persona::PersonaRepository;
-use survey_copilot_lib::migrations::MigrationRunner;
+use survey_copilot_lib::repository::PersonaRepository;
 use survey_copilot_lib::services::ProfileImportService;
 
 fn setup_test_db() -> Database {
-    let mut connection = Connection::open_in_memory().expect("database should open");
-    connection.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
-    MigrationRunner::with_app_migrations()
-        .run(&mut connection)
-        .expect("migrations should succeed");
-    Database {
-        connection: Mutex::new(connection),
-    }
+    Database::initialize(Path::new(":memory:")).expect("in-memory database should migrate")
 }
 
 fn sample_single_persona_export() -> String {
