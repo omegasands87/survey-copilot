@@ -15,6 +15,7 @@ import type {
   VerificationStatus,
 } from "../types/fact";
 import "./preview.css";
+import "../styles/dark-bento.css";
 
 const DEMO_TIME = "2026-11-24T09:00:00.000Z";
 
