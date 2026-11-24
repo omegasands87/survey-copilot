@@ -76,7 +76,8 @@ impl DefaultHttpTransport {
             Some(url::Host::Ipv6(ip)) => (ip.to_string(), Some(std::net::IpAddr::V6(ip))),
             None => return Err(Self::invalid_endpoint("Host endpoint tidak valid.")),
         };
-        let allow_loopback = EndpointValidator::is_local_host(&resolution_host);
+        let allow_loopback = parsed.scheme() == "http"
+            && EndpointValidator::is_local_host(&resolution_host);
 
         let addresses: Vec<SocketAddr> = if let Some(ip) = literal_ip {
             vec![SocketAddr::new(ip, 0)]
