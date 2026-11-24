@@ -1,6 +1,6 @@
 # Documentation Index
 
-Survey Copilot is a Windows 11 x64 desktop AI copilot. This repository contains its product and engineering specifications; documentation does not mean the application has already been implemented.
+Survey Copilot is a Windows 11 x64 desktop AI copilot. This repository contains product specifications, engineering documentation, implementation code, automated tests, and release/QA procedures. Treat each implementation stage and verification status according to its documented evidence; a document or unchecked device checklist is not proof of completed runtime acceptance.
 
 ## Start here
 - [Antigravity Engineering Handoff](08-agent-handoff/ANTIGRAVITY_HANDOFF.md)
@@ -71,11 +71,11 @@ Survey Copilot is a Windows 11 x64 desktop AI copilot. This repository contains 
 - [Troubleshooting](06-operations/TROUBLESHOOTING.md)
 - [Architecture Decision Records](07-decisions/README.md)
 
-## Development preview
-- [Stage 2 — Browser UI-only Preview](09-audit/STAGE_2_UI_ONLY_PREVIEW.md) — how to run the visual preview and its strict data/service isolation contract.
-- [Stage 3 — Dark Bento and Profile Import](09-audit/STAGE_3_DARK_BENTO_PROFILE_UX.md) — shared theme, blank profile field templates, and validated single-persona JSON import.
+## Implementation stages and previews
+- [Stage 2 — Browser UI-only Preview](09-audit/STAGE_2_UI_ONLY_PREVIEW.md) — isolated browser design review with synthetic data and mock service behavior.
+- [Stage 3 — Dark Bento and Profile Import](09-audit/STAGE_3_DARK_BENTO_PROFILE_UX.md) — shared theme, blank field templates, and validated single-persona JSON import.
+- [Stage 4 — Capture and Automatic Local OCR](09-audit/STAGE_4_CAPTURE_AUTO_LOCAL_OCR.md) — explicit capture, local OCR progress, human review, retry, and manual fallback.
 - [Stage 5 — Windows Installer and Uninstall](09-audit/STAGE_5_WINDOWS_PACKAGING_UNINSTALL.md) — NSIS CI artifact, SHA-256 manifest, Start Menu uninstall shortcut, and data-retention rules.
-- [Stage 4 — Capture and Automatic Local OCR](09-audit/STAGE_4_CAPTURE_AUTO_LOCAL_OCR.md) — one-action capture, local OCR progress, human review, retry, and manual fallback.
 
 ## Audit and owner feedback
 - [Audit: completeness, security, and release readiness (24 Nov 2026)](09-audit/AUDIT_COMPLETENESS_SECURITY_RELEASE_2026-11-24.md)
