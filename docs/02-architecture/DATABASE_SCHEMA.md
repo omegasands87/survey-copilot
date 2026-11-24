@@ -78,12 +78,34 @@ Preferences and opinions must not be treated as objective facts.
 - persona_id TEXT NOT NULL REFERENCES personas(id)
 - title TEXT NULL
 - platform_label TEXT NULL
+- source_url TEXT NULL
+- source_domain TEXT NULL
+- version INTEGER NOT NULL DEFAULT 1
+- recognized_from_id TEXT NULL REFERENCES survey_sessions(id) ON DELETE SET NULL
 - status TEXT NOT NULL
 - created_at TEXT NOT NULL
 - updated_at TEXT NOT NULL
 - archived_at TEXT NULL
 
 A session belongs to one persona. Changing active persona must never reassign an existing session.
+
+### survey_recognitions (Migration 0011)
+- id TEXT PRIMARY KEY
+- session_id TEXT NOT NULL REFERENCES survey_sessions(id) ON DELETE CASCADE
+- persona_id TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE
+- matched_session_id TEXT NULL REFERENCES survey_sessions(id) ON DELETE SET NULL
+- match_status TEXT NOT NULL
+- confidence_score REAL NOT NULL
+- structural_similarity REAL NOT NULL
+- title_similarity REAL NOT NULL
+- matched_question_count INTEGER NOT NULL DEFAULT 0
+- total_question_count INTEGER NOT NULL DEFAULT 0
+- differences_json TEXT NOT NULL DEFAULT '[]'
+- provenance TEXT NOT NULL DEFAULT 'system_heuristic'
+- recognized_at TEXT NOT NULL
+- created_at TEXT NOT NULL
+
+Stores survey recognition engine evaluations, structural/title similarity scores, version change differences, and provenance without leaking cross-persona data.
 
 ### screen_captures
 - id TEXT PRIMARY KEY
@@ -97,6 +119,29 @@ A session belongs to one persona. Changing active persona must never reassign an
 
 Default retention stores no screenshot after OCR review; temporary path is nullable and must be deleted after processing.
 
+### ocr_extractions (Migration 0008)
+- id TEXT PRIMARY KEY
+- capture_id TEXT NULL REFERENCES screen_captures(id) ON DELETE SET NULL
+- session_id TEXT NULL REFERENCES survey_sessions(id) ON DELETE CASCADE
+- persona_id TEXT NULL REFERENCES personas(id) ON DELETE CASCADE
+- ocr_engine TEXT NOT NULL
+- raw_ocr_text TEXT NOT NULL
+- question_text_original TEXT NOT NULL
+- question_text_corrected TEXT NULL
+- instructions TEXT NULL
+- options_json TEXT NOT NULL DEFAULT '[]'
+- structure_json TEXT NULL
+- text_blocks_json TEXT NOT NULL DEFAULT '[]'
+- uncertain_regions_json TEXT NOT NULL DEFAULT '[]'
+- warnings_json TEXT NOT NULL DEFAULT '[]'
+- overall_confidence REAL NOT NULL DEFAULT 0.0
+- confirmation_status TEXT NOT NULL DEFAULT 'draft'
+- extracted_at TEXT NOT NULL
+- created_at TEXT NOT NULL
+- updated_at TEXT NOT NULL
+
+Preserves raw OCR output, structured layout reconstruction, spatial bounding boxes, confidence scoring, uncertainty/clipping detection, and user confirmation state (SC-041).
+
 ### survey_questions
 - id TEXT PRIMARY KEY
 - session_id TEXT NOT NULL REFERENCES survey_sessions(id) ON DELETE CASCADE
@@ -108,6 +153,7 @@ Default retention stores no screenshot after OCR review; temporary path is nulla
 - structure_json TEXT NULL
 - extraction_status TEXT NOT NULL
 - question_order INTEGER NOT NULL
+- question_fingerprint TEXT NULL
 - created_at TEXT NOT NULL
 - updated_at TEXT NOT NULL
 
@@ -259,6 +305,42 @@ Do not store API key or raw prompt in health data.
 
 No raw prompts, answer text, screenshots, or secrets.
 
+### survey_branch_transitions
+- id TEXT PRIMARY KEY
+- session_id TEXT NOT NULL REFERENCES survey_sessions(id) ON DELETE CASCADE
+- persona_id TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE
+- from_question_id TEXT NOT NULL REFERENCES survey_questions(id) ON DELETE CASCADE
+- from_question_fingerprint TEXT NULL
+- from_question_order INTEGER NOT NULL
+- from_answer_value TEXT NULL
+- to_question_id TEXT NULL REFERENCES survey_questions(id) ON DELETE SET NULL
+- to_question_fingerprint TEXT NULL
+- to_question_text TEXT NOT NULL
+- to_question_type TEXT NOT NULL DEFAULT 'unknown'
+- to_options_json TEXT NOT NULL DEFAULT '[]'
+- to_question_order INTEGER NOT NULL
+- branch_condition TEXT NULL
+- transition_type TEXT NOT NULL ('sequential', 'conditional_branch', 'skip_jump')
+- observed_at TEXT NOT NULL
+- created_at TEXT NOT NULL
+
+### survey_question_predictions
+- id TEXT PRIMARY KEY
+- session_id TEXT NOT NULL REFERENCES survey_sessions(id) ON DELETE CASCADE
+- persona_id TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE
+- current_question_id TEXT NOT NULL REFERENCES survey_questions(id) ON DELETE CASCADE
+- predicted_question_text TEXT NOT NULL
+- predicted_question_type TEXT NOT NULL DEFAULT 'unknown'
+- predicted_options_json TEXT NOT NULL DEFAULT '[]'
+- confidence_score REAL NOT NULL
+- evidence_source TEXT NOT NULL
+- explanation TEXT NOT NULL
+- leading_condition TEXT NULL
+- status TEXT NOT NULL ('predicted_not_detected', 'detected_matched', 'detected_diverged', 'insufficient_evidence')
+- matched_question_id TEXT NULL REFERENCES survey_questions(id) ON DELETE SET NULL
+- created_at TEXT NOT NULL
+- updated_at TEXT NOT NULL
+
 ### app_settings
 - key TEXT PRIMARY KEY
 - value_json TEXT NOT NULL
@@ -271,16 +353,33 @@ Only non-secret preferences belong here.
 - profile_facts(persona_id, verification_status, category)
 - fact_sources(persona_id, fact_id)
 - survey_sessions(persona_id, updated_at)
+- screen_captures(session_id, captured_at)
+- ocr_extractions(session_id, capture_id, persona_id)
 - survey_questions(session_id, question_order)
 - answer_recommendations(question_id, created_at)
 - answer_history(question_id, created_at)
 - survey_opportunities(captured_at)
 - survey_fit_results(persona_id, opportunity_id)
 - survey_attempts(persona_id, started_at)
+- survey_attempts(opportunity_id)
+- survey_attempts(current_outcome)
 - survey_outcome_events(attempt_id, observed_at)
+- survey_outcome_events(outcome_label)
+- survey_outcome_events(confidence)
 - provider_configs(enabled, priority)
 - provider_health(state, cooldown_until)
 - ai_usage_events(created_at, outcome)
+- survey_sessions(source_domain)
+- survey_sessions(fingerprint)
+- survey_questions(question_fingerprint)
+- survey_recognitions(session_id, persona_id)
+- survey_recognitions(matched_session_id)
+- survey_branch_transitions(from_question_fingerprint)
+- survey_branch_transitions(session_id, persona_id)
+- survey_branch_transitions(from_question_id)
+- survey_question_predictions(session_id, persona_id)
+- survey_question_predictions(current_question_id)
+- survey_question_predictions(status)
 
 ## 4. Integrity rules
 

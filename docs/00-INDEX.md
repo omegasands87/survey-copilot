@@ -58,10 +58,13 @@ Survey Copilot is a Windows 11 x64 desktop AI copilot. This repository contains 
 - [Coding Standards](05-development/CODING_STANDARDS.md)
 - [Testing Strategy](05-development/TESTING_STRATEGY.md)
 - [Release Plan](05-development/RELEASE_PLAN.md)
+- [Manual Testing Guide](05-development/MANUAL_TESTING_GUIDE.md)
 
 ## Operations
 - [Installation](06-operations/INSTALLATION.md)
 - [Configuration](06-operations/CONFIGURATION.md)
+- [Backup and Restore Procedure](06-operations/BACKUP_AND_RESTORE.md)
+- [Update and Bugfix Procedure](06-operations/UPDATE_PROCEDURE.md)
 - [Privacy Policy Draft](06-operations/PRIVACY_POLICY.md)
 - [Troubleshooting](06-operations/TROUBLESHOOTING.md)
 - [Architecture Decision Records](07-decisions/README.md)
