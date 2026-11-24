@@ -1,8 +1,13 @@
 use std::path::Path;
 use survey_copilot_lib::db::Database;
 use survey_copilot_lib::domain::fact::CreateFactInput;
+use survey_copilot_lib::domain::credential::SaveCredentialInput;
+use survey_copilot_lib::infrastructure::credentials::in_memory::InMemoryCredentialStore;
+use survey_copilot_lib::infrastructure::credentials::CredentialStore;
 use survey_copilot_lib::domain::persona::CreatePersonaInput;
-use survey_copilot_lib::services::{DeletionService, ExportService, FactService, PersonaService};
+use survey_copilot_lib::services::{
+    CredentialService, DeletionService, ExportService, FactService, PersonaService,
+};
 
 fn setup_memory_db() -> Database {
     Database::initialize(Path::new(":memory:")).expect("memory database should initialize")
@@ -297,6 +302,7 @@ fn test_empty_database_export_validity() {
 #[test]
 fn test_at_071_full_application_wipe_and_zero_orphans() {
     let db = setup_memory_db();
+    let store = InMemoryCredentialStore::new();
 
     // Seed data
     let p = PersonaService::create(&db, CreatePersonaInput::new("Responden Uji")).expect("p");
@@ -324,6 +330,18 @@ fn test_at_071_full_application_wipe_and_zero_orphans() {
     )
     .expect("fact");
 
+    let credential = CredentialService::save_credential(
+        &db,
+        &store,
+        SaveCredentialInput {
+            id: None,
+            provider_type: "gemini".to_string(),
+            label: "Credential to wipe".to_string(),
+            secret: "StageOneWipeSecretKey987654".to_string(),
+        },
+    )
+    .expect("credential should be saved");
+
     // Insert session and capture
     {
         let conn = db.connection.lock().unwrap();
@@ -343,13 +361,18 @@ fn test_at_071_full_application_wipe_and_zero_orphans() {
     assert!(before.personas > 0);
     assert!(before.facts > 0);
     assert!(before.provider_configs > 0);
+    assert_eq!(before.credentials, 1);
     assert!(before.total > 0);
 
     // Execute Wipe with exact confirmation string
-    let report = DeletionService::wipe_all_data(&db, None, "HAPUS SEMUA DATA").expect("wipe");
+    let report = DeletionService::wipe_all_data(
+        &db, &store, None, "HAPUS SEMUA DATA"
+    ).expect("wipe");
     assert_eq!(report.deleted_personas_count, 1);
     assert_eq!(report.deleted_facts_count, 1);
     assert_eq!(report.deleted_provider_configs_count, 1);
+    assert_eq!(report.deleted_credentials_count, 1);
+    assert!(!store.exists(&credential.credential_ref).unwrap());
     assert!(report.wal_checkpoint_status.contains("Berhasil"));
     assert!(report.vacuum_status.contains("Berhasil"));
     assert_eq!(report.unaffected_external_items.len(), 3);
@@ -365,6 +388,12 @@ fn test_at_071_full_application_wipe_and_zero_orphans() {
     assert_eq!(after.recommendations, 0);
     assert_eq!(after.answers, 0);
     assert_eq!(after.provider_configs, 0);
+    assert_eq!(after.credentials, 0);
+    assert_eq!(after.ocr_extractions, 0);
+    assert_eq!(after.recognitions, 0);
+    assert_eq!(after.branch_transitions, 0);
+    assert_eq!(after.question_predictions, 0);
+    assert_eq!(after.diagnostic_logs, 0);
 
     // Verify _migrations is preserved and provider_pool_settings is re-initialized
     {
@@ -386,15 +415,16 @@ fn test_at_071_full_application_wipe_and_zero_orphans() {
 #[test]
 fn test_wipe_requires_exact_confirmation() {
     let db = setup_memory_db();
+    let store = InMemoryCredentialStore::new();
     PersonaService::create(&db, CreatePersonaInput::new("Tetap Ada")).expect("p");
 
-    let err1 = DeletionService::wipe_all_data(&db, None, "hapus semua data").unwrap_err();
+    let err1 = DeletionService::wipe_all_data(&db, &store, None, "hapus semua data").unwrap_err();
     assert_eq!(err1.field, Some("confirmationText".into()));
 
-    let err2 = DeletionService::wipe_all_data(&db, None, "DELETE").unwrap_err();
+    let err2 = DeletionService::wipe_all_data(&db, &store, None, "DELETE").unwrap_err();
     assert_eq!(err2.field, Some("confirmationText".into()));
 
-    let err3 = DeletionService::wipe_all_data(&db, None, "").unwrap_err();
+    let err3 = DeletionService::wipe_all_data(&db, &store, None, "").unwrap_err();
     assert_eq!(err3.field, Some("confirmationText".into()));
 
     // Verify data remains untouched
