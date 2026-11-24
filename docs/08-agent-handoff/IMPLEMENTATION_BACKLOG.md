@@ -320,7 +320,7 @@ See [Stage 4 — Capture and Automatic Local OCR](../09-audit/STAGE_4_CAPTURE_AU
 ## Stage 5 repository implementation (branch: feat/stage-5-windows-installer-uninstall-2026-11-24)
 
 - NSIS configured for current-user install, Start Menu folder, and custom hook file `src-tauri/windows/nsis-hooks.nsh`.
-- Start Menu receives a direct `Uninstall Survey Copilot` shortcut; the pre-uninstall hook removes that shortcut.
+- Start Menu receives a direct `Uninstall Survey Copilot` shortcut; the post-uninstall hook removes that shortcut only after successful uninstallation.
 - `.github/workflows/package-windows.yml` runs the full Windows validation/build pipeline and uploads the installer plus SHA-256 and build manifest as a 30-day CI artifact. It does not publish a GitHub Release.
 - `scripts/validate-windows-installer.ps1` checks package filename/version/size/currentUser settings and generates SHA-256 and Authenticode metadata.
 - Installation, backup/restore, update, release and manual test documents now explain current-user install, uninstall discovery, NSIS Delete app data, and the separate Windows Credential Manager retention boundary.
