@@ -48,9 +48,9 @@ Existing code does not override a product requirement. A lower-level document or
 ### Baseline at initial handoff
 At project inception, the repository contained a starter Tauri/React shell, unmigrated initial schema, and basic persona stubs without OCR, AI pooling, answer recommendation, or installer.
 
-### Current implementation status (v0.1.0-beta Testing Release)
-All planned milestones from **SC-001 through SC-061** have been implemented and verified by automated test suites. Milestone **SC-062** (Testing Release) is packaged and ready for manual user verification:
-- **CI / CD Pipeline:** Fully green on Windows GitHub Actions runner (23/23 steps passed, including `npm ci`, `npm test`, `cargo fmt`, `cargo check`, and `cargo test`).
+### Current implementation status (v0.1.0-beta; audit-qualified)
+The repository contains broad implementation and automated-test coverage across SC-001 through SC-061, but the statement “all milestones complete” must not be treated as production acceptance. The repository audit dated 24 November 2026 records multiple partial milestones and Critical/High findings. SC-062 clean install, launch, update, uninstall, and data-retention checks remain unverified. The installer path mentioned in earlier notes is not present in the inspected `main` tree, and no GitHub Release asset was available at audit time.
+- **CI evidence:** Windows GitHub Actions run #60 passed its 23/23 job steps. Logs show 130 frontend tests and 221 Rust tests passing, with frontend build, `cargo fmt`, and `cargo check` successful. This is automated CI evidence, not installer/runtime evidence.
 - **Database & Migrations:** Sequential, transactional migration runner (`Database::initialize`) managing migrations `0001` through `0013` with baseline adoption and foreign key enforcement.
 - **Respondent Data & Isolation:** Multi-persona lifecycle, typed profile facts, source attribution, verification states, and strict cross-persona boundary isolation.
 - **Security & Secrets:** Windows Credential Manager integration via `WindowsCredentialStore`, storing opaque credential references in SQLite. Zero API keys in plaintext or logs.
@@ -61,7 +61,7 @@ All planned milestones from **SC-001 through SC-061** have been implemented and 
 - **Survey Memory & NQI:** Pattern recognition, session branching transitions, and Next Question Intelligence prediction.
 - **Privacy & Diagnostics:** Outbound data transmission transparency modal, per-request consent checks, safe pre-redacted diagnostic logging (`LogRedactor`), and screenshot retention reclamation.
 - **Accessibility & Polish:** WCAG 2.1 AA focus rings, keyboard dismiss (Escape), offline detection banner, responsive design down to 860px, and standard Indonesian copy.
-- **Windows Release:** NSIS installer compiled (`release-testing/Survey Copilot_0.1.0_x64-setup.exe`, `installMode: "currentUser"`). Ready for manual verification per [Manual Testing Guide](05-development/MANUAL_TESTING_GUIDE.md).
+- **Windows Release:** Tauri configuration targets an x64 NSIS package with `installMode: "currentUser"`. The referenced installer binary was not present in the inspected repository tree and could not be independently verified. Follow [Manual Testing Guide](05-development/MANUAL_TESTING_GUIDE.md) after a reproducible artifact is made available.
 
 For detailed granular criteria, refer to the [Implementation Backlog](IMPLEMENTATION_BACKLOG.md).
 
