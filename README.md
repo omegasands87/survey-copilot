@@ -54,9 +54,13 @@ npm run tauri build
 
 ## Status
 
-**Current version:** v0.1.0-beta (Private Testing Release)
+**Current version:** v0.1.0-beta (private testing; not production-approved)
 
-Milestones SC-001 through SC-061 are fully implemented and verified with automated test suites (130/130 frontend tests passing, 23/23 CI pipeline checks green on Windows). Capabilities include:
+The latest repository audit (24 November 2026) verified that Windows GitHub Actions run #60 passed: 130 frontend tests and 221 Rust tests, in addition to frontend build, Rust formatting, and compile checks. These automated results do not establish installer or runtime readiness. The audit identified Critical/High security and data-integrity findings, and the clean-install, launch, update, uninstall, and data-retention acceptance tests remain unverified.
+
+The installer path previously referenced below is **not present in the inspected `main` tree**, and no GitHub Release asset was available at the time of the audit. Do not treat a packaged installer as currently downloadable from this repository. See the [audit report](docs/09-audit/AUDIT_COMPLETENESS_SECURITY_RELEASE_2026-11-24.md) and [installation/UI feedback](docs/09-audit/INSTALLATION_AND_UI_UX_FEEDBACK_2026-11-24.md) for evidence and follow-up requirements.
+
+Implemented code and automated tests cover:
 - Multi-persona respondent profile lifecycle with strict cross-persona data isolation.
 - Typed profile facts with source metadata, verification states, and sensitivity classifications.
 - Local screen capture with explicit preview and local OCR layout reconstruction.
@@ -65,4 +69,5 @@ Milestones SC-001 through SC-061 are fully implemented and verified with automat
 - Survey memory, pattern recognition, and Next Question Intelligence (NQI).
 - Survey opportunity capture, criteria review, deterministic persona fit evaluation, and historical outcome tracking.
 - Outbound data transparency, per-request sensitivity/vision consent, and automatic diagnostic log redaction.
-- Packaged Windows 11 x64 NSIS installer (`release-testing/Survey Copilot_0.1.0_x64-setup.exe`) for private manual verification. See [Release Notes](docs/05-development/RELEASE_NOTES_0.1.0_BETA.md) and [Manual Testing Guide](docs/05-development/MANUAL_TESTING_GUIDE.md).
+
+These areas are not a production-readiness claim. See the audit report for partial milestones, known risks, and unverified Windows runtime/release checks.

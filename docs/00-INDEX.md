@@ -71,6 +71,10 @@ Survey Copilot is a Windows 11 x64 desktop AI copilot. This repository contains 
 - [Troubleshooting](06-operations/TROUBLESHOOTING.md)
 - [Architecture Decision Records](07-decisions/README.md)
 
+## Audit and owner feedback
+- [Audit: completeness, security, and release readiness (24 Nov 2026)](09-audit/AUDIT_COMPLETENESS_SECURITY_RELEASE_2026-11-24.md)
+- [Installation and UI/UX feedback (24 Nov 2026)](09-audit/INSTALLATION_AND_UI_UX_FEEDBACK_2026-11-24.md)
+
 ## Agent handoff
 - Root [AGENTS.md](../AGENTS.md) defines mandatory coding-agent rules.
 - [Antigravity workspace rule](../.agent/rules/survey-copilot.md) applies project constraints.

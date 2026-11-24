@@ -45,4 +45,6 @@ Tauri 2, Rust, React, TypeScript, SQLite, Windows Credential Manager, local OCR,
 
 ## Project status
 
-The repository contains product/engineering specifications and an initial React + Tauri application shell. Persona storage, screen capture/OCR, provider pooling, answer analysis, and release packaging remain to be implemented and verified.
+The repository now contains a substantial React + Tauri implementation with Rust domain/service/repository layers, SQLite migrations, persona and answer workflows, provider pooling, screen capture/OCR, Survey Memory/NQI, privacy controls, and automated tests. The existence of code or automated tests does not by itself prove Windows runtime or release readiness.
+
+The repository audit dated 24 November 2026 records partial milestones, Critical/High findings, and unverified installation/uninstallation gates. The previously referenced installer is not present in the inspected `main` tree. Consult [Audit: completeness, security, and release readiness](09-audit/AUDIT_COMPLETENESS_SECURITY_RELEASE_2026-11-24.md) and [Installation/UI feedback](09-audit/INSTALLATION_AND_UI_UX_FEEDBACK_2026-11-24.md) before planning further work.
