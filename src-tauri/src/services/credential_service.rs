@@ -217,6 +217,20 @@ impl CredentialService {
             return Err(AppError::validation("id", "ID kredensial wajib diisi."));
         }
 
+        let new_label = match input.label.as_ref() {
+            Some(label) => {
+                let trimmed = label.trim();
+                if trimmed.is_empty() || trimmed.len() > 100 {
+                    return Err(AppError::validation(
+                        "label",
+                        "Label kredensial harus antara 1 hingga 100 karakter.",
+                    ));
+                }
+                Some(trimmed.to_string())
+            }
+            None => None,
+        };
+
         let conn = database
             .connection
             .lock()
@@ -228,8 +242,9 @@ impl CredentialService {
                 AppError::not_found(format!("Kredensial dengan ID '{id}' tidak ditemukan."))
             })?;
 
-        // Jika secret baru disediakan, simpan ke store terlebih dahulu
-        if let Some(ref new_secret) = input.secret {
+        // Validasi dan simpan secret setelah seluruh input divalidasi.
+        let secret_change = input.secret.is_some();
+        let previous_secret = if let Some(ref new_secret) = input.secret {
             let trimmed_secret = new_secret.trim();
             if trimmed_secret.len() < 8 {
                 return Err(AppError::validation(
@@ -237,32 +252,69 @@ impl CredentialService {
                     "Kunci API rahasia baru minimal 8 karakter.",
                 ));
             }
-            store.set_secret(&existing.credential_ref, trimmed_secret)?;
-        }
 
-        let now = Utc::now().to_rfc3339();
-        let new_label = match input.label {
-            Some(ref l) => {
-                let trimmed = l.trim();
-                if trimmed.is_empty() || trimmed.len() > 100 {
-                    return Err(AppError::validation(
-                        "label",
-                        "Label kredensial harus antara 1 hingga 100 karakter.",
-                    ));
-                }
-                Some(trimmed)
-            }
-            None => None,
+            let previous = match store.get_secret(&existing.credential_ref) {
+                Ok(secret) => Some(secret),
+                Err(err) if err.code == "CREDENTIAL_NOT_FOUND" => None,
+                Err(err) => return Err(err),
+            };
+            store.set_secret(&existing.credential_ref, trimmed_secret)?;
+            previous
+        } else {
+            None
         };
 
-        CredentialRepository::update(
+        let now = Utc::now().to_rfc3339();
+        let status = if secret_change {
+            Some(CredentialStatus::Configured.as_str())
+        } else {
+            None
+        };
+
+        let db_update = CredentialRepository::update(
             &conn,
             id,
-            new_label,
-            Some(CredentialStatus::Configured.as_str()),
+            new_label.as_deref(),
+            status,
             &now,
-        )
-        .map_err(AppError::from)?;
+        );
+
+        let updated_ok = match db_update {
+            Ok(updated) => updated,
+            Err(db_error) => {
+                if secret_change {
+                    let rollback = match previous_secret.as_deref() {
+                        Some(old_secret) => store.set_secret(&existing.credential_ref, old_secret),
+                        None => store.delete_secret(&existing.credential_ref),
+                    };
+                    if let Err(rollback_error) = rollback {
+                        return Err(AppError::internal(format!(
+                            "Pembaruan metadata credential gagal dan rollback secret juga gagal. Periksa credential '{}': {}",
+                            existing.label, rollback_error.message
+                        )));
+                    }
+                }
+                return Err(AppError::from(db_error));
+            }
+        };
+
+        if !updated_ok {
+            if secret_change {
+                let rollback = match previous_secret.as_deref() {
+                    Some(old_secret) => store.set_secret(&existing.credential_ref, old_secret),
+                    None => store.delete_secret(&existing.credential_ref),
+                };
+                if let Err(rollback_error) = rollback {
+                    return Err(AppError::internal(format!(
+                        "Metadata credential tidak ditemukan saat update dan rollback secret gagal: {}",
+                        rollback_error.message
+                    )));
+                }
+            }
+            return Err(AppError::not_found(format!(
+                "Kredensial dengan ID '{id}' tidak ditemukan saat diperbarui."
+            )));
+        }
 
         let updated = CredentialRepository::find_by_id(&conn, id)
             .map_err(AppError::from)?
@@ -272,7 +324,7 @@ impl CredentialService {
             &conn,
             &updated.credential_ref,
         )
-        .unwrap_or(0);
+        .map_err(AppError::from)?;
 
         Ok(CredentialSummary {
             id: updated.id,
