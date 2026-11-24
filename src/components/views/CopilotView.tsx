@@ -380,20 +380,31 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
     void evaluateNextQuestionPredictions(q.id, q.userAnswerConfirmed || q.userAnswerDraft || null);
   }
 
-  // SC-040: Screen Capture Handlers
+  // SC-040/041: one explicit capture action starts preview and local OCR.
+  // OCR remains local and only prepares a draft for review; it never starts AI analysis.
   async function handleStartRegionCapture() {
     if (!activePersona) return;
+    const sessionId = currentSession?.id || selectedSessionId;
+    if (!sessionId) {
+      setErrorMessage("Buat atau pilih sesi survei sebelum mengambil tangkapan layar.");
+      return;
+    }
+
     try {
       setIsCapturing(true);
+      setOcrError("");
       setErrorMessage("");
       const preview = await captureService.captureRegion({
-        sessionId: currentSession?.id || null,
+        sessionId,
         rect: null,
       });
       setActiveCapturePreview(preview);
+      setActiveCaptureId(preview.captureId);
       setShowCapturePreviewModal(true);
-      setSuccessMessage("Tangkapan layar berhasil diambil. Silakan tinjau pratinjau di bawah.");
+      setShowOcrReviewModal(false);
+      setSuccessMessage("Tangkapan layar berhasil. OCR lokal dimulai otomatis; hasil akan muncul untuk ditinjau.");
       setTimeout(() => setSuccessMessage(""), 4000);
+      await handleExtractOcr(preview.captureId);
     } catch (err) {
       setErrorMessage(AppError.from(err).message);
     } finally {
@@ -403,6 +414,10 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
 
   async function handleOpenWindowPicker() {
     if (!activePersona) return;
+    if (!currentSession?.id && !selectedSessionId) {
+      setErrorMessage("Buat atau pilih sesi survei sebelum mengambil tangkapan layar.");
+      return;
+    }
     try {
       setLoadingWindows(true);
       setErrorMessage("");
@@ -417,18 +432,29 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
   }
 
   async function handleSelectWindowToCapture(windowId: number) {
+    const sessionId = currentSession?.id || selectedSessionId;
+    if (!activePersona || !sessionId) {
+      setShowWindowPicker(false);
+      setErrorMessage("Buat atau pilih sesi survei sebelum mengambil tangkapan layar.");
+      return;
+    }
+
     try {
       setIsCapturing(true);
       setShowWindowPicker(false);
+      setOcrError("");
       setErrorMessage("");
       const preview = await captureService.captureWindow({
-        sessionId: currentSession?.id || null,
+        sessionId,
         windowId,
       });
       setActiveCapturePreview(preview);
+      setActiveCaptureId(preview.captureId);
       setShowCapturePreviewModal(true);
-      setSuccessMessage("Tangkapan jendela aplikasi berhasil diambil.");
+      setShowOcrReviewModal(false);
+      setSuccessMessage("Jendela berhasil ditangkap. OCR lokal dimulai otomatis; hasil akan muncul untuk ditinjau.");
       setTimeout(() => setSuccessMessage(""), 4000);
+      await handleExtractOcr(preview.captureId);
     } catch (err) {
       setErrorMessage(AppError.from(err).message);
     } finally {
@@ -470,10 +496,11 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
       setIsExtractingOcr(true);
       setOcrError("");
       setErrorMessage("");
+      setActiveCaptureId(cid);
 
       const extraction = await ocrService.extractCapture({
         captureId: cid,
-        sessionId: selectedSessionId || undefined,
+        sessionId: currentSession?.id || selectedSessionId || undefined,
         personaId: activePersona?.id,
       });
 
@@ -2794,9 +2821,20 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
                 </div>
               </div>
 
-              <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", padding: "10px 12px", fontSize: "12px", color: "#166534" }}>
-                🔒 <strong>Privasi & Keamanan:</strong> Gambar disimpan sementara di folder lokal aplikasi dan belum dikirim ke model OCR atau layanan eksternal. Anda dapat membatalkan kapan saja.
+              <div className="capture-local-ocr-notice" role="status">
+                <strong>🔒 Capture dan OCR lokal</strong>
+                <span>Gambar diproses oleh OCR lokal secara otomatis. Screenshot dan teks belum dikirim ke provider AI. Analisis AI hanya dapat dimulai setelah Anda meninjau hasil dan memilih tindakan berikutnya.</span>
               </div>
+
+              {isExtractingOcr && (
+                <div className="capture-ocr-progress" role="status" aria-live="polite">
+                  <span className="capture-ocr-spinner" aria-hidden="true" />
+                  <div>
+                    <strong>Membaca pertanyaan secara lokal…</strong>
+                    <span>Rekonstruksi teks dan opsi sedang berjalan. Tidak ada request AI eksternal.</span>
+                  </div>
+                </div>
+              )}
 
               {ocrError && (
                 <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "10px 12px", fontSize: "12px", color: "#991b1b" }}>
@@ -2820,18 +2858,21 @@ export function CopilotView({ activePersona, onNavigate }: CopilotViewProps) {
                   type="button"
                   className="secondary-button"
                   onClick={() => setShowCapturePreviewModal(false)}
+                  disabled={isExtractingOcr}
                 >
                   Tutup Pratinjau
                 </button>
-                <button
-                  type="button"
-                  className="primary-button"
-                  style={{ marginTop: 0 }}
-                  onClick={() => void handleExtractOcr()}
-                  disabled={isExtractingOcr}
-                >
-                  {isExtractingOcr ? "⏳ Mengekstrak..." : "⚡ Ekstrak Teks & Layout (OCR)"}
-                </button>
+                {ocrError && (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    style={{ marginTop: 0 }}
+                    onClick={() => void handleExtractOcr()}
+                    disabled={isExtractingOcr}
+                  >
+                    {isExtractingOcr ? "⏳ Membaca lokal..." : "↻ Coba OCR lokal lagi"}
+                  </button>
+                )}
                 <button
                   type="button"
                   className="secondary-button"
