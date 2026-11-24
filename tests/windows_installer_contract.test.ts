@@ -52,7 +52,8 @@ test("Tauri package remains a current-user x64 NSIS installer", () => {
 test("NSIS hook adds a discoverable uninstall shortcut and removes only that shortcut", () => {
   assert.match(nsisHooks, /NSIS_HOOK_POSTINSTALL/);
   assert.match(nsisHooks, /CreateShortcut .*Uninstall Survey Copilot\.lnk.*uninstall\.exe/);
-  assert.match(nsisHooks, /NSIS_HOOK_PREUNINSTALL/);
+  assert.match(nsisHooks, /NSIS_HOOK_POSTUNINSTALL/);
+  assert.doesNotMatch(nsisHooks, /NSIS_HOOK_PREUNINSTALL/);
   assert.match(nsisHooks, /Delete .*Uninstall Survey Copilot\.lnk/);
   assert.doesNotMatch(nsisHooks, /RmDir\s+\/r|DeleteRegKey|cmdkey\s+\/delete/i);
 });
