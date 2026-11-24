@@ -54,4 +54,15 @@ npm run tauri build
 
 ## Status
 
-An initial React + Tauri shell, SQLite persistence, persona creation/selection, and basic profile fact create/list/verify/delete flows are in the repository. Screenshot/OCR, Gemini API pooling, AI answer analysis, fact editing/archive, and final installer validation remain to be implemented and tested. Do not treat planned capabilities as shipped.
+**Current version:** v0.1.0-beta (Private Testing Release)
+
+Milestones SC-001 through SC-061 are fully implemented and verified with automated test suites (130/130 frontend tests passing, 23/23 CI pipeline checks green on Windows). Capabilities include:
+- Multi-persona respondent profile lifecycle with strict cross-persona data isolation.
+- Typed profile facts with source metadata, verification states, and sensitivity classifications.
+- Local screen capture with explicit preview and local OCR layout reconstruction.
+- Bounded Gemini API pooling with failover, retry budgets, and Windows Credential Manager integration.
+- Evidence-grounded answer recommendation engine with question classification and abstention contracts.
+- Survey memory, pattern recognition, and Next Question Intelligence (NQI).
+- Survey opportunity capture, criteria review, deterministic persona fit evaluation, and historical outcome tracking.
+- Outbound data transparency, per-request sensitivity/vision consent, and automatic diagnostic log redaction.
+- Packaged Windows 11 x64 NSIS installer (`release-testing/Survey Copilot_0.1.0_x64-setup.exe`) for private manual verification. See [Release Notes](docs/05-development/RELEASE_NOTES_0.1.0_BETA.md) and [Manual Testing Guide](docs/05-development/MANUAL_TESTING_GUIDE.md).

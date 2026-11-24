@@ -348,6 +348,16 @@ No raw prompts, answer text, screenshots, or secrets.
 
 Only non-secret preferences belong here.
 
+### app_diagnostic_logs
+- id TEXT PRIMARY KEY
+- timestamp TEXT NOT NULL
+- level TEXT NOT NULL ('DEBUG', 'INFO', 'WARN', 'ERROR')
+- category TEXT NOT NULL
+- message TEXT NOT NULL
+- metadata_json TEXT NULL
+
+Stores safe, pre-redacted diagnostic log entries. Sensitive user PII and API keys are strictly forbidden.
+
 ## 3. Required indexes
 
 - profile_facts(persona_id, verification_status, category)
@@ -380,6 +390,8 @@ Only non-secret preferences belong here.
 - survey_question_predictions(session_id, persona_id)
 - survey_question_predictions(current_question_id)
 - survey_question_predictions(status)
+- app_diagnostic_logs(timestamp)
+- app_diagnostic_logs(category)
 
 ## 4. Integrity rules
 

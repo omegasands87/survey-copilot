@@ -59,6 +59,8 @@ Survey Copilot is a Windows 11 x64 desktop AI copilot. This repository contains 
 - [Testing Strategy](05-development/TESTING_STRATEGY.md)
 - [Release Plan](05-development/RELEASE_PLAN.md)
 - [Manual Testing Guide](05-development/MANUAL_TESTING_GUIDE.md)
+- [Release Notes (v0.1.0-beta)](05-development/RELEASE_NOTES_0.1.0_BETA.md)
+- [Security & Capabilities Review](05-development/SECURITY_AND_CAPABILITIES_REVIEW.md)
 
 ## Operations
 - [Installation](06-operations/INSTALLATION.md)

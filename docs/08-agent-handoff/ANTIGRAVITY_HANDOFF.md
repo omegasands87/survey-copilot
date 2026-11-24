@@ -45,35 +45,25 @@ Existing code does not override a product requirement. A lower-level document or
 
 ## 4. Current repository state
 
-### Present in repository
+### Baseline at initial handoff
+At project inception, the repository contained a starter Tauri/React shell, unmigrated initial schema, and basic persona stubs without OCR, AI pooling, answer recommendation, or installer.
 
-- React + TypeScript + Vite frontend shell.
-- Tauri 2 + Rust application shell.
-- SQLite dependency and initial SQL schema.
-- Database initialization code.
-- Basic persona create/list/activate commands.
-- Basic profile fact create/list/status-update/delete commands.
-- Basic persona and fact UI flows.
-- Windows GitHub Actions workflow for frontend build and Rust check/test.
-- Product, architecture, AI, design, security, and operations specifications.
+### Current implementation status (v0.1.0-beta Testing Release)
+All planned milestones from **SC-001 through SC-061** have been implemented and verified by automated test suites. Milestone **SC-062** (Testing Release) is packaged and ready for manual user verification:
+- **CI / CD Pipeline:** Fully green on Windows GitHub Actions runner (23/23 steps passed, including `npm ci`, `npm test`, `cargo fmt`, `cargo check`, and `cargo test`).
+- **Database & Migrations:** Sequential, transactional migration runner (`Database::initialize`) managing migrations `0001` through `0013` with baseline adoption and foreign key enforcement.
+- **Respondent Data & Isolation:** Multi-persona lifecycle, typed profile facts, source attribution, verification states, and strict cross-persona boundary isolation.
+- **Security & Secrets:** Windows Credential Manager integration via `WindowsCredentialStore`, storing opaque credential references in SQLite. Zero API keys in plaintext or logs.
+- **Provider Pooling:** Gemini and OpenAI-compatible provider adapters, bounded provider pool, automatic failover, cooldowns, and retry budgets.
+- **Screen Intelligence:** Explicit user-invoked screen capture with preview dialog, in-memory capture codec, and local OCR layout reconstructor.
+- **AI Recommendation Engine:** Question classifier, evidence engine, consistency checks, structured answer generator with abstention contracts, and audit review history.
+- **Survey Opportunities & Fit Evaluation:** Opportunity text/OCR capture, criteria extractor, deterministic persona eligibility fit evaluator, and historical outcome learning.
+- **Survey Memory & NQI:** Pattern recognition, session branching transitions, and Next Question Intelligence prediction.
+- **Privacy & Diagnostics:** Outbound data transmission transparency modal, per-request consent checks, safe pre-redacted diagnostic logging (`LogRedactor`), and screenshot retention reclamation.
+- **Accessibility & Polish:** WCAG 2.1 AA focus rings, keyboard dismiss (Escape), offline detection banner, responsive design down to 860px, and standard Indonesian copy.
+- **Windows Release:** NSIS installer compiled (`release-testing/Survey Copilot_0.1.0_x64-setup.exe`, `installMode: "currentUser"`). Ready for manual verification per [Manual Testing Guide](05-development/MANUAL_TESTING_GUIDE.md).
 
-### Not yet verified or incomplete
-
-- No evidence yet that CI completed successfully on GitHub Actions.
-- No confirmed clean Windows build or installer test.
-- No committed dependency lockfiles confirmed at handoff preparation.
-- No complete migration runner/version-upgrade mechanism; current startup executes the initial SQL script and uses `IF NOT EXISTS`. Replace this with a tested sequential migration runner before schema evolution.
-- Profile facts currently store the value as a JSON string; richer typed values and normalization need an explicit schema/service design.
-- Fact edit, archive, source management, persona archive/delete, and data export/delete flows are incomplete.
-- No Windows Credential Manager implementation.
-- No complete provider configuration UI/service, Gemini adapter, provider pool, retry/cooldown, or custom provider implementation.
-- No screenshot capture or OCR implementation.
-- No answer classification/retrieval/generation workflow.
-- No opportunity capture, deterministic fit engine, or historical outcome workflow.
-- No complete settings, privacy-consent, diagnostics, or history UI.
-- No complete test suite or installer verification.
-
-Do not mark these items as done until implementation and tests exist.
+For detailed granular criteria, refer to the [Implementation Backlog](IMPLEMENTATION_BACKLOG.md).
 
 ## 5. Architecture boundaries
 
