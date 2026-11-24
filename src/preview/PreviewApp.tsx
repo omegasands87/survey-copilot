@@ -3,7 +3,8 @@ import { Sidebar, type Page } from "../components/Sidebar";
 import { Topbar } from "../components/Topbar";
 import { HomeView } from "../components/views/HomeView";
 import { ProfilesView } from "../components/views/ProfilesView";
-import type { Persona, PersonaDependencySummary } from "../types/persona";
+import type { Persona, PersonaDependencySummary, ProfileImportResult } from "../types/persona";
+import type { ExportPayload } from "../types/dataManagement";
 import type {
   ConflictWarning,
   CreateFactInput,
@@ -444,6 +445,58 @@ export function PreviewApp() {
     }]);
   }
 
+  async function importProfileJson(
+    jsonContent: string,
+    displayName?: string,
+  ): Promise<ProfileImportResult> {
+    const payload = JSON.parse(jsonContent) as ExportPayload;
+    const sourcePersona = payload.data.personas[0];
+    if (payload.exportScope !== "single_persona" || !sourcePersona) {
+      throw new Error("Preview hanya menerima ekspor JSON satu profil.");
+    }
+    const id = `demo-import-${Date.now()}`;
+    const persona: Persona = {
+      id,
+      displayName: displayName?.trim() || sourcePersona.displayName,
+      description: sourcePersona.description ?? "Profil demo hasil simulasi import.",
+      isActive: false,
+      status: "active",
+      createdAt: DEMO_TIME,
+      updatedAt: DEMO_TIME,
+      factsCount: payload.data.facts.length,
+      sessionsCount: 0,
+    };
+    const importedFacts: ProfileFact[] = payload.data.facts.map((fact, index) => ({
+      id: `${id}-fact-${index + 1}`,
+      personaId: id,
+      category: fact.category,
+      factKey: fact.factKey,
+      attribute: fact.attribute,
+      dataType: fact.dataType as ProfileFact["dataType"],
+      value: fact.value as ProfileFact["value"],
+      normalizedValue: fact.normalizedValue,
+      unit: fact.unit,
+      verificationStatus: fact.verificationStatus as ProfileFact["verificationStatus"],
+      sensitivity: fact.sensitivity as ProfileFact["sensitivity"],
+      sourceDescription: "Mock preview import",
+      validFrom: fact.validFrom,
+      validUntil: fact.validUntil,
+      isValid: true,
+      hasConflict: false,
+      sourcesCount: payload.data.factSources.filter((source) => source.factId === fact.id).length,
+      createdAt: DEMO_TIME,
+      updatedAt: DEMO_TIME,
+      archivedAt: fact.archivedAt,
+    }));
+    setPersonas((current) => [...current, persona]);
+    setFacts((current) => [...current, ...importedFacts]);
+    return {
+      persona,
+      importedFacts: importedFacts.length,
+      importedSources: payload.data.factSources.length,
+    };
+  }
+
   async function updatePersona(personaId: string, displayName: string, description?: string) {
     setPersonas((current) => current.map((persona) => persona.id === personaId
       ? { ...persona, displayName, description, updatedAt: DEMO_TIME }
@@ -608,6 +661,7 @@ export function PreviewApp() {
             onRefreshPersonas={async () => undefined}
             onRefreshFacts={async () => undefined}
             onCreatePersona={createPersona}
+            onImportProfileJson={importProfileJson}
             onUpdatePersona={updatePersona}
             onActivatePersona={activatePersona}
             onArchivePersona={archivePersona}
