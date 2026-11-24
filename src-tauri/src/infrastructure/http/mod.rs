@@ -62,8 +62,8 @@ impl DefaultHttpTransport {
     }
 
     fn build_client_for_url(url: &str) -> Result<(String, reqwest::Client), NormalizedError> {
-        let validated_url = EndpointValidator::validate_url(url)
-            .map_err(|e| Self::invalid_endpoint(e.message))?;
+        let validated_url =
+            EndpointValidator::validate_url(url).map_err(|e| Self::invalid_endpoint(e.message))?;
         let parsed = url::Url::parse(&validated_url)
             .map_err(|_| Self::invalid_endpoint("URL endpoint tidak valid."))?;
         let port = parsed
@@ -76,8 +76,8 @@ impl DefaultHttpTransport {
             Some(url::Host::Ipv6(ip)) => (ip.to_string(), Some(std::net::IpAddr::V6(ip))),
             None => return Err(Self::invalid_endpoint("Host endpoint tidak valid.")),
         };
-        let allow_loopback = parsed.scheme() == "http"
-            && EndpointValidator::is_local_host(&resolution_host);
+        let allow_loopback =
+            parsed.scheme() == "http" && EndpointValidator::is_local_host(&resolution_host);
 
         let addresses: Vec<SocketAddr> = if let Some(ip) = literal_ip {
             vec![SocketAddr::new(ip, 0)]
@@ -170,7 +170,11 @@ impl DefaultHttpTransport {
             )
         })?;
 
-        Ok(HttpResponse { status, headers, body })
+        Ok(HttpResponse {
+            status,
+            headers,
+            body,
+        })
     }
 }
 
