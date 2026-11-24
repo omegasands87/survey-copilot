@@ -576,6 +576,16 @@ export function PreviewApp() {
           </div>
           <span className="preview-readonly-tag">BROWSER ONLY</span>
         </div>
+        <div className="preview-mobile-settings-nav">
+          <button
+            type="button"
+            className={page === "settings" ? "active" : ""}
+            aria-current={page === "settings" ? "page" : undefined}
+            onClick={() => setPage("settings")}
+          >
+            ⚙ Pengaturan
+          </button>
+        </div>
         <Topbar
           title={pageTitles[page]}
           personas={personas.filter((persona) => persona.status === "active")}
