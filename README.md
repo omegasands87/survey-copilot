@@ -65,6 +65,12 @@ The active desktop UI and browser preview share the Dark Bento theme. Profile ma
 
 See [Stage 3 — Dark Bento and Profile Import](docs/09-audit/STAGE_3_DARK_BENTO_PROFILE_UX.md) for supported format, limits, safety rules, and repository/device validation scope.
 
+### Capture-to-OCR workflow
+
+A deliberate region/window capture now starts local Windows OCR automatically. The captured image is previewed, the extraction is presented for human review/correction, and no external AI analysis starts automatically. Retry and manual text entry remain available when local OCR fails.
+
+See [Stage 4 — Capture and Automatic Local OCR](docs/09-audit/STAGE_4_CAPTURE_AUTO_LOCAL_OCR.md) for the workflow and privacy boundary.
+
 Build the Windows installer with:
 
 ```powershell
