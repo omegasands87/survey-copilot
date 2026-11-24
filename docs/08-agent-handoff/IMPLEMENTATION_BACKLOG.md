@@ -295,3 +295,23 @@ The following documents capture a repository/source audit and post-installation 
 - [Installation and UI/UX feedback](../09-audit/INSTALLATION_AND_UI_UX_FEEDBACK_2026-11-24.md) — includes responsive redesign, dark Bento direction, form usability, profile templates/import, capture-to-local-OCR flow, broken-page reproduction, UI-only browser preview, and uninstall discoverability.
 
 Do not infer that a checkbox elsewhere in this historical backlog overrides an audit finding. Do not mark these follow-up requirements complete until implementation and relevant manual/automated evidence exist. Product-scope changes (including any interpretation of “profit”) require explicit owner approval. The browser preview is UI-only with synthetic data/mock services; desktop functionality remains in the installed Windows app.
+
+
+## Stage 3 repository implementation (branch: feat/stage-3-dark-bento-profile-ux-2026-11-24)
+
+This branch implements the Stage 3 UI/UX requirements from owner feedback. It is still subject to repository CI and review; do not mark release or device acceptance complete from the existence of this branch.
+
+- Shared Dark Bento theme for installed desktop frontend and browser UI preview: `src/styles/dark-bento.css`.
+- Responsive navigation, forms, cards, settings panels, dialogs, and profile layout.
+- Blank profile field templates: demographics, work/education, household, technology, consumption, and mobility. Templates set field metadata only and never fabricate respondent values.
+- Local JSON profile import from a single-persona Survey Copilot export (schema 1.0.0). The import creates a new inactive persona with new IDs, imports current facts and evidence sources transactionally, and excludes survey sessions, answers, screenshots, provider settings, credentials, and diagnostics.
+- Missing-source facts are marked unverified. Invalid or oversized imports roll back completely.
+
+Details and deferred device checks: [Stage 3 — Dark Bento and Profile Import](../09-audit/STAGE_3_DARK_BENTO_PROFILE_UX.md).
+
+
+## Stage 4 repository implementation (branch: feat/stage-4-capture-auto-local-ocr-2026-11-24)
+
+The region and window capture handlers now start local OCR automatically after a successful explicit capture. The result is presented for human review/correction; no AI analysis or external transmission starts automatically. OCR errors leave the capture preview available with a retry action and manual fallback. Capture requires an active session. The capture window list uses an explicit keyboard-accessible action button, and controls that could race an in-flight OCR operation are disabled.
+
+See [Stage 4 — Capture and Automatic Local OCR](../09-audit/STAGE_4_CAPTURE_AUTO_LOCAL_OCR.md). Do not mark installed-device acceptance complete until the consolidated Windows 11 x64 device checklist is run after all five stages.

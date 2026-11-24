@@ -1,5 +1,6 @@
-import { useState, useEffect, type FormEvent } from "react";
-import type { Persona, PersonaDependencySummary } from "../../types/persona";
+import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
+import type { Persona, PersonaDependencySummary, ProfileImportResult } from "../../types/persona";
+import type { ExportPayload } from "../../types/dataManagement";
 import type {
   ConflictWarning,
   CreateFactInput,
@@ -46,9 +47,97 @@ interface ProfilesViewProps {
     notes?: string;
   }) => Promise<FactSource>;
   onDeleteFact: (factId: string) => Promise<void>;
+  onImportProfileJson: (jsonContent: string, displayName?: string) => Promise<ProfileImportResult>;
 }
 
 type FilterStatus = "all" | "active" | "archived";
+
+interface ProfileTemplateField {
+  attribute: string;
+  dataType: DataType;
+  unit?: string;
+}
+
+interface ProfileFieldTemplate {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  fields: ProfileTemplateField[];
+}
+
+const PROFILE_FIELD_TEMPLATES: ProfileFieldTemplate[] = [
+  {
+    id: "demographics",
+    title: "Demografi dasar",
+    description: "Field demografi yang umum muncul pada studi responden.",
+    category: "Demografi",
+    fields: [
+      { attribute: "Usia", dataType: "number", unit: "tahun" },
+      { attribute: "Domisili", dataType: "string" },
+      { attribute: "Jenis kelamin", dataType: "string" },
+      { attribute: "Status pernikahan", dataType: "string" },
+    ],
+  },
+  {
+    id: "work-education",
+    title: "Pekerjaan & pendidikan",
+    description: "Latar belakang pekerjaan dan pendidikan.",
+    category: "Pekerjaan",
+    fields: [
+      { attribute: "Status pekerjaan", dataType: "string" },
+      { attribute: "Bidang pekerjaan", dataType: "string" },
+      { attribute: "Pendidikan terakhir", dataType: "string" },
+      { attribute: "Jenis industri", dataType: "string" },
+    ],
+  },
+  {
+    id: "household",
+    title: "Rumah tangga",
+    description: "Komposisi dan kondisi rumah tangga.",
+    category: "Rumah Tangga",
+    fields: [
+      { attribute: "Jumlah anggota rumah tangga", dataType: "number", unit: "orang" },
+      { attribute: "Status tempat tinggal", dataType: "string" },
+      { attribute: "Jumlah kendaraan rumah tangga", dataType: "number", unit: "unit" },
+    ],
+  },
+  {
+    id: "technology",
+    title: "Teknologi & perangkat",
+    description: "Perangkat dan kebiasaan penggunaan teknologi.",
+    category: "Teknologi",
+    fields: [
+      { attribute: "Perangkat utama", dataType: "string" },
+      { attribute: "Sistem operasi utama", dataType: "string" },
+      { attribute: "Koneksi internet", dataType: "string" },
+      { attribute: "Penggunaan aplikasi digital", dataType: "string" },
+    ],
+  },
+  {
+    id: "consumer",
+    title: "Konsumsi & kebiasaan",
+    description: "Kebiasaan dan preferensi konsumsi non-finansial.",
+    category: "Konsumsi",
+    fields: [
+      { attribute: "Kanal belanja utama", dataType: "string" },
+      { attribute: "Frekuensi belanja", dataType: "string" },
+      { attribute: "Kategori produk yang digunakan", dataType: "string" },
+      { attribute: "Merek yang digunakan", dataType: "string" },
+    ],
+  },
+  {
+    id: "mobility",
+    title: "Transportasi & mobilitas",
+    description: "Moda transportasi dan pola mobilitas responden.",
+    category: "Transportasi",
+    fields: [
+      { attribute: "Moda transportasi utama", dataType: "string" },
+      { attribute: "Kendaraan pribadi", dataType: "string" },
+      { attribute: "Frekuensi bepergian", dataType: "string" },
+    ],
+  },
+];
 
 export function ProfilesView({
   personas,
@@ -75,6 +164,7 @@ export function ProfilesView({
   onGetFactDetail,
   onAddFactSource,
   onDeleteFact,
+  onImportProfileJson,
 }: ProfilesViewProps) {
   // Success state notification
   const [successMessage, setSuccessMessage] = useState("");
@@ -86,6 +176,14 @@ export function ProfilesView({
   // New persona form
   const [profileName, setProfileName] = useState("");
   const [profileDescription, setProfileDescription] = useState("");
+
+  // Import JSON hanya menerima export satu persona; isi file tetap lokal pada desktop.
+  const [profileImportJson, setProfileImportJson] = useState("");
+  const [profileImportPayload, setProfileImportPayload] = useState<ExportPayload | null>(null);
+  const [profileImportName, setProfileImportName] = useState("");
+  const [profileImportFileName, setProfileImportFileName] = useState("");
+  const [profileImportError, setProfileImportError] = useState("");
+  const [profileImportSubmitting, setProfileImportSubmitting] = useState(false);
 
   // Filter tab for personas
   const [filterTab, setFilterTab] = useState<FilterStatus>("active");
@@ -170,6 +268,92 @@ export function ProfilesView({
     setProfileName("");
     setProfileDescription("");
     showSuccess(`Profil responden "${name}" berhasil dibuat.`);
+  }
+
+  async function handleProfileImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    setProfileImportError("");
+    setProfileImportJson("");
+    setProfileImportPayload(null);
+    setProfileImportFileName("");
+    setProfileImportName("");
+
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".json")) {
+      setProfileImportError("Pilih file JSON ekspor satu profil Survey Copilot.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileImportError("Ukuran file maksimal 5 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      const content = await file.text();
+      const parsed: unknown = JSON.parse(content);
+      if (!parsed || typeof parsed !== "object") {
+        throw new Error("Struktur file JSON tidak valid.");
+      }
+      const candidate = parsed as Partial<ExportPayload>;
+      const data = candidate.data;
+      if (
+        candidate.schemaVersion !== "1.0.0" ||
+        candidate.exportScope !== "single_persona" ||
+        candidate.summary?.exportScope !== "single_persona" ||
+        !data ||
+        !Array.isArray(data.personas) ||
+        data.personas.length !== 1 ||
+        !Array.isArray(data.facts) ||
+        !Array.isArray(data.factSources)
+      ) {
+        throw new Error("File harus merupakan ekspor satu profil Survey Copilot versi 1.0.0, bukan ekspor seluruh aplikasi.");
+      }
+
+      const importedPersona = data.personas[0];
+      if (
+        !importedPersona ||
+        typeof importedPersona.id !== "string" ||
+        typeof importedPersona.displayName !== "string" ||
+        importedPersona.id !== candidate.targetPersonaId ||
+        !data.facts.every((fact) => fact.personaId === importedPersona.id) ||
+        !data.factSources.every((source) => source.personaId === importedPersona.id)
+      ) {
+        throw new Error("Profil, fakta, atau sumber bukti pada file tidak konsisten.");
+      }
+
+      setProfileImportJson(content);
+      setProfileImportPayload(candidate as ExportPayload);
+      setProfileImportFileName(file.name);
+      setProfileImportName(importedPersona.displayName);
+    } catch (error) {
+      setProfileImportError(
+        error instanceof Error ? error.message : "File JSON tidak dapat dibaca.",
+      );
+      event.target.value = "";
+    }
+  }
+
+  async function handleImportProfile() {
+    if (!profileImportPayload || !profileImportJson || !profileImportName.trim()) return;
+    setProfileImportSubmitting(true);
+    setProfileImportError("");
+    try {
+      const result = await onImportProfileJson(profileImportJson, profileImportName.trim());
+      await onRefreshPersonas?.();
+      showSuccess(
+        `Profil "${result.persona.displayName}" diimpor: ${result.importedFacts} fakta dan ${result.importedSources} sumber bukti.`,
+      );
+      setProfileImportJson("");
+      setProfileImportPayload(null);
+      setProfileImportFileName("");
+      setProfileImportName("");
+    } catch (error) {
+      setProfileImportError(error instanceof Error ? error.message : "Import profil gagal.");
+    } finally {
+      setProfileImportSubmitting(false);
+    }
   }
 
   function openEditModal(persona: Persona) {
@@ -405,6 +589,61 @@ export function ProfilesView({
         </div>
       </form>
 
+      <section className="profile-import-panel" aria-labelledby="profile-import-title">
+        <div className="profile-import-heading">
+          <div>
+            <span className="eyebrow">PORTABILITAS DATA</span>
+            <h3 id="profile-import-title">Import profil dari JSON</h3>
+            <p>Gunakan file ekspor satu profil Survey Copilot. File dibaca dan diproses lokal di aplikasi.</p>
+          </div>
+          <span className="profile-import-icon" aria-hidden="true">↥</span>
+        </div>
+        <label className="profile-import-file">
+          <span>Pilih file JSON profil</span>
+          <input
+            type="file"
+            accept=".json,application/json"
+            aria-label="Pilih file JSON ekspor satu profil"
+            onChange={(event) => void handleProfileImportFile(event)}
+          />
+          <small>{profileImportFileName || "Maksimal 5 MB · ekspor satu profil versi 1.0.0"}</small>
+        </label>
+        {profileImportPayload && (
+          <div className="profile-import-preview" role="region" aria-label="Pratinjau profil yang akan diimpor">
+            <div className="profile-import-preview-title">
+              <strong>Pratinjau sebelum import</strong>
+              <span className="profile-import-count">{profileImportPayload.data.facts.length} fakta · {profileImportPayload.data.factSources.length} sumber</span>
+            </div>
+            <label className="profile-import-name">
+              Nama profil baru
+              <input
+                value={profileImportName}
+                onChange={(event) => setProfileImportName(event.target.value)}
+                maxLength={80}
+                required
+              />
+            </label>
+            {personas.some((persona) => persona.displayName.trim().toLowerCase() === profileImportName.trim().toLowerCase()) && (
+              <p className="profile-import-warning" role="status">
+                Nama ini sudah digunakan. Import tetap membuat profil baru yang terpisah; ganti nama agar mudah dibedakan.
+              </p>
+            )}
+            <p className="profile-import-scope">
+              Yang diimpor: identitas profil, fakta, dan sumber bukti. Sesi survei, jawaban, screenshot, riwayat, pengaturan provider, serta credential tidak diimpor.
+            </p>
+            <button
+              type="button"
+              className="primary-button"
+              disabled={!profileImportName.trim() || profileImportSubmitting || profileLoading}
+              onClick={() => void handleImportProfile()}
+            >
+              {profileImportSubmitting ? "Mengimpor..." : "Import sebagai profil baru"}
+            </button>
+          </div>
+        )}
+        {profileImportError && <p className="profile-import-error" role="alert">{profileImportError}</p>}
+      </section>
+
       {/* Filter Tabs Persona */}
       <div className="filter-tabs">
         <button
@@ -560,10 +799,60 @@ export function ProfilesView({
             </div>
           )}
 
+          <section className="profile-template-panel" aria-labelledby="profile-template-title">
+            <div className="profile-template-heading">
+              <div>
+                <span className="eyebrow">MULAI DARI TEMPLATE KOSONG</span>
+                <h4 id="profile-template-title">Field profil yang umum dibutuhkan</h4>
+                <p>Pilih field untuk menyiapkan formulir. Nilai tidak diisi otomatis—masukkan fakta yang benar tentang responden.</p>
+              </div>
+              <span className="profile-template-empty-tag">TANPA NILAI DEMO</span>
+            </div>
+            <div className="profile-template-grid">
+              {PROFILE_FIELD_TEMPLATES.map((template) => (
+                <article className="profile-template-card" key={template.id}>
+                  <div>
+                    <strong>{template.title}</strong>
+                    <p>{template.description}</p>
+                  </div>
+                  <div className="profile-template-fields">
+                    {template.fields.map((field) => (
+                      <button
+                        type="button"
+                        key={field.attribute}
+                        onClick={() => {
+                          setFactCategory(template.category);
+                          setFactAttribute(field.attribute);
+                          setFactKey("");
+                          setFactDataType(field.dataType);
+                          setFactValue("");
+                          setFactUnit(field.unit ?? "");
+                          setNewFactStatus("unverified");
+                          setFactSensitivity("ordinary");
+                          setFactSourceType("manual_entry");
+                          setFactSourceTitle("Input Manual");
+                          setFactSourceDesc("Dimasukkan langsung oleh pengguna");
+                        }}
+                      >
+                        + {field.attribute}
+                      </button>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
           {/* Formulir Penambahan Fakta Baru (Typed Facts) */}
           <form className="profile-form" onSubmit={handleCreateFact} style={{ marginTop: 16 }}>
-            <h4 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800 }}>Tambah Fakta Baru</h4>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div className="fact-form-intro">
+              <div>
+                <h4>Tambah satu fakta responden</h4>
+                <p>Isi nilai yang diketahui. Data baru disimpan sebagai belum terverifikasi sampai Anda mengonfirmasinya.</p>
+              </div>
+              <span className="profile-import-count">Persona aktif: {activePersona.displayName}</span>
+            </div>
+            <div className="fact-form-grid fact-form-grid-3">
               <label style={{ fontSize: 12 }}>
                 Kategori
                 <select
@@ -573,7 +862,7 @@ export function ProfilesView({
                 >
                   <option value="Demografi">Demografi</option>
                   <option value="Pekerjaan">Pekerjaan</option>
-                  <option value="Finansial">Finansial</option>
+                  <option value="Konsumsi">Konsumsi</option>
                   <option value="Rumah Tangga">Rumah Tangga</option>
                   <option value="Transportasi">Transportasi</option>
                   <option value="Teknologi">Teknologi</option>
@@ -586,9 +875,10 @@ export function ProfilesView({
               <label style={{ fontSize: 12 }}>
                 Nama Fakta / Atribut
                 <input
+                  id="fact-attribute-input"
                   value={factAttribute}
                   onChange={(e) => setFactAttribute(e.target.value)}
-                  placeholder="Contoh: Penghasilan Bulanan, Usia, dll"
+                  placeholder="Contoh: Usia, domisili, status pekerjaan"
                   maxLength={100}
                   required
                   style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 6, border: "1px solid #dce4de" }}
@@ -603,7 +893,7 @@ export function ProfilesView({
                   style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 6, border: "1px solid #dce4de" }}
                 >
                   <option value="string">Teks (String)</option>
-                  <option value="number">Angka / Finansial (Number)</option>
+                  <option value="number">Angka (Number)</option>
                   <option value="boolean">Ya / Tidak (Boolean)</option>
                   <option value="date">Tanggal (Date: YYYY-MM-DD)</option>
                   <option value="json">Struktur JSON</option>
@@ -611,7 +901,7 @@ export function ProfilesView({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10, marginTop: 10 }}>
+            <div className="fact-form-grid fact-form-grid-value">
               <label style={{ fontSize: 12 }}>
                 Nilai Fakta
                 {factDataType === "boolean" ? (
@@ -635,11 +925,12 @@ export function ProfilesView({
                   />
                 ) : (
                   <input
+                    id="fact-value-input"
                     value={factValue}
                     onChange={(e) => setFactValue(e.target.value)}
                     placeholder={
                       factDataType === "number"
-                        ? "Contoh: 15000000 atau 28"
+                        ? "Contoh: 28 atau 3"
                         : factDataType === "json"
                         ? '{"merk": ["Toyota", "Honda"]}'
                         : "Contoh: Karyawan Swasta"
@@ -655,14 +946,14 @@ export function ProfilesView({
                 <input
                   value={factUnit}
                   onChange={(e) => setFactUnit(e.target.value)}
-                  placeholder="Contoh: IDR, tahun, bulan, unit"
+                  placeholder="Contoh: tahun, orang, kali, unit"
                   maxLength={30}
                   style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 6, border: "1px solid #dce4de" }}
                 />
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 10 }}>
+            <div className="fact-form-grid fact-form-grid-3">
               <label style={{ fontSize: 12 }}>
                 Status Verifikasi
                 <select
@@ -706,13 +997,13 @@ export function ProfilesView({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10, marginTop: 10 }}>
+            <div className="fact-form-grid fact-form-grid-source">
               <label style={{ fontSize: 12 }}>
                 Judul Sumber Bukti
                 <input
                   value={factSourceTitle}
                   onChange={(e) => setFactSourceTitle(e.target.value)}
-                  placeholder="Contoh: KTP, Slip Gaji, dll"
+                  placeholder="Contoh: dokumen pendukung atau catatan pengguna"
                   maxLength={80}
                   style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 6, border: "1px solid #dce4de" }}
                 />
@@ -730,7 +1021,7 @@ export function ProfilesView({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+            <div className="fact-form-grid fact-form-grid-2">
               <label style={{ fontSize: 12 }}>
                 Berlaku Mulai (Opsional)
                 <input

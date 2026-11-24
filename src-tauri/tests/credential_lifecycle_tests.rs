@@ -228,6 +228,37 @@ fn test_delete_shared_credential_requires_force_when_in_use() {
 }
 
 #[test]
+fn test_credential_delete_failure_preserves_secret_and_database_metadata() {
+    let db = setup_test_db();
+    let store = InMemoryCredentialStore::new();
+    let summary = CredentialService::save_credential(
+        &db,
+        &store,
+        SaveCredentialInput {
+            id: None,
+            provider_type: "gemini".to_string(),
+            label: "Credential with OS deletion failure".to_string(),
+            secret: "KeepThisSecretForRollback987".to_string(),
+        },
+    )
+    .unwrap();
+
+    store.set_delete_failure(true);
+    let error = CredentialService::delete_credential(&db, &store, &summary.id, false)
+        .expect_err("failed OS deletion must abort metadata deletion");
+    assert_eq!(error.code, "CREDENTIAL_ERROR");
+    assert!(store.exists(&summary.credential_ref).unwrap());
+
+    let conn = db.connection.lock().unwrap();
+    assert!(
+        CredentialRepository::find_by_id(&conn, &summary.id)
+            .unwrap()
+            .is_some(),
+        "metadata must remain so the user can retry cleanup"
+    );
+}
+
+#[test]
 fn test_test_credential_differentiates_status() {
     let db = setup_test_db();
     let store = InMemoryCredentialStore::new();
