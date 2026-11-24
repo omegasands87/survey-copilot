@@ -1,9 +1,10 @@
 use crate::db::Database;
 use crate::domain::error::AppError;
 use crate::domain::persona::{
-    CreatePersonaInput, PersonaDependencySummary, PersonaDetail, PersonaSummary, UpdatePersonaInput,
+    CreatePersonaInput, PersonaDependencySummary, PersonaDetail, PersonaSummary,
+    ProfileImportResult, UpdatePersonaInput,
 };
-use crate::services::PersonaService;
+use crate::services::{PersonaService, ProfileImportService};
 use tauri::State;
 
 #[tauri::command]
@@ -31,6 +32,19 @@ pub fn persona_create(
     PersonaService::create(
         &database,
         CreatePersonaInput::with_description(display_name, description),
+    )
+}
+
+#[tauri::command]
+pub fn persona_import_profile(
+    json_content: String,
+    display_name: Option<String>,
+    database: State<'_, Database>,
+) -> Result<ProfileImportResult, AppError> {
+    ProfileImportService::import_single_persona_json(
+        &database,
+        &json_content,
+        display_name.as_deref(),
     )
 }
 

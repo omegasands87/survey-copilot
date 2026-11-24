@@ -7,6 +7,7 @@ use survey_copilot_lib::domain::capture::{
     CaptureMode, CaptureRect, CaptureRegionInput, CaptureWindowInput,
 };
 use survey_copilot_lib::infrastructure::capture::InMemoryScreenCaptureEngine;
+use survey_copilot_lib::infrastructure::credentials::in_memory::InMemoryCredentialStore;
 use survey_copilot_lib::migrations::MigrationRunner;
 use survey_copilot_lib::repository::PersonaRepository;
 use survey_copilot_lib::services::{CaptureService, DeletionService, SurveyService};
@@ -388,8 +389,14 @@ fn test_deletion_service_wipes_temp_captures() {
     assert_eq!(fs::read_dir(&temp_captures).unwrap().count(), 1);
 
     // Full wipe
-    let report =
-        DeletionService::wipe_all_data(&db, Some(&app_data_dir), "HAPUS SEMUA DATA").unwrap();
+    let credential_store = InMemoryCredentialStore::new();
+    let report = DeletionService::wipe_all_data(
+        &db,
+        &credential_store,
+        Some(&app_data_dir),
+        "HAPUS SEMUA DATA",
+    )
+    .unwrap();
     assert!(report.deleted_temp_files_count >= 1);
     assert_eq!(fs::read_dir(&temp_captures).unwrap().count(), 0);
 

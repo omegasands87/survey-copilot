@@ -41,7 +41,7 @@ pub use opportunity::{
 };
 pub use persona::{
     persona_archive, persona_create, persona_delete, persona_get, persona_get_dependency_summary,
-    persona_list, persona_restore, persona_set_active, persona_update,
+    persona_import_profile, persona_list, persona_restore, persona_set_active, persona_update,
 };
 pub use privacy::{
     privacy_cleanup_temp_files, privacy_clear_diagnostic_logs, privacy_get_diagnostic_logs,

@@ -1,70 +1,51 @@
 # Prosedur Pencadangan dan Pemulihan Data (Backup & Restore)
 
-Dokumen ini menjelaskan prosedur pencadangan (*backup*) dan pemulihan (*restore*) data pengguna untuk aplikasi **Survey Copilot v1.0** di lingkungan Windows 11 x64.
+Gunakan panduan ini sebelum update besar, migrasi sistem, pemindahan komputer, atau uninstall. Jangan pernah mengirim file database, screenshot, atau credential ke issue publik.
 
----
+## 1. Lokasi data
 
-## 1. Lokasi Penyimpanan Data Aplikasi
-
-Survey Copilot memisahkan secara ketat antara file instalasi aplikasi (biner program), basis data lokal, dan kredensial rahasia:
-
-| Komponen Data | Lokasi Penyimpanan | Keterangan |
+| Komponen | Lokasi | Isi / catatan |
 |---|---|---|
-| **Biner Aplikasi** | `%LOCALAPPDATA%\Programs\Survey Copilot` | File eksekusi program (`.exe`), pustaka dinamis (`.dll`), dan resource UI. |
-| **Database Lokal SQLite** | `%APPDATA%\com.surveycopilot.desktop\survey-copilot.sqlite3` | Berisi seluruh data persona, profil responden, kategori fakta, sumber evidensi, riwayat pertanyaan survei, rekomendasi jawaban, dan pengaturan pool provider. |
-| **Database WAL/SHM** | `%APPDATA%\com.surveycopilot.desktop\survey-copilot.sqlite3-wal`<br>`%APPDATA%\com.surveycopilot.desktop\survey-copilot.sqlite3-shm` | File sementara Write-Ahead Log SQLite (hadir saat transaksi aktif atau sebelum checkpoint penuh). |
-| **Kredensial API (Secrets)** | **Windows Credential Manager** (Generic Credentials) | Kunci API Gemini dan custom provider disimpan secara aman di OS keyring, terikat pada user account Windows lokal. |
+| Program | `%LOCALAPPDATA%\Programs\Survey Copilot` | Biner aplikasi dan resource instalasi current-user |
+| Data lokal | `%APPDATA%\com.surveycopilot.desktop\survey-copilot.sqlite3` | Persona, fakta, sumber, sesi, pertanyaan, riwayat, provider config non-secret dan settings |
+| SQLite WAL/SHM | Folder data yang sama | File pendamping SQLite; dapat ada ketika WAL aktif |
+| API secrets | Windows Credential Manager | Terikat ke akun Windows; bukan bagian dari backup SQLite |
 
----
+## 2. Backup
 
-## 2. Prosedur Pencadangan (Backup)
+1. Tutup Survey Copilot sepenuhnya.
+2. Buka PowerShell dan jalankan:
 
-Lakukan pencadangan sebelum memperbarui aplikasi, melakukan migrasi sistem, atau secara berkala.
+   ```powershell
+   $source = Join-Path $env:APPDATA "com.surveycopilot.desktop"
+   $destination = Join-Path "$env:USERPROFILE\Documents" ("SurveyCopilot-Backup-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+   New-Item -ItemType Directory -Path $destination -Force | Out-Null
+   Copy-Item -Path (Join-Path $source "*") -Destination $destination -Recurse -Force
+   Get-ChildItem -Path $destination -File | Get-FileHash -Algorithm SHA256
+   ```
 
-### Langkah-langkah Backup:
-1. **Tutup Aplikasi**: Pastikan Survey Copilot telah ditutup sepenuhnya (tidak berjalan di taskbar atau system tray).
-2. **Buka Direktori Data**:
-   - Tekan `Win + R`, ketik `%APPDATA%\com.surveycopilot.desktop`, lalu tekan `Enter`.
-   - Atau via PowerShell:
-     ```powershell
-     cd "$env:APPDATA\com.surveycopilot.desktop"
-     ```
-3. **Salin File Database**:
-   - Salin seluruh file yang ada di dalam folder tersebut:
-     - `survey-copilot.sqlite3`
-     - `survey-copilot.sqlite3-wal` (jika ada)
-     - `survey-copilot.sqlite3-shm` (jika ada)
-   - Simpan ke direktori backup aman di luar direktori aplikasi (misal: `D:\Backups\SurveyCopilot\backup-YYYYMMDD\`).
-4. **Catatan Kredensial API**:
-   - Kredensial di Windows Credential Manager tetap tersimpan di akun Windows Anda. Namun, demi kehati-hatian saat berpindah PC atau instalasi ulang OS Windows, pastikan Anda memiliki catatan cadangan kunci API Gemini / Custom Provider di pengelola kata sandi (*password manager*) pribadi Anda.
+3. Simpan backup di lokasi aman yang hanya dapat diakses pemilik data.
+4. Jangan menganggap backup database sebagai backup API key. Credential berada di Windows Credential Manager dan mengikuti akun Windows yang menyimpannya. Jangan mengekspor atau menempel API key ke file backup teks.
 
----
+Untuk konsistensi maksimum, pastikan aplikasi benar-benar tertutup sebelum menyalin file database dan WAL/SHM.
 
-## 3. Prosedur Pemulihan (Restore)
+## 3. Restore
 
-Gunakan prosedur ini untuk mengembalikan data persona dan riwayat jawaban setelah perbaikan sistem atau saat memindahkan data ke perangkat baru.
+1. Tutup aplikasi.
+2. Simpan salinan folder data yang ada sebelum menimpa apa pun.
+3. Pulihkan isi folder backup ke `%APPDATA%\com.surveycopilot.desktop`.
+4. Jika backup dibuat saat aplikasi tertutup, pulihkan database dan file pendampingnya sebagaimana adanya. Jangan menghapus WAL/SHM secara otomatis kecuali Anda yakin file tersebut bukan bagian dari backup yang konsisten.
+5. Buka aplikasi dan verifikasi persona/fakta/riwayat. Database akan melewati pemeriksaan dan migrasi yang diperlukan.
+6. Di komputer Windows baru, credential yang terikat ke akun/perangkat lama mungkin tidak tersedia. Masukkan ulang API key melalui Settings → Provider Keys; jangan menaruh key di file profil atau JSON export.
 
-### Langkah-langkah Restore:
-1. **Tutup Aplikasi**: Pastikan Survey Copilot tidak sedang berjalan.
-2. **Siapkan Direktori Target**:
-   - Buka `%APPDATA%\com.surveycopilot.desktop`.
-   - Jika aplikasi baru saja diinstal dan belum pernah dibuka, buat folder `com.surveycopilot.desktop` di dalam `%APPDATA%`, atau jalankan Survey Copilot sekali lalu tutup kembali agar direktori terbuat secara otomatis.
-3. **Salin File Database Cadangan**:
-   - Salin file `survey-copilot.sqlite3` dari folder backup ke dalam `%APPDATA%\com.surveycopilot.desktop\`.
-   - Pastikan nama file adalah tepat `survey-copilot.sqlite3`.
-   - Jika terdapat file `-wal` atau `-shm` lama yang korup, hapus file `-wal` dan `-shm` tersebut agar SQLite membaca file utama secara bersih.
-4. **Jalankan Aplikasi**:
-   - Buka kembali Survey Copilot.
-   - Rust backend akan otomatis membuka database, memverifikasi integritas, dan menjalankan migrasi skema inkremental jika versi aplikasi lebih baru dari versi backup.
-5. **Verifikasi Kredensial (Bila di Komputer Baru)**:
-   - Jika data dipulihkan di komputer Windows yang berbeda, buka menu **Settings -> Provider Keys** dan masukkan kembali API Key Anda karena Windows Credential Store terikat dengan SID (*Security Identifier*) user Windows lokal.
+## 4. Retensi saat uninstall NSIS
 
----
+Installer menggunakan `installMode: "currentUser"`. Uninstaller NSIS menyediakan pilihan **Delete app data**:
+- **Tidak dicentang:** folder data aplikasi di AppData dipertahankan agar dapat digunakan setelah instalasi ulang.
+- **Dicentang:** folder data aplikasi lokal dihapus. Backup terlebih dahulu; tindakan ini destruktif.
 
-## 4. Keamanan Saat Uninstall Aplikasi
+Menghapus folder data aplikasi **tidak otomatis menghapus secret di Windows Credential Manager**. Kelola credential melalui menu credential aplikasi atau Windows Credential Manager secara terpisah. Jangan mengandalkan penghapusan direktori AppData sebagai bukti bahwa semua rahasia OS sudah dihapus.
 
-- Installer NSIS Survey Copilot dikonfigurasi dengan mode pengguna (`installMode: "currentUser"`).
-- Jika pengguna melakukan pencopotan (*uninstall*) Survey Copilot melalui Windows Settings (*Apps > Installed apps*):
-  - File biner program di `%LOCALAPPDATA%\Programs\Survey Copilot` akan dihapus bersih.
-  - **Database SQLite di `%APPDATA%\com.surveycopilot.desktop` TIDAK AKAN DIHAPUS.** Data responden dan riwayat Anda tetap aman dan tidak akan hilang jika Anda menginstal ulang aplikasi di kemudian hari.
-  - Kredensial API di Windows Credential Manager juga tidak dihapus secara otomatis demi mencegah kehilangan kunci API.
+## 5. Cakupan pengujian
+
+Perilaku clean install, repair/update, uninstall dengan dan tanpa pilihan Delete app data, retensi SQLite, dan retensi Credential Manager harus diverifikasi pada Windows 11 x64 sebelum rilis publik. Sampai pengujian tersebut selesai, jangan mengklaim retensi atau penghapusan telah teruji di perangkat.

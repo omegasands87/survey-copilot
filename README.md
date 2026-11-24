@@ -46,7 +46,42 @@ npm install
 npm run tauri dev
 ```
 
-Build the Windows installer with:
+### Browser UI-only preview
+
+The browser preview is for visual and interaction review only. It uses synthetic data and mock state; it does not connect to Tauri IPC, SQLite, Windows Credential Manager, screen capture, OCR, or AI providers.
+
+```powershell
+npm ci
+npm run preview:ui
+```
+
+Open `http://127.0.0.1:4173/?preview=1`. Changes made in the preview are held in memory and disappear when the page is refreshed. Do not enter real profile data, screenshots, credentials, or survey answers.
+
+See [Stage 2 UI-only Preview](docs/09-audit/STAGE_2_UI_ONLY_PREVIEW.md) for the isolation contract.
+
+### Dark Bento and profile management
+
+The active desktop UI and browser preview share the Dark Bento theme. Profile management includes blank field templates and a local JSON import flow for a single-persona Survey Copilot export. Templates never prefill personal values. JSON import creates a new inactive profile and imports its facts and sources only; sessions, answers, screenshots, provider settings, and credentials are excluded.
+
+See [Stage 3 — Dark Bento and Profile Import](docs/09-audit/STAGE_3_DARK_BENTO_PROFILE_UX.md) for supported format, limits, safety rules, and repository/device validation scope.
+
+### Capture-to-OCR workflow
+
+A deliberate region/window capture now starts local Windows OCR automatically. The captured image is previewed, the extraction is presented for human review/correction, and no external AI analysis starts automatically. Retry and manual text entry remain available when local OCR fails.
+
+See [Stage 4 — Capture and Automatic Local OCR](docs/09-audit/STAGE_4_CAPTURE_AUTO_LOCAL_OCR.md) for the workflow and privacy boundary.
+
+### Windows installer and uninstall
+
+The Windows x64 NSIS package is built by the **Windows NSIS installer package** GitHub Actions workflow. Download the `Survey-Copilot-NSIS-<commit-sha>` artifact from the relevant Actions run. Verify the installer against `SHA256SUMS.txt` before running it.
+
+The current-user installer adds both the app and **Uninstall Survey Copilot** shortcuts to the Start Menu. Windows Settings → Apps → Installed apps is also an uninstall entry point. The NSIS uninstaller offers a **Delete app data** choice; leave it unchecked to retain the local database. Windows Credential Manager secrets are separate and are not removed by deleting the app data folder.
+
+The CI package is a 30-day workflow artifact, not a GitHub Release. Because this repository is public, treat the artifact as accessible to repository readers rather than as private distribution. It contains only an unsigned installer and verification manifests; do not include user data, databases, screenshots, API keys or secrets. Do not distribute the unsigned package as an official public release. Clean install, upgrade, uninstall, database retention, credential behavior and publisher trust remain DEVICE TEST REQUIRED until verified on Windows 11 x64.
+
+See [Stage 5 — Windows Installer and Uninstall](docs/09-audit/STAGE_5_WINDOWS_PACKAGING_UNINSTALL.md), [Installation](docs/06-operations/INSTALLATION.md), and [Backup & Restore](docs/06-operations/BACKUP_AND_RESTORE.md).
+
+Build locally (developer environment):
 
 ```powershell
 npm run tauri build
@@ -56,9 +91,9 @@ npm run tauri build
 
 **Current version:** v0.1.0-beta (private testing; not production-approved)
 
-The latest repository audit (24 November 2026) verified that Windows GitHub Actions run #60 passed: 130 frontend tests and 221 Rust tests, in addition to frontend build, Rust formatting, and compile checks. These automated results do not establish installer or runtime readiness. The audit identified Critical/High security and data-integrity findings, and the clean-install, launch, update, uninstall, and data-retention acceptance tests remain unverified.
+The audit snapshot dated 24 November 2026 verified Windows GitHub Actions run #60: 130 frontend tests and 221 Rust tests, in addition to frontend build, Rust formatting, and compile checks. These are historical automated results, not proof that the subsequent Stage 1–5 branch changes have passed CI or that installer/device behavior is accepted. The audit identified Critical/High security and data-integrity findings; use the current PR checks and the manual device checklist for later verification.
 
-The installer path previously referenced below is **not present in the inspected `main` tree**, and no GitHub Release asset was available at the time of the audit. Do not treat a packaged installer as currently downloadable from this repository. See the [audit report](docs/09-audit/AUDIT_COMPLETENESS_SECURITY_RELEASE_2026-11-24.md) and [installation/UI feedback](docs/09-audit/INSTALLATION_AND_UI_UX_FEEDBACK_2026-11-24.md) for evidence and follow-up requirements.
+At the time of the 24 November audit, no installer was present on `main` and no GitHub Release asset was available. Stage 5 adds a Windows NSIS CI packaging workflow and Start Menu uninstall shortcut on the implementation branch; that work is still subject to CI and Windows device acceptance. No public installer or release is claimed. See the [audit report](docs/09-audit/AUDIT_COMPLETENESS_SECURITY_RELEASE_2026-11-24.md) and [installation/UI feedback](docs/09-audit/INSTALLATION_AND_UI_UX_FEEDBACK_2026-11-24.md).
 
 Implemented code and automated tests cover:
 - Multi-persona respondent profile lifecycle with strict cross-persona data isolation.

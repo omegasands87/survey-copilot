@@ -1,97 +1,102 @@
 # Panduan Pengujian Manual (Manual Testing Checklist & Verification Guide)
 
-**Survey Copilot v1.0 — Testing / Private Beta Release**
+**Survey Copilot v0.1.0-beta — Windows 11 x64 · private beta**
 
-Dokumen ini berisi panduan pengujian manual langkah-demi-langkah bagi tester/pengguna untuk memverifikasi fungsionalitas, keamanan data, dan batasan produk Survey Copilot di Windows 11 x64 sebelum rilis final.
+Checklist ini digunakan setelah semua lima tahap implementasi repository selesai. Checklist bukan bukti bahwa item telah diuji. Jangan memakai data responden nyata selain milik tester yang memberi persetujuan; gunakan profil sintetis untuk pemeriksaan awal dan jangan pernah mengirim screenshot/credential ke issue.
 
----
+## Ketentuan pengujian
 
-## Ringkasan Ketentuan & Batasan Pengujian
+- Tidak ada browser automation, auto-fill, auto-click, auto-submit, CAPTCHA bypass, atau screener deception.
+- Persona harus merepresentasikan orang nyata; template profil hanya berisi field kosong.
+- Rekomendasi AI harus berbasis fakta terverifikasi dan dapat abstain bila informasi kurang.
+- Capture hanya setelah tindakan eksplisit pengguna. Local OCR tidak memberikan persetujuan untuk transmisi AI eksternal.
+- Bedakan pengujian browser UI preview dengan aplikasi Windows terinstal.
 
-- **Status Rilis**: Testing / Private Beta Release (bukan rilis produksi final).
-- **Etika Survei**:
-  - Aplikasi **tidak boleh** melakukan otomasi browser (tanpa auto-fill, tanpa auto-click, tanpa auto-submit, tanpa bypass CAPTCHA).
-  - Jawaban yang direkomendasikan harus berbasis evidensi profil nyata responden.
-  - Persona yang berbeda adalah representasi manusia nyata yang berbeda (isolasi ketat antar-persona).
-  - Pengambilan tangkapan layar (*screen capture*) **hanya** dilakukan atas persetujuan eksplisit pengguna dengan tampilan pratinjau (*preview*) sebelum dianalisis.
+## Checklist manual — DEVICE TEST REQUIRED
 
----
+### 1. Installer, clean install, dan uninstall discovery
 
-## Checklist Pengujian Manual
+- [ ] Unduh artifact `Survey-Copilot-NSIS-<commit-sha>` dari GitHub Actions workflow **Windows NSIS installer package**.
+- [ ] Verifikasi SHA-256 installer dengan `SHA256SUMS.txt`.
+- [ ] Catat status Authenticode; build unsigned hanya untuk pengujian internal.
+- [ ] Jalankan clean install sebagai user biasa (tanpa Administrator/UAC) pada Windows 11 x64.
+- [ ] Pastikan program berada di bawah `%LOCALAPPDATA%\Programs\Survey Copilot`.
+- [ ] Pastikan shortcut Start Menu **Survey Copilot** dan **Uninstall Survey Copilot** muncul dan berfungsi.
+- [ ] Verifikasi aplikasi muncul di Windows Settings → Apps → Installed apps.
+- [ ] Periksa Control Panel → Programs and Features bila Windows menampilkan current-user package di sana; jangan menjadikan Control Panel satu-satunya jalur uninstall.
+- [ ] Jalankan shortcut uninstall, batalkan wizard, dan pastikan aplikasi tetap terpasang.
+- [ ] Jalankan uninstall kembali. Biarkan **Delete app data** tidak dicentang; periksa folder AppData dan database tetap ada.
+- [ ] Install ulang; pastikan data yang dipertahankan dapat dibaca.
+- [ ] Ulangi pada instalasi disposable, centang **Delete app data**, lalu verifikasi folder data aplikasi memang dihapus.
+- [ ] Pastikan credential Windows Credential Manager diperlakukan terpisah dari penghapusan folder AppData.
 
-### 1. Instalasi & First Run
-- [ ] **Pemasangan Installer**:
-  - Jalankan file installer `Survey Copilot_0.1.0_x64-setup.exe`.
-  - Pastikan instalasi selesai tanpa meminta hak Administrator (UAC) dan terpasang di `%LOCALAPPDATA%\Programs\Survey Copilot`.
-  - Pastikan shortcut aplikasi muncul di Start Menu dan Desktop.
-- [ ] **Peluncuran Aplikasi**:
-  - Luncurkan Survey Copilot.
-  - Periksa apakah jendela utama aplikasi terbuka dengan benar, responsif, dan menampilkan tema UI yang bersih.
-  - Verifikasi bahwa direktori database `%APPDATA%\com.surveycopilot.desktop` telah dibuat secara otomatis dan memuat file `survey-copilot.sqlite3`.
+### 2. Upgrade in-place dan retensi
 
-### 2. Manajemen Persona & Fakta Responden
-- [ ] **Pembuatan Persona Baru**:
-  - Buka tab **Persona**.
-  - Buat persona responden nyata pertama (misal: "Budi Santoso", usia, pekerjaan, domisili).
-  - Simpan dan pastikan persona muncul di daftar persona aktif.
-- [ ] **Penambahan Kategori & Fakta Evidensi**:
-  - Tambahkan kategori fakta (misal: "Demografi", "Pekerjaan", "Kepemilikan Gadget").
-  - Tambahkan fakta spesifik (misal: "Pekerjaan: Software Engineer", "Smartphone: Samsung Galaxy S23").
-  - Pastikan setiap fakta dapat disimpan dengan sumber evidensi dan status konfirmasi.
-- [ ] **Isolasi Multi-Persona**:
-  - Buat persona kedua (misal: "Siti Rahma").
-  - Beralih ke persona kedua dan pastikan daftar fakta persona pertama **tidak muncul** pada persona kedua (isolasi data ketat).
+- [ ] Buat dua persona uji, fakta, sumber bukti, satu sesi, dan catatan riwayat sintetis.
+- [ ] Buat backup database sesuai panduan.
+- [ ] Jalankan installer versi berikutnya di atas instalasi yang sama (same Windows account/currentUser).
+- [ ] Pastikan installer tidak meminta Administrator.
+- [ ] Buka aplikasi dan verifikasi semua data uji tetap tersedia setelah migrasi.
+- [ ] Pastikan provider config tetap ada, tetapi API secret tetap dibaca dari Windows Credential Manager.
+- [ ] Catat versi aplikasi dan schema migration sebelum/sesudah upgrade.
 
-### 3. Konfigurasi AI Provider (Gemini / Custom Provider)
-- [ ] **Penyimpanan Kunci API**:
-  - Buka menu **Settings -> Provider Keys**.
-  - Masukkan Gemini API Key.
-  - Pilih model (misal: `gemini-1.5-flash` atau model yang didukung).
-  - Lakukan **Test Connection**. Pastikan status tes koneksi berhasil (*Success*).
-  - Simpan kunci.
-- [ ] **Verifikasi Keamanan Kredensial**:
-  - Pastikan kunci API **tidak pernah** disimpan dalam teks biasa di database SQLite.
-  - Buka Windows Credential Manager (`cmdkey /list` di terminal) dan pastikan kredensial tersimpan di Windows Credential Store lokal.
+### 3. Tema Dark Bento, responsivitas, dan navigasi
 
-### 4. Pengujian Screen Intelligence (Capture Preview & OCR)
-- [ ] **Tangkapan Layar Eksplisit**:
-  - Buka salah satu halaman survei online di browser Anda (atau gambar pertanyaan survei).
-  - Di Survey Copilot, klik tombol **Capture Screen** / **Area Capture**.
-  - Verifikasi bahwa aplikasi menampilkan jendela **Pratinjau Gambar (Preview)** dan **tidak langsung mengirim gambar** ke AI tanpa izin Anda.
-- [ ] **Ekstraksi Teks (OCR / Untrusted Input Handling)**:
-  - Konfirmasi pengiriman gambar pada layar pratinjau.
-  - Pastikan teks pertanyaan survei dan opsi jawaban berhasil diekstrak dan ditampilkan di area input pertanyaan.
-  - Coba juga fitur **Paste Text** manual untuk memastikan alur tanpa kamera/layar bekerja mulus.
+- [ ] Buka setiap halaman utama pada aplikasi terinstal.
+- [ ] Uji ukuran window minimum yang diizinkan dan ukuran umum 1280×820.
+- [ ] Uji Windows display scaling (100%, 125%, 150%) dan ukuran teks yang diperbesar.
+- [ ] Pastikan tidak ada tombol terpotong, overlap, horizontal scroll tak disengaja, atau modal yang tidak dapat dijangkau.
+- [ ] Uji sidebar, active persona selector, Settings, Copilot, History dan Profile navigation.
+- [ ] Uji keyboard-only: Tab, Shift+Tab, Enter, Space, Escape; cek focus-visible dan urutan fokus.
+- [ ] Periksa contrast, forced/high contrast, dan reduced-motion states.
 
-### 5. Pengujian Rekomendasi Jawaban & Survey Memory
-- [ ] **Analisis Pertanyaan Berbasis Fakta**:
-  - Kirim pertanyaan survei yang cocok dengan fakta persona (misal: "Apa profesi Anda saat ini?").
-  - Pastikan rekomendasi jawaban yang dihasilkan AI:
-    - Sesuai dengan fakta yang tersimpan di persona aktif.
-    - Menampilkan sitasi evidensi / fakta pendukung.
-    - Menampilkan tingkat keyakinan (*confidence level*).
-- [ ] **Penanganan Pertanyaan Tanpa Fakta (Missing Facts)**:
-  - Ajukan pertanyaan tentang topik yang belum ada datanya di persona (misal: "Apakah Anda memiliki mobil listrik?").
-  - Pastikan Copilot **tidak mengarang jawaban (tidak berhalusinasi)**, melainkan memberi tahu bahwa fakta belum tersedia dan meminta klarifikasi atau menyarankan jawaban netral/jujur.
-- [ ] **Konsistensi Pertanyaan Berikutnya (Survey Memory)**:
-  - Ajukan pertanyaan turunan dalam sesi yang sama.
-  - Pastikan riwayat pertanyaan dan jawaban sebelumnya dalam sesi survei tersebut diingat untuk menjaga konsistensi jawaban.
+### 4. Profile form, templates, dan JSON import
 
-### 6. Ekspor Data & Penghapusan
-- [ ] **Ekspor Data**:
-  - Buka menu **Data Management / Export**.
-  - Lakukan ekspor data persona dan riwayat jawaban ke format JSON/CSV.
-  - Buka file hasil ekspor dan pastikan datanya lengkap dan valid.
-- [ ] **Penghapusan Data Persona**:
-  - Buat persona uji coba dummy, lalu lakukan delete persona.
-  - Pastikan seluruh fakta dan riwayat terkait persona dummy tersebut terhapus dari SQLite secara bersih.
+- [ ] Buat persona dengan nama responden uji; jangan gunakan identitas fiktif sebagai data produksi.
+- [ ] Pilih satu blank field template dan pastikan hanya nama/kategori/tipe field yang diisi; nilai personal tetap kosong.
+- [ ] Tambahkan fakta sintetis. Pastikan status awal **unverified**.
+- [ ] Konfirmasi fakta setelah memeriksa sumber dan pastikan riwayat perubahan tercatat.
+- [ ] Ekspor satu persona ke JSON, lalu impor sebagai profil baru dengan nama berbeda.
+- [ ] Pastikan ID profil/fakta baru tidak sama dengan ID sumber.
+- [ ] Pastikan fakta, provenance, sensitivitas dan status verifikasi sesuai aturan import.
+- [ ] Pastikan sesi, jawaban, screenshots, provider settings, API secrets, dan diagnostics tidak ikut diimpor.
+- [ ] Coba file rusak, full-application export, file lebih dari 5 MB, sumber fakta tidak cocok, dan nilai tipe data invalid; semua harus ditolak tanpa data parsial.
 
-### 7. Pengujian Persistensi (Restart & Update In-Place)
-- [ ] **Uji Restart Aplikasi**:
-  - Tutup Survey Copilot sepenuhnya.
-  - Buka kembali aplikasi.
-  - Pastikan seluruh persona, fakta, riwayat jawaban, dan konfigurasi API provider tetap utuh dan aktif.
-- [ ] **Uji Pembaruan Installer (Overwriting Update)**:
-  - Tutup aplikasi.
-  - Jalankan kembali installer `Survey Copilot_0.1.0_x64-setup.exe` di atas instalasi yang sudah ada.
-  - Buka aplikasi dan pastikan tidak ada data persona atau riwayat yang hilang atau tereset.
+### 5. Capture → Local OCR → review
+
+- [ ] Dengan sesi/persona aktif, capture area layar; pastikan local OCR mulai tanpa tombol kedua untuk memulai ekstraksi.
+- [ ] Ulangi dengan memilih jendela aplikasi.
+- [ ] Verifikasi progress, preview gambar, hasil OCR, koreksi manual, dan status ketidakpastian.
+- [ ] Pastikan AI analysis tidak berjalan otomatis sesudah OCR; lakukan tindakan AI hanya secara terpisah.
+- [ ] Matikan/gagalkan OCR secara terkontrol; pastikan preview tetap ada, pesan error jelas, retry dan manual text tersedia.
+- [ ] Pastikan OCR failure tidak pernah menampilkan synthetic fixture question.
+- [ ] Uji close/discard/manual-link saat OCR sedang berjalan; tindakan yang berisiko race harus dinonaktifkan sampai operasi selesai.
+- [ ] Periksa kebijakan retensi dan penghapusan temporary capture files.
+
+### 6. Privacy, credential, data deletion, dan backup
+
+- [ ] Verifikasi disclosure menunjukkan provider/destination yang benar sebelum request eksternal.
+- [ ] Pastikan sensitive facts dan external vision ditolak tanpa consent per-request yang relevan.
+- [ ] Pastikan capture/local OCR tidak membuat request provider.
+- [ ] Periksa log diagnostik hanya berisi data yang sudah disanitasi.
+- [ ] Uji hapus satu credential dan verifikasi Windows Credential Manager serta metadata database konsisten.
+- [ ] Pada profil sintetis, uji data wipe dengan dan tanpa secret; cocokkan ringkasan jumlah record dengan hasil aktual.
+- [ ] Backup dan restore database dalam instalasi disposable; verifikasi migrasi saat restore.
+
+### 7. Browser UI-only preview (bukan pengujian fungsi desktop)
+
+- [ ] Jalankan `npm ci` dan `npm run preview:ui`, buka `http://127.0.0.1:4173/?preview=1`.
+- [ ] Pastikan banner **UI PREVIEW** selalu terlihat dan semua persona/fakta merupakan data sintetis.
+- [ ] Uji seluruh halaman, ukuran viewport, template, import mock, dialog, empty/loading/error states.
+- [ ] Pastikan browser preview tidak meminta screen-capture permission, tidak memanggil Tauri, AI, jaringan, atau penyimpanan permanen.
+- [ ] Refresh halaman dan pastikan perubahan mock hilang.
+- [ ] Jangan memasukkan data pribadi, screenshot asli atau API key ke preview.
+
+### 8. Hasil dan bukti
+
+- [ ] Catat Windows edition/build, architecture, scaling, application version, installer SHA-256, commit SHA, dan workflow run ID.
+- [ ] Untuk setiap test catat Pass/Fail/Blocked, langkah reproduksi, dan bukti yang sudah disamarkan.
+- [ ] Jangan melampirkan database SQLite, screenshot pribadi, bearer token, API key, NIK, alamat, atau data responden.
+- [ ] Buat defect/regression test untuk setiap kegagalan sebelum menyatakan release gate lulus.
+
+**Penting:** sampai checklist ini benar-benar dijalankan pada perangkat Windows 11 x64, clean install/upgrade/uninstall/data-retention/credential behavior tetap berstatus **DEVICE TEST REQUIRED**. CI yang lulus tidak menggantikan pengujian device.

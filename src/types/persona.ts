@@ -36,3 +36,9 @@ export interface PersonaDependencySummary {
   attemptsCount: number;
   totalAssociatedRecords: number;
 }
+
+export interface ProfileImportResult {
+  persona: Persona;
+  importedFacts: number;
+  importedSources: number;
+}
