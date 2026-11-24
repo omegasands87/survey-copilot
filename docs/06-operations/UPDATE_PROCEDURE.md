@@ -1,69 +1,51 @@
-# Prosedur Pembaruan Aplikasi (Bug Fix & Update Workflow)
+# Prosedur Pembaruan Survey Copilot — Windows 11 x64
 
-Dokumen ini menjelaskan alur kerja (*workflow*) pembaruan aplikasi **Survey Copilot v1.0** saat ditemukan bug, perbaikan fitur, atau rilis pengujian baru di Windows 11 x64.
+Dokumen ini menjelaskan pembaruan installer internal NSIS. Build CI hanya untuk pengujian private beta; jangan mendistribusikannya sebagai rilis publik.
 
----
+## Prinsip keamanan pembaruan
 
-## 1. Prinsip Pembaruan yang Aman
+1. Tutup Survey Copilot sebelum menjalankan installer baru.
+2. Buat backup database sebelum update yang membawa migrasi atau perubahan besar.
+3. Pertahankan identifier aplikasi `com.surveycopilot.desktop` dan `installMode: currentUser` selama update biasa.
+4. Jangan menghapus folder data aplikasi atau credential untuk melakukan update in-place.
+5. Jalankan migrasi database saat aplikasi baru dibuka dan verifikasi bahwa data lama masih terbaca.
+6. Jangan menaikkan versi produk hanya untuk setiap commit; gunakan versi rilis yang konsisten dan terdokumentasi saat menyiapkan kandidat rilis.
 
-Pembaruan Survey Copilot dirancang agar:
-1. **Tidak Menghapus Data Pengguna**: Seluruh basis data SQLite (`survey-copilot.sqlite3`), persona profil, riwayat jawaban, dan kredensial API di Windows Credential Manager tetap utuh 100%.
-2. **Tidak Memerlukan Hak Administrator (UAC)**: Installer beroperasi pada lingkup pengguna saat ini (`currentUser`) di direktori `%LOCALAPPDATA%\Programs\Survey Copilot`.
-3. **Pembaruan In-Place**: Menjalankan installer versi baru langsung memperbarui (*overwrite*) biner program tanpa perlu mencopot (*uninstall*) versi lama terlebih dahulu.
+## Alur build untuk developer/QA
 
----
-
-## 2. Alur Kerja Pembaruan bagi Pengembang / QA
-
-Ketika bug ditemukan dan telah diperbaiki pada kode sumber:
-
-### Langkah 1: Perbaikan Kode Sumber & Pengujian Lokal
-1. Lakukan perbaikan bug pada repository (`src/` untuk UI React/TypeScript, atau `src-tauri/src/` untuk Rust backend).
-2. Jalankan pengujian frontend:
+1. Buat perubahan di branch fitur dan jalankan:
    ```powershell
-   npm.cmd test
+   npm ci
+   npm run build
+   npm test
+   cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+   cargo check --manifest-path src-tauri/Cargo.toml
+   cargo test --manifest-path src-tauri/Cargo.toml
    ```
-3. Jalankan pengujian backend Rust:
-   ```powershell
-   $env:PATH = "D:\rust-sysroot\bin;D:\mingw64\bin;" + $env:PATH
-   $env:CARGO_TARGET_DIR = "D:\cargo-target-sc"
-   cargo test --manifest-path src-tauri/Cargo.toml -j 1
-   ```
-4. Verifikasi seluruh pengujian lolos tanpa error.
+2. Buka Pull Request ke `main`. Workflow **Windows build** memeriksa frontend dan backend. Workflow **Windows NSIS installer package** menjalankan gate yang sama lalu membangun installer x64.
+3. Unduh artifact `Survey-Copilot-NSIS-<commit-sha>` dari halaman Actions. Artifact retensi 30 hari dan bukan GitHub Release.
+4. Periksa `build-manifest.json`, `SHA256SUMS.txt`, ukuran file dan status Authenticode sebelum membagikan paket ke tester internal.
+5. Bila build berstatus `NotSigned`, beri label unsigned/internal test only. Jangan menerbitkan ke publik.
 
-### Langkah 2: Peningkatan Versi (Bila Diperlukan)
-Jika pembaruan memerlukan kenaikan versi internal/beta:
-- Perbarui bidang `"version"` di file `package.json` dan `src-tauri/tauri.conf.json` (misalnya dari `"0.1.0"` ke `"0.1.1"`).
+## Prosedur update bagi tester
 
-### Langkah 3: Kompilasi Installer Baru
-Jalankan perintah build Tauri NSIS:
-```powershell
-$env:PATH = "D:\rust-sysroot\bin;D:\mingw64\bin;" + $env:PATH
-$env:CARGO_TARGET_DIR = "D:\cargo-target-sc"
-npx.cmd tauri build --bundles nsis -- -j 1
-```
-*Catatan:*
-- Gunakan flag `-j 1` agar alokasi memori dan beban CPU tetap stabil.
-- Jangan menghapus direktori `D:\cargo-target-sc` agar build inkremental berjalan sangat cepat (hanya mengompilasi ulang berkas yang diubah).
+1. Tutup aplikasi sepenuhnya.
+2. Backup folder database `%APPDATA%\com.surveycopilot.desktop` mengikuti [Backup & Restore](BACKUP_AND_RESTORE.md).
+3. Verifikasi SHA-256 installer baru.
+4. Jalankan installer versi baru pada user Windows yang sama. Gunakan current-user install yang sudah ada; tidak perlu uninstall versi sebelumnya untuk update normal.
+5. Selesaikan wizard, lalu buka aplikasi.
+6. Verifikasi persona, fakta, sumber, riwayat, dan konfigurasi lokal yang memang harus dipertahankan. Periksa diagnostik dan status provider tanpa menampilkan API key.
+7. Jika aplikasi gagal dibuka atau migrasi gagal, hentikan penggunaan dan pulihkan backup mengikuti prosedur restore.
 
-### Langkah 4: Distribusi Installer Pengujian
-- Installer hasil kompilasi akan berada di:
-  `D:\cargo-target-sc\release\bundle\nsis\Survey Copilot_<versi>_x64-setup.exe`
-- Berikan installer ini ke pengguna/tester untuk pengujian internal (jangan publikasikan ke GitHub Releases atau publik).
+## Retensi data saat uninstall
 
----
+Update in-place berbeda dari uninstall. Jangan centang **Delete app data** bila tujuan hanya memperbarui aplikasi. Pada uninstall yang disengaja, pilihan tersebut menentukan apakah folder data aplikasi lokal akan dihapus; credential Windows Credential Manager dikelola terpisah. Lihat [Installation](INSTALLATION.md) dan [Backup & Restore](BACKUP_AND_RESTORE.md).
 
-## 3. Langkah Instalasi Pembaruan bagi Pengguna / Tester
+## Rollback
 
-Bagi pengguna atau penguji yang sedang menggunakan versi sebelumnya:
-
-1. **Tutup Aplikasi**: Tutup Survey Copilot jika aplikasi sedang terbuka di layar.
-2. **(Opsional tapi Disarankan) Buat Salinan Cadangan Database**:
-   - Salin file `%APPDATA%\com.surveycopilot.desktop\survey-copilot.sqlite3` ke folder cadangan sementara (lihat panduan `BACKUP_AND_RESTORE.md`).
-3. **Jalankan Installer Baru**:
-   - Klik dua kali file installer `Survey Copilot_<versi>_x64-setup.exe`.
-   - Ikuti wizard instalasi NSIS hingga selesai.
-4. **Buka Aplikasi**:
-   - Jalankan Survey Copilot melalui Start Menu atau Shortcut Desktop.
-   - Periksa bahwa perbaikan bug telah aktif.
-   - Pastikan seluruh persona yang telah dibuat sebelumnya, data fakta, riwayat pertanyaan survei, dan koneksi API provider tetap berada di tempatnya dan berfungsi normal.
+Jika kandidat update merusak startup atau migrasi:
+- Hentikan percobaan update berikutnya.
+- Simpan log yang sudah disanitasi; jangan kirim database, screenshot pribadi, atau API key.
+- Gunakan installer internal sebelumnya hanya setelah pemeriksaan kompatibilitas.
+- Restore database hanya dari backup yang dibuat sebelum update dan ketika aplikasi tertutup.
+- Catat versi installer, commit SHA, versi skema database, dan langkah reproduksi.
