@@ -73,7 +73,7 @@ jobs:
           }
           ./scripts/validate-windows-installer.ps1 -InstallerPath $installers[0].FullName -OutputDirectory "release-artifacts"
 
-      - name: Upload private CI installer artifact
+      - name: Upload CI installer artifact (internal test package)
         uses: actions/upload-artifact@v4
         with:
           name: Survey-Copilot-NSIS-${{ github.sha }}
