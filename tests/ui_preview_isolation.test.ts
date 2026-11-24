@@ -29,6 +29,7 @@ test("browser preview requires an explicit preview=1 query parameter", () => {
     /new URLSearchParams\(window\.location\.search\)\.get\("preview"\) === "1"/,
   );
   assert.match(bootstrapSource, /await import\("\.\/preview\/PreviewApp"\)/);
+  assert.match(bootstrapSource, /Survey Copilot — UI Preview/);
 });
 
 test("preview visibly marks demo-only behavior and lack of desktop connectivity", () => {
