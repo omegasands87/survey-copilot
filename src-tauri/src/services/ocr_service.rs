@@ -6,9 +6,7 @@ use crate::domain::capture::CaptureMode;
 use crate::domain::error::AppError;
 use crate::domain::ocr::{ConfirmOcrExtractionInput, ExtractOcrInput, ExtractedSurveyQuestion};
 use crate::domain::survey::{ConfirmationStatus, CreateQuestionInput, Provenance, SurveyQuestion};
-use crate::infrastructure::ocr::{
-    CompositeOcrEngine, FixtureOcrEngine, OcrEngine, WindowsMediaOcrEngine,
-};
+use crate::infrastructure::ocr::{CompositeOcrEngine, OcrEngine, WindowsMediaOcrEngine};
 use crate::repository::OcrRepository;
 use crate::services::capture_service::CaptureService;
 use crate::services::layout_reconstructor::LayoutReconstructorService;
@@ -30,12 +28,11 @@ impl OcrService {
         }
     }
 
-    /// Membuat instance default OcrService dengan Windows Media OCR sebagai engine utama
-    /// dan FixtureOcrEngine sebagai engine uji / fallback
+    /// Membuat instance default OcrService tanpa synthetic fallback.
+    /// FixtureOcrEngine hanya boleh dipasang secara eksplisit oleh test harness.
     pub fn with_default_engine(temp_dir: PathBuf, database: Arc<Database>) -> Self {
         let primary = Arc::new(WindowsMediaOcrEngine::new());
-        let fallback = Arc::new(FixtureOcrEngine::new());
-        let composite = Arc::new(CompositeOcrEngine::new(primary, Some(fallback)));
+        let composite = Arc::new(CompositeOcrEngine::new(primary, None));
         Self::new(composite, temp_dir, database)
     }
 
