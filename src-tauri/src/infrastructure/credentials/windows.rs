@@ -59,6 +59,17 @@ mod ffi {
     extern "system" {
         pub fn GetLastError() -> u32;
     }
+
+    /// Ensures CredReadW allocations are released on every return path, including UTF-8 errors.
+    pub struct CredFreeGuard(pub *mut CREDENTIALW);
+
+    impl Drop for CredFreeGuard {
+        fn drop(&mut self) {
+            if !self.0.is_null() {
+                unsafe { CredFree(self.0 as *mut c_void) };
+            }
+        }
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -131,10 +142,22 @@ impl CredentialStore for WindowsCredentialStore {
             ));
         }
 
+        let _credential_guard = CredFreeGuard(cred_ptr);
+        let credential = unsafe { &*cred_ptr };
+
+        if credential.CredentialBlobSize == 0 {
+            return Ok(String::new());
+        }
+        if credential.CredentialBlob.is_null() {
+            return Err(AppError::credential_error(
+                "Data credential memiliki pointer blob null.",
+            ));
+        }
+
         let slice = unsafe {
             std::slice::from_raw_parts(
-                (*cred_ptr).CredentialBlob,
-                (*cred_ptr).CredentialBlobSize as usize,
+                credential.CredentialBlob,
+                credential.CredentialBlobSize as usize,
             )
         };
 
@@ -143,10 +166,6 @@ impl CredentialStore for WindowsCredentialStore {
                 AppError::credential_error("Data kredensial bukan format UTF-8 yang valid.")
             })?
             .to_string();
-
-        unsafe {
-            CredFree(cred_ptr as *mut _);
-        }
 
         Ok(secret)
     }
