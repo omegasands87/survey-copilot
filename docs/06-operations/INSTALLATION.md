@@ -11,7 +11,7 @@ Artifact berisi:
 - `SHA256SUMS.txt` dan file `.sha256` pendamping
 - `build-manifest.json` berisi versi, ukuran, hash, mode instalasi, serta status Authenticode
 
-Artifact CI memiliki masa retensi terbatas (30 hari). Ini bukan tautan GitHub Releases permanen. Jangan mengunduh installer yang dikirim ulang dari sumber tidak resmi.
+Artifact CI memiliki masa retensi terbatas (30 hari). Ini bukan tautan GitHub Releases permanen. Karena repository bersifat public, perlakukan artifact sebagai dapat diakses pembaca repository—bukan distribusi privat. Paket hanya boleh berisi installer dan manifest tanpa data pengguna, database, screenshot, API key, atau secret. Jangan mengunduh installer yang dikirim ulang dari sumber tidak resmi.
 
 ## Verifikasi integritas
 
