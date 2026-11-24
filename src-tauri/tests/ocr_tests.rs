@@ -558,13 +558,37 @@ fn test_ocr_source_text_and_screenshot_immutability() {
     let png_bytes = create_synthetic_png(200, 100);
     fs::write(&file_path, &png_bytes).unwrap();
 
+    // Persist the owning persona, session, and capture row so OCR extraction
+    // exercises the same foreign-key contract as a real desktop capture.
+    let persona_id;
+    let session_id;
+    {
+        let conn = db.connection.lock().unwrap();
+        persona_id = create_test_persona(&conn, "OCR Immutability Demo");
+        session_id = create_test_session(&conn, &persona_id, "OCR Immutability Session");
+        let now = chrono::Utc::now().to_rfc3339();
+        conn.execute(
+            "INSERT INTO screen_captures
+              (id, session_id, capture_mode, captured_at, application_label, temporary_image_path, created_at)
+             VALUES (?1, ?2, 'region', ?3, 'OCR Test', ?4, ?5)",
+            rusqlite::params![
+                capture_id,
+                session_id,
+                now,
+                file_path.to_string_lossy().to_string(),
+                now
+            ],
+        )
+        .unwrap();
+    }
+
     let fixture_engine = Arc::new(FixtureOcrEngine::new());
     let ocr_service = OcrService::new(fixture_engine, capture_dir, Arc::new(db));
 
     let input = ExtractOcrInput {
         capture_id: capture_id.clone(),
-        session_id: None,
-        persona_id: None,
+        session_id: Some(session_id),
+        persona_id: Some(persona_id),
         engine: None,
     };
 
