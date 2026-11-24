@@ -66,18 +66,22 @@ impl DefaultHttpTransport {
             .map_err(|e| Self::invalid_endpoint(e.message))?;
         let parsed = url::Url::parse(&validated_url)
             .map_err(|_| Self::invalid_endpoint("URL endpoint tidak valid."))?;
-        let host = parsed
-            .host_str()
-            .ok_or_else(|| Self::invalid_endpoint("Host endpoint tidak valid."))?;
         let port = parsed
             .port_or_known_default()
             .ok_or_else(|| Self::invalid_endpoint("Port endpoint tidak valid."))?;
-        let allow_loopback = EndpointValidator::is_local_host(host);
 
-        let addresses: Vec<SocketAddr> = if let Ok(ip) = host.parse() {
+        let (resolution_host, literal_ip) = match parsed.host() {
+            Some(url::Host::Domain(domain)) => (domain.to_string(), None),
+            Some(url::Host::Ipv4(ip)) => (ip.to_string(), Some(std::net::IpAddr::V4(ip))),
+            Some(url::Host::Ipv6(ip)) => (ip.to_string(), Some(std::net::IpAddr::V6(ip))),
+            None => return Err(Self::invalid_endpoint("Host endpoint tidak valid.")),
+        };
+        let allow_loopback = EndpointValidator::is_local_host(&resolution_host);
+
+        let addresses: Vec<SocketAddr> = if let Some(ip) = literal_ip {
             vec![SocketAddr::new(ip, 0)]
         } else {
-            (host, port)
+            (resolution_host.as_str(), port)
                 .to_socket_addrs()
                 .map_err(|_| Self::invalid_endpoint("DNS endpoint tidak dapat di-resolve."))?
                 .map(|address| SocketAddr::new(address.ip(), 0))
@@ -102,7 +106,7 @@ impl DefaultHttpTransport {
         let client = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
             .no_proxy()
-            .resolve_to_addrs(host, &addresses)
+            .resolve_to_addrs(&resolution_host, &addresses)
             .build()
             .map_err(|_| Self::invalid_endpoint("HTTP transport gagal diinisialisasi."))?;
 
